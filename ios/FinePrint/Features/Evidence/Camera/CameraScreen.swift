@@ -7,6 +7,7 @@ struct CameraScreen: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.openURL) private var openURL
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(UploadQueue.self) private var uploads: UploadQueue?
     private let onFinish: (CapturedPhoto) -> Void
 
     init(context: CaptureContext, store: EvidenceStore, onFinish: @escaping (CapturedPhoto) -> Void = { _ in }) {
@@ -56,6 +57,7 @@ struct CameraScreen: View {
             )
         case .review(let photo):
             CaptureReview(photo: photo, context: model.context, onRetake: model.retake) {
+                model.keepPhotoUnderReview(in: uploads)
                 onFinish(photo)
                 dismiss()
             }
@@ -268,6 +270,10 @@ private struct CaptureReview: View {
                 .font(.headline)
                 .accessibilityIdentifier("camera.saved")
             }
+
+            // Kept photos join the upload queue; none is sealed until the report is (#24).
+            SealStatusPill(status: .waiting)
+                .accessibilityIdentifier("camera.sealStatus")
 
             VStack(alignment: .leading, spacing: 4) {
                 Text("SHA-256 fingerprint")

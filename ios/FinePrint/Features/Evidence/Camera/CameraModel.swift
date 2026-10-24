@@ -124,6 +124,13 @@ final class CameraModel {
         phase = .ready
     }
 
+    /// The tenant kept the photo under review: the upload queue owns it from here, and uploads it
+    /// whenever the device is online (spec §6.3, §8.2).
+    func keepPhotoUnderReview(in uploads: UploadQueue?) {
+        guard case .review(let photo) = phase else { return }
+        uploads?.enqueue(photo)
+    }
+
     func discardPhotoUnderReview() {
         guard case .review(let photo) = phase else { return }
         try? pipeline.store.delete(photo.record)
