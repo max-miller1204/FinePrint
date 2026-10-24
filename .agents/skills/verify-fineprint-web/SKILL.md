@@ -114,4 +114,6 @@ the evidence, and all of it is gitignored.
 ## Helpers
 
 `pnpm test:e2e:web` in `e2e/` runs this target only. Otherwise the e2e
-CLI is the helper. Unit tests: `pnpm --filter server test` (vitest).
+CLI is the helper. Unit tests: `pnpm --filter server test` (vitest). The
+Gemma client has a live check against the real API, `op run --env-file
+../.env -- pnpm smoke:gemma` from `server/` ([features/gemma-client.md](features/gemma-client.md)).

@@ -12,12 +12,15 @@
     "start": "node dist/index.js",
     "typecheck": "tsc --noEmit",
     "test": "vitest run --exclude 'test/emulator/**'",
-    "test:emulator": "firebase emulators:exec --only auth,firestore --project demo-fineprint \"vitest run --dir test/emulator\""
+    "test:emulator": "firebase emulators:exec --only auth,firestore --project demo-fineprint \"vitest run --dir test/emulator\"",
+    "smoke:gemma": "tsx scripts/gemma-live.ts"
   },
   "dependencies": {
+    "@google/genai": "^2.31.0",
     "@hono/node-server": "^2.1.5",
     "firebase-admin": "^14.5.0",
-    "hono": "^4.13.13"
+    "hono": "^4.13.13",
+    "zod": "^4.6.7"
   },
   "devDependencies": {
     "@firebase/rules-unit-testing": "^6.0.0",
