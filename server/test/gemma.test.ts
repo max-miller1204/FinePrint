@@ -6,12 +6,13 @@ import {
   GemmaOutputError,
   GemmaRequestError,
   GemmaUnavailableError,
+  JSON_RULE,
   backoffMs,
   createGemma,
   stripFence,
   type GemmaEvent,
 } from '../src/ai/gemma.js';
-import { FLASH, GEMMA_26B, GEMMA_31B, fallbackChain, modelConfigFromEnv } from '../src/ai/models.js';
+import { FLASH, GEMMA_26B, GEMMA_31B, STAGES, fallbackChain, modelConfigFromEnv } from '../src/ai/models.js';
 import { geminiProvider, providerFromConfig, type GenAiModels } from '../src/ai/provider.js';
 import type { Clock } from '../src/ratelimit.js';
 import { memoryUsageSink, type UsageSink } from '../src/usage.js';
@@ -52,7 +53,10 @@ function apiError(status: number, message = '{}') {
 type Step = GenerateContentResponse | ApiError;
 
 // Mocks the SDK: each call takes the next step, per model when `steps` is keyed by model.
-function setup(steps: Step[] | Record<string, Step[]>, { usage = memoryUsageSink() as UsageSink, env = {} as NodeJS.ProcessEnv } = {}) {
+function setup(
+  steps: Step[] | Record<string, Step[]>,
+  { usage = memoryUsageSink() as UsageSink, env = {} as NodeJS.ProcessEnv, stages = STAGES } = {},
+) {
   const queues = Array.isArray(steps) ? null : new Map(Object.entries(steps).map(([k, v]) => [k, [...v]]));
   const shared = Array.isArray(steps) ? [...steps] : [];
   const generateContent = vi.fn(async (params: GenerateContentParameters) => {
@@ -69,6 +73,7 @@ function setup(steps: Step[] | Record<string, Step[]>, { usage = memoryUsageSink
     usage,
     clock,
     random: () => 0.5,
+    stages,
     log: {
       debug: () => {},
       info: (message, fields) => lines.push({ message, ...fields }),
@@ -219,6 +224,32 @@ describe('generate', () => {
     expect((await run()).data).toEqual(ANSWER);
     await new Promise((r) => setImmediate(r));
     expect(lines).toContainEqual(expect.objectContaining({ message: 'usage record failed', errorName: 'Error' }));
+  });
+
+  it('sends the schema as text and no stop sequence on a json stage, so the model can think', async () => {
+    const stages = { ...STAGES, mapping: { ...STAGES.mapping, output: 'json' as const } };
+    const { run, generateContent } = setup([reply(`\`\`\`json\n${JSON.stringify(ANSWER)}\n\`\`\``)], { stages });
+    expect((await run()).data).toEqual(ANSWER);
+    const config = generateContent.mock.calls[0]![0].config!;
+    expect(config.responseSchema).toBeUndefined();
+    expect(config.stopSequences).toBeUndefined();
+    expect(config).toMatchObject({ responseMimeType: 'application/json', thinkingConfig: { thinkingLevel: 'HIGH' } });
+    const [rule, schemaText] = (config.systemInstruction as string).split(`${JSON_RULE}\n`);
+    expect(rule!.startsWith(DOCUMENT_RULE)).toBe(true);
+    expect(JSON.parse(schemaText!)).toMatchObject({
+      properties: { severity: { enum: ['unenforceable', 'ask', 'info'] } },
+      required: ['clause', 'severity', 'feeDollars'],
+    });
+  });
+
+  it('still rejects an off-schema answer on a json stage', async () => {
+    const stages = { ...STAGES, mapping: { ...STAGES.mapping, output: 'json' as const } };
+    const { run } = setup([reply(JSON.stringify({ ...ANSWER, severity: 'fine' })), reply(JSON.stringify({ ...ANSWER, severity: 'fine' }))], { stages });
+    await expect(run()).rejects.toBeInstanceOf(GemmaOutputError);
+  });
+
+  it('keeps every stage on schema output until an eval says otherwise', () => {
+    expect(Object.values(STAGES).every((s) => s.output === 'schema')).toBe(true);
   });
 
   it('honors GEMMA_PRIMARY for a dev run on Flash', async () => {

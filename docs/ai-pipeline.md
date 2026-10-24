@@ -81,7 +81,7 @@ Checked with Xcode 27.1 (27A9275), Swift 6.4, and the iOS 27.1 simulator SDK. Th
 3. **Input tokens per minute (16K per model) are the real bottleneck, not requests.** The spec estimates a 12-page lease analysis at about 31K input tokens. On 26B alone that is about two minutes of token budget per lease, so one lease at a time per project. The limiter must budget input tokens as well as requests (count with `countTokens` or estimate before sending). The SSE stream must report the wait. Splitting work between 26B and 31B spreads the load, since each model has its own quota. Affects #9, #14, #16.
 4. **Structured output is not strictly guaranteed on any model.** 26B was strict in every sample here, but one sample per call is not a guarantee. Every call must validate with Zod and retry once on failure, as spec §7.1 already plans. Affects #9.
 5. **31B has transient server errors.** On 2026-10-24, `gemma-4-31b-it` returned HTTP 503 ("experiencing high demand") and HTTP 500 ("Internal error") between successful calls over several minutes. 26B was unaffected. The client must retry 500 and 503 with backoff, not only 429. The verifier also needs a fallback for when 31B stays down, such as marking findings "unverified" instead of failing the analysis. The smoke script retries these up to 3 times (10, 20, 40 s). Affects #9 and #15.
-6. **Schema-constrained output turns thinking off.** Measured on 2026-10-24 (#9): with `responseSchema` or `responseJsonSchema` set, both models report 0 thought tokens at `thinkingLevel: "high"` (26B in 9 of 9 answers, 31B in the 1 answer it gave; its other calls returned HTTP 500). With `responseMimeType: "application/json"` alone, `high` still thinks (26B 147 to 339 thought tokens, 31B 59). So `high` on a schema call costs nothing and adds nothing. The client keeps `responseSchema` on every call (spec §7.1 principle 2) and records `thoughtTokens` per call, so a later change is measurable. If mapping or verification needs reasoning, the options are JSON mode without a schema (Zod still validates) or a two-step call. Affects #14, #15.
+6. **Schema-constrained output turns thinking off.** Measured on 2026-10-24 (#9): with `responseSchema` or `responseJsonSchema` set, both models report 0 thought tokens at `thinkingLevel: "high"` (26B in 9 of 9 answers, 31B in the 1 answer it gave; its other calls returned HTTP 500). With `responseMimeType: "application/json"` alone, `high` still thinks (26B 147 to 339 thought tokens, 31B 59). So `high` on a schema call costs nothing and adds nothing. **Fix (#9):** each stage has an output mode. `schema` (the default for every stage) sends `responseSchema` and gets no thinking. `json` sends the schema as text in the system instruction with `responseMimeType: "application/json"` only, so the model thinks, and Zod still rejects anything off the schema. A `json` call sends no fence stop sequence: with thinking on, 31B returned an empty answer in 2 of 3 calls with the stop set, and 3 of 3 valid answers without it; fence stripping covers the trailing fence instead. Through `generate()`, `json` mode gave 390 thought tokens on 26B and 338 on 31B, at about 10 s per call against 1.5 s for `schema`. Which stages switch is decided on the eval set (#14, #15).
 
 ## Gemma client (#9)
 
@@ -95,7 +95,7 @@ const { data, model, fallback } = await gemma.generate('mapping', FindingSchema,
 | File | What it does |
 | --- | --- |
 | `server/src/ai/gemma.ts` | `generate(stage, schema, docs, options)`: limiter, retries, fallback, fence stripping, Zod validation (one retry on invalid output), a usage record and a `model call` log line per request |
-| `server/src/ai/models.ts` | Model IDs, the stage table (role and thinking level), fallback chains, per-model quota |
+| `server/src/ai/models.ts` | Model IDs, the stage table (role, thinking level, output mode), fallback chains, per-model quota |
 | `server/src/ai/response-schema.ts` | Zod to `responseSchema` (OpenAPI 3.0 subset, with `propertyOrdering`). Throws at first use on what the API cannot express (recursive schemas, number enums) |
 | `server/src/ai/documents.ts` | `<document id="...">` wrapping, the injection rule for the system instruction, and escaping so a document cannot close its own tag |
 | `server/src/ai/provider.ts` | The `GEMMA_PROVIDER` seam. `gemini` calls `@google/genai` with SDK retries off; `openai_compatible` is declared, not built |
@@ -114,7 +114,8 @@ const { data, model, fallback } = await gemma.generate('mapping', FindingSchema,
 
 ### Behavior
 
-- **Thinking:** `minimal` for triage, vision, ask, explanation, and translation; `high` for extraction, mapping, verification, and responsibility (but see gap 6).
+- **Thinking:** `minimal` for triage, vision, ask, explanation, and translation; `high` for extraction, mapping, verification, and responsibility. `high` takes effect only on a `json` stage (gap 6).
+- **Output mode:** `schema` (every stage today) sends `responseSchema` and the fence stop sequence. `json` sends the Zod schema as JSON Schema text after the document rule, no `responseSchema`, and no stop sequence. Both strip fences and validate with Zod. Set it per stage in `STAGES`.
 - **Retries:** 429, 500, 502, 503, 504, and network errors retry 4 times per model with exponential backoff (2, 4, 8, 16 s, equal jitter), or after the API's `retryDelay` on a 429. A 429 also empties that model's buckets. Other errors (such as 400) throw `GemmaRequestError` at once.
 - **Fallback:** when a model runs out of retries, the next one in the chain answers. Primary: 26B, then Flash. Verifier: 31B, then 26B, then Flash. Each step emits a `fallback` event and a `model fallback` warning, and the result carries `model` and `fallback: true`. When every model fails, `GemmaUnavailableError` lets the verifier mark findings "unverified" (#15).
 - **Rate limits:** input tokens are estimated at 4 characters per token (260 per image) before the call, then corrected with the API's `promptTokenCount`. A wait emits a `waiting` event with the ms, for the SSE stream.
@@ -126,4 +127,4 @@ pnpm --filter @fineprint/server test                               # unit tests,
 cd server && op run --env-file ../.env -- pnpm smoke:gemma          # live: one 26B and one 31B stage through generate()
 ```
 
-`smoke:gemma` exits `0` when both stages return schema-valid output, and prints the model that answered, any fallback, and the usage records.
+`smoke:gemma` runs `mapping` and `verification` in both output modes. It exits `0` when every call returns schema-valid output and every `json` call thinks, and prints the model that answered, the thought tokens, any fallback, and the usage records.

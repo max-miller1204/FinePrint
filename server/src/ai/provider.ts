@@ -13,7 +13,8 @@ export interface ProviderRequest {
   model: string;
   systemInstruction: string;
   parts: Part[];
-  responseSchema: ResponseSchema;
+  // Omitted in `json` mode: the API then allows thinking (docs/ai-pipeline.md, gap 6).
+  responseSchema?: ResponseSchema;
   thinking: ThinkingLevel;
   signal?: AbortSignal;
 }
@@ -45,7 +46,8 @@ export class ProviderError extends Error {
 
 // 31B fences its JSON about 2 times in 3 unless generation stops at the fence
 // (docs/ai-pipeline.md, gap 1). A fence inside a JSON string also stops it;
-// the client then fails validation and retries.
+// the client then fails validation and retries. Only for schema calls: with
+// thinking on, 31B opens its answer with a fence and the stop leaves it empty.
 const JSON_FENCE = '```';
 
 const THINKING: Record<ThinkingLevel, SdkThinkingLevel> = {
@@ -70,8 +72,7 @@ export function geminiProvider(models: GenAiModels): ModelProvider {
           config: {
             systemInstruction: request.systemInstruction,
             responseMimeType: 'application/json',
-            responseSchema: request.responseSchema,
-            stopSequences: [JSON_FENCE],
+            ...(request.responseSchema ? { responseSchema: request.responseSchema, stopSequences: [JSON_FENCE] } : {}),
             thinkingConfig: { thinkingLevel: THINKING[request.thinking] },
             ...(request.signal ? { abortSignal: request.signal } : {}),
           },

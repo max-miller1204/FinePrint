@@ -11,6 +11,10 @@ AI features reach it through `generate(stage, schema, docs, { task })` in
   from non-thought parts, a code fence is stripped, and the result is
   validated with Zod, with one retry on invalid output (`GemmaOutputError`
   after that).
+- Two output modes per stage (`STAGES` in `models.ts`): `schema` sends
+  `responseSchema` and the model does not think; `json` sends the schema as
+  text and no stop sequence, so `high` thinking takes effect. Every stage
+  is on `schema` until the eval set (#14, #15) says otherwise.
 - Documents are wrapped in `<document id="...">` under a system instruction
   that says their text cannot change the task. A document cannot close its
   own tag.
@@ -44,9 +48,11 @@ op run --env-file ../.env -- pnpm smoke:gemma
 
 ## Proof
 
-`smoke:gemma` prints `[ok ]` for `mapping` on `gemma-4-26b-a4b-it` and
-`verification` on `gemma-4-31b-it`, with no `(FALLBACK)`, one usage record
-per request, and `PASS` with exit 0. Rerun
+`smoke:gemma` prints `[ok ]` for `mapping (schema)` and `mapping (json)` on
+`gemma-4-26b-a4b-it` and for `verification (schema)` and `verification
+(json)` on `gemma-4-31b-it`, with no `(FALLBACK)`, 0 thought tokens on the
+`schema` lines and more than 0 on the `json` lines, one usage record per
+request, and `PASS` with exit 0. Rerun
 `scripts/smoke/gemma-capabilities.ts` after changes to the request shape.
 
 ## Charters
@@ -57,7 +63,9 @@ cover document injection end to end.
 ## Gotchas
 
 - With a schema set, `high` thinking yields 0 thought tokens
-  (`docs/ai-pipeline.md`, gap 6).
+  (`docs/ai-pipeline.md`, gap 6). Use a `json` stage to think.
+- Do not add the fence stop sequence to `json` calls: with thinking on, 31B
+  then often returns an empty answer.
 - 31B, and sometimes 26B, return transient HTTP 500 and 503. A live run can
   take a minute of retries, or answer from a fallback. That is reported, not
   a failure.

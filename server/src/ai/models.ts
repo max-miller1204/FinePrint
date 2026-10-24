@@ -24,23 +24,32 @@ export type Stage =
   | 'explanation'
   | 'translation';
 
+// `schema` sends the Zod schema as `responseSchema`: the API holds the answer
+// to its shape, but the model does not think, even at `high`. `json` sends the
+// schema as text in the system instruction and asks for plain JSON: the model
+// thinks, and Zod still rejects anything off the schema (docs/ai-pipeline.md,
+// gap 6). Pick per stage from eval results (#14, #15).
+export type OutputMode = 'schema' | 'json';
+
 export interface StageConfig {
   role: ModelRole;
   thinking: ThinkingLevel;
+  output: OutputMode;
 }
 
 // Spec §7.2: `minimal` for triage and vision, `high` for mapping and verification.
+// `high` only takes effect on a `json` stage.
 export const STAGES: Record<Stage, StageConfig> = {
-  triage: { role: 'primary', thinking: 'minimal' },
-  extraction: { role: 'primary', thinking: 'high' },
-  mapping: { role: 'primary', thinking: 'high' },
-  verification: { role: 'verifier', thinking: 'high' },
-  vision: { role: 'primary', thinking: 'minimal' },
-  responsibility: { role: 'primary', thinking: 'high' },
-  responsibility_verify: { role: 'verifier', thinking: 'high' },
-  ask: { role: 'primary', thinking: 'minimal' },
-  explanation: { role: 'primary', thinking: 'minimal' },
-  translation: { role: 'primary', thinking: 'minimal' },
+  triage: { role: 'primary', thinking: 'minimal', output: 'schema' },
+  extraction: { role: 'primary', thinking: 'high', output: 'schema' },
+  mapping: { role: 'primary', thinking: 'high', output: 'schema' },
+  verification: { role: 'verifier', thinking: 'high', output: 'schema' },
+  vision: { role: 'primary', thinking: 'minimal', output: 'schema' },
+  responsibility: { role: 'primary', thinking: 'high', output: 'schema' },
+  responsibility_verify: { role: 'verifier', thinking: 'high', output: 'schema' },
+  ask: { role: 'primary', thinking: 'minimal', output: 'schema' },
+  explanation: { role: 'primary', thinking: 'minimal', output: 'schema' },
+  translation: { role: 'primary', thinking: 'minimal', output: 'schema' },
 };
 
 export type ProviderName = 'gemini' | 'openai_compatible';
