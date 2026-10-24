@@ -46,6 +46,12 @@ final class DeadlineStore {
         #endif
     }
 
+    /// Creates the deadlines that follow from where the tenant is in the rental, such as the
+    /// landlord's move-in report within 5 days of occupancy (spec §4.2 step 4). Onboarding calls
+    /// this. It never asks for notification permission: that is asked in context later (§4.2 step 5).
+    /// A stub until #29 lands.
+    func seedInitialDeadlines(for rental: Rental, now: Date = .now) {}
+
     #if DEBUG
     /// Developer-menu switch between the sample deadline and the empty state.
     var showsSample: Bool {
