@@ -30,10 +30,11 @@ Run commands from the root of max-miller1204/FinePrint, with `LINEAR_BOARD_CONFI
 | Workflow state | `Status`: Todo, In Progress, Done |
 | Now / Next / Later | Now = In Progress, Next = Todo |
 | Priority | `Priority`: Urgent, High, Medium, Low, No priority |
+| Blocked by | GitHub issue dependencies (`board block`). Shown on the issue and the board card. A closed blocker no longer counts |
 | Type | Label: bug, feature, chore |
 | Duplicate | Closed as duplicate (there is no Canceled status) |
 
-The git-sync Action requires the setup on the default branch and a PROJECT_TOKEN secret:
+Automation that already runs, so do not repeat it by hand:
 
 - New issues with no Status land in **Todo**.
 - A branch named `12-...` moves #12 to In Progress and assigns the branch creator.
@@ -56,32 +57,22 @@ Ask only for the values that are missing. Use the defaults: type from context, p
 
 ```
 board create --repo REPO --title "..." --body "..." --type bug|feature|chore --priority High \
-  [--assignee @me] [--status Todo]
+  [--assignee @me] [--status Todo] [--blocked-by '#3']
 ```
 
 Use only the flags for fields the board has (see `board profile`). Status defaults to Todo. Use `--status Todo` for Next.
+When the issue cannot start until other issues are done, add `--blocked-by '#3,#5'`. For an existing issue, run `board block REF BLOCKER_REF...` (`board unblock` removes links). When you file a batch of related issues, create the blockers first so you can reference them.
 Report the URL.
-
-If the new issue cannot start until another issue is done, list the blocker under `### Blocked by` in the body and add a blocked-by link:
-
-```
-gh api -X POST repos/OWNER/REPO/issues/N/dependencies/blocked_by -F issue_id=$(gh api repos/OWNER/REPO/issues/BLOCKER -q .id)
-```
 
 ## 3. What's next
 
-Run `board next --limit 15`. It shows:
+Run `board next` (or `board next --limit 10`). It shows:
 
 - **Now**: items In Progress, and the WIP count against the limit of 5.
-- **Next**: open Todo items, ordered by priority (Urgent first), then by age (oldest first).
+- **Next**: open Todo items with no open blockers, ordered by priority (Urgent first), then by age (oldest first).
+- **Blocked**: open items that wait on other open issues, with what each one waits on.
 
-`board next` does not know about blocked-by links. Check each Next item in order until one has no open blockers:
-
-```
-gh api repos/OWNER/REPO/issues/N/dependencies/blocked_by --jq '[.[] | select(.state == "open") | .number]'
-```
-
-Suggest the first item that returns `[]`. Name the higher-priority items you skipped and what blocks them, such as "#14 waits on #13". If every item is blocked, say so and suggest working on the blockers. When the user starts it, run `board set REF status="In Progress"`. If the board is over the WIP limit, the command prints a warning: tell the user and suggest finishing or pausing something first. Do not refuse to start the item.
+Suggest the top Next item. If a Blocked item outranks it, say what it waits on, such as "#14 waits on #13". If the user wants a blocked item anyway, suggest working on its blockers first. When the user starts it, run `board set REF status="In Progress"`. If the board is over the WIP limit, the command prints a warning: tell the user and suggest finishing or pausing something first. Do not refuse to start the item.
 
 To see what got done, run `board digest --dry-run`.
 
@@ -104,3 +95,4 @@ Upgrades only add Status options, fields, views, labels, workflows, and issue fo
 - Ask before you close, decline, or bulk-edit issues.
 - Use the CLI for writes. For something the CLI does not cover, use `gh api graphql` with the IDs from config.json.
 - Item JSON for custom queries: `board items --status Todo | jq ...`.
+
