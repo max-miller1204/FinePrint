@@ -46,11 +46,19 @@
     "Ask" : {},
     "Ask a question about your lease or Virginia rental law. Each answer will show the clause or law it comes from." : {},
     "Ask about your rental" : {},
+    "Blurry. Hold the phone steady and take it again." : {},
+    "Camera" : {
+      "comment" : "Developer menu section header for trying the evidence camera."
+    },
+    "Camera access is off" : {},
+    "Camera not available" : {},
     "Can't connect. Check your connection and try again." : {},
     "Change Server" : {},
     "Check with Server" : {
       "comment" : "Developer menu button that asks the server to confirm it accepts the app's sign-in."
     },
+    "Close camera" : {},
+    "Close the camera and try again. If it keeps happening, restart your phone." : {},
     "Couldn't sign in" : {},
     "Default" : {},
     "Developer" : {},
@@ -59,10 +67,16 @@
     "Due today" : {},
     "Enter a server address." : {},
     "Evidence" : {},
+    "FinePrint can't find a camera on this device. Use an iPhone to take move-in photos." : {},
     "FinePrint gives legal information, not legal advice." : {},
     "FinePrint signs in without an account. It never asks for an email or phone number." : {},
+    "Flash" : {
+      "comment" : "VoiceOver label of the camera flash button."
+    },
+    "Good light. Ready for the photo." : {},
     "Good to know" : {},
     "Hide Developer Options" : {},
+    "Hold the phone steady." : {},
     "ID Token" : {
       "comment" : "Developer menu label. The ID token is the short-lived proof of sign-in the app sends to the server."
     },
@@ -70,6 +84,11 @@
       "comment" : "Developer menu label for the server address the app is using right now."
     },
     "In Virginia, you have 5 days after you get your landlord's move-in report to object to it in writing, so take your photos early." : {},
+    "Keep Photo" : {},
+    "Kitchen" : {
+      "comment" : "Room name for the developer menu test photo."
+    },
+    "Last Photo SHA-256" : {},
     "Launch argument" : {},
     "Lease" : {},
     "Legal information, not legal advice." : {},
@@ -95,10 +114,37 @@
     "Object to move-in report" : {
       "comment" : "Title of the sample deadline: the tenant's 5-day window to object to the landlord's move-in report."
     },
+    "Off" : {
+      "comment" : "VoiceOver value of the camera flash button."
+    },
+    "On" : {
+      "comment" : "VoiceOver value of the camera flash button."
+    },
+    "Open Camera" : {},
+    "Open Settings" : {},
     "Opens Evidence" : {},
     "Past due" : {},
+    "Photo of %@ in %@" : {
+      "comment" : "VoiceOver label of the photo under review: checklist item, then room.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Photo of %1$@ in %2$@"
+          }
+        }
+      }
+    },
+    "Photo saved on this device." : {},
+    "Photo saved." : {},
     "Repairs" : {},
     "Reset to Default" : {},
+    "Retake" : {
+      "comment" : "Button on the photo review screen that discards the photo and reopens the camera."
+    },
+    "SHA-256 fingerprint" : {
+      "comment" : "Label above the hash of the photo just taken."
+    },
     "Sample Data" : {},
     "Save Server URL" : {},
     "Saved here" : {},
@@ -117,6 +163,20 @@
     "Status" : {
       "comment" : "Developer menu label for the state of the anonymous sign-in."
     },
+    "Take photo of %@ in %@" : {
+      "comment" : "VoiceOver label of the camera shutter: checklist item, then room, such as “Take photo of Walls in Kitchen”.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Take photo of %1$@ in %2$@"
+          }
+        }
+      }
+    },
+    "Takes a test photo for the kitchen walls. It is hashed and saved on this device only." : {},
+    "The camera didn't start" : {},
+    "The photo didn't save. Try again." : {},
     "The server accepted this sign-in." : {},
     "The server answered with an error (%lld)." : {
       "comment" : "The number is the HTTP status code the server returned."
@@ -126,8 +186,13 @@
     "This account has been turned off." : {},
     "This doesn't look like a web address." : {},
     "This server isn't set up for sign-in yet." : {},
+    "To photograph your rental, allow camera access for FinePrint in Settings." : {},
+    "Too bright. Turn away from the bright light." : {},
+    "Too bright. Turn away from the window or bright light." : {},
+    "Too dark. Turn on a light or use flash." : {},
     "Try Signing In Again" : {},
     "Turns the deadline above the tab bar on or off so both states can be checked." : {},
+    "Use Photo" : {},
     "Use http:// or https:// with a host name, for example https://fineprint.example.org." : {},
     "User ID" : {
       "comment" : "Developer menu label for the anonymous account's Firebase user ID."
@@ -138,6 +203,9 @@
     "Verified" : {},
     "Version" : {},
     "Waiting to seal" : {},
+    "Walls" : {
+      "comment" : "Checklist item for the developer menu test photo."
+    },
     "When something breaks, add it here. You'll see who is likely responsible and get help writing a repair request." : {},
     "Worth asking about" : {},
     "Your sign-in ended. FinePrint will start a new one." : {}
