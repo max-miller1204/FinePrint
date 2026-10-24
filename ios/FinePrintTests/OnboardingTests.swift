@@ -155,9 +155,10 @@ struct RentalSyncTests {
         let rental = OnboardingDraft.skipped()
         let api = client(http)
 
-        async let launchSync: Void = RentalSync.upload(rental, with: api)
-        async let uploadQueue: Void = RentalSync.upload(rental, with: api)
-        _ = try await (launchSync, uploadQueue)
+        let launchSync = Task { try await RentalSync.upload(rental, with: api) }
+        let uploadQueue = Task { try await RentalSync.upload(rental, with: api) }
+        try await launchSync.value
+        try await uploadQueue.value
 
         #expect(rental.serverID == "rental-1")
         #expect(http.requests(to: "rentals").count == 1)
