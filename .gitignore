@@ -21,6 +21,9 @@ DerivedData/
 # macOS
 .DS_Store
 
+# Smoke test output
+scripts/smoke/out/
+
 # e2e bug-bash config (local only)
 e2e/e2e.bugbash.config.ts
 
