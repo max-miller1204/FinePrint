@@ -127,7 +127,7 @@ private struct WelcomeStep: View {
                     .foregroundStyle(.blue)
             }
             .accessibilityIdentifier("onboarding.disclosure")
-            Text("No account needed. Your photos stay on your phone.")
+            Text("No account needed.")
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
         }
