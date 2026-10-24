@@ -1,11 +1,10 @@
 # Issue workflow
 
 - Use the [board skill](.agents/skills/max-2-board/SKILL.md).
-- Check ownership before starting. Assign yourself and set In Progress.
-- Name branches `<issue-number>-<description>`, such as `12-add-document-upload`.
+- Check ownership before starting. Do not start an issue assigned to someone else.
+- Name branches `<issue-number>-<description>`, such as `12-add-document-upload`. Pushing the branch moves the issue to In Progress and assigns you. Creating it locally does not.
 - Include `Closes #N` in PRs that complete the issue.
 - Numbered branch merges close the issue automatically. For partial work, use an unnumbered branch and `Refs #N`.
-- Verify ownership and status after git-sync runs.
 
 # Pull requests
 
