@@ -38,7 +38,7 @@ server under `firebase emulators:exec --only auth`, which sets
 
 `pnpm --filter @fineprint/server test` pins the middleware with a fake
 verifier. `pnpm --filter @fineprint/server test:emulator` runs
-`test/emulator/` under the Auth and Firestore emulators: the production
+`test/emulator/` under the Auth, Firestore, and Storage emulators: the production
 firebase-admin path end to end (anonymous, Apple-linked, deleted, forged)
 and the Firestore rules for signed-out, owner, and other users. It needs
 Java 21 for the Firestore emulator.
