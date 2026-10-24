@@ -27,6 +27,34 @@ pnpm install
 | `scripts/` | Maintenance and seeding scripts |
 | `e2e/` | End-to-end tests |
 
+## End-to-end tests
+
+The `e2e/` workspace runs [e2e](https://github.com/tester-army/e2e) against two targets: `web` (the Hono server on a free port) and `ios` (the Debug app on the iPhone 17 Pro simulator). Everything is a project dev dependency. Nothing is installed globally.
+
+```sh
+cd e2e
+pnpm build:ios       # build the Debug .app; repeat after iOS changes
+pnpm test:e2e        # both targets
+pnpm test:e2e:web    # server only
+pnpm test:e2e:ios    # simulator only
+```
+
+The e2e CLI sends anonymous usage data by default. FinePrint turns it off: `e2e.config.ts` and the package scripts set `E2E_TELEMETRY_DISABLED=1`. Keep it set in CI and anywhere you run `npx e2e` by hand.
+
+### Gemini API key (Gemma 4 and e2e agent steps)
+
+Tests without agent steps need no key. The server's Gemma 4 calls and the e2e `agent.*` steps both read `GEMINI_API_KEY`, a Google AI Studio key. Never commit it or put it in a `.env` file as plain text. Use one of these:
+
+- 1Password: put a reference in `.env` and run `op run --env-file ../.env -- <command>`.
+- macOS Keychain: store the key once, then wrap the command:
+
+  ```sh
+  security add-generic-password -U -a "$USER" -s fineprint-gemini-api-key -w   # prompts for the key
+  scripts/with-gemini-key.sh <command>
+  ```
+
+The `verify-fineprint-web` and `verify-fineprint-ios` skills in `.agents/skills/` cover launching, driving, evidence, and bug bashes.
+
 ## Workflow
 
 See [AGENTS.md](AGENTS.md) for the issue, branch, and pull request workflow.

@@ -3,3 +3,7 @@ packages:
   - eval
   - scripts
   - e2e
+
+# esbuild (via tsx) runs an install script that checks its platform binary.
+allowBuilds:
+  esbuild: true

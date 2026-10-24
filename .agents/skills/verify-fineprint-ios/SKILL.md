@@ -1,0 +1,147 @@
+---
+name: verify-fineprint-ios
+description: Launch, check, drive, prove, and bug bash the FinePrint iOS app (ios/, SwiftUI, iOS 26) on a simulator with e2e. Use before claiming an iOS change works, when asked to check a screen in the running app, or to bug bash the iOS app.
+---
+
+# Verify the FinePrint iOS app
+
+Read the [e2e skill](../e2e/SKILL.md) first. This skill only says what is
+true of this app. Every command runs from `e2e/`. The config is
+`e2e/e2e.config.ts`, target `ios`, tests `tests/ios/**/*.e2e.ts`. Pass
+`--target ios` so a run never starts the web target's Chromium. The config
+sets `E2E_TELEMETRY_DISABLED=1` (privacy stance, spec §12.1). The package
+scripts set it too.
+
+## Launch
+
+The engine installs nothing on its own, so build the Debug `.app` first.
+Build again after every change under `ios/`:
+
+```bash
+cd e2e
+pnpm build:ios     # xcodebuild Debug for the simulator into ios/DerivedData/
+```
+
+Then `npx e2e run ... --target ios` does the rest:
+
+- The runner boots the **iPhone 17 Pro** simulator (iOS 26) through
+  agent-device. The first boot takes about 2 minutes. Later runs take a few
+  seconds. If another session or `xcodebuild test` is using that simulator,
+  pick another with `E2E_IOS_DEVICE='iPhone 17'` and change
+  `E2E_IOS_SERVER_PORT` too. Otherwise the boot fails with `ENGINE_FAILURE`
+  "Daemon request timed out".
+- It starts the Hono server (`node --import tsx src/index.ts` in `server/`)
+  on fixed port **18080**, waits for `/healthz`, and logs to
+  `e2e/.e2e/logs/server-ios.log`. Set `E2E_IOS_SERVER_PORT` when 18080 is
+  taken.
+- The `test` from `tests/ios/fixtures.ts` installs the build once per
+  worker. Every iOS test imports `test` from there, not from
+  `@e2e-dev/mobile`.
+- Every fresh launch gets `-FinePrintServerURL http://127.0.0.1:18080`
+  and `-FinePrintInMemoryStore`, so nothing persists between launches.
+  `ios/README.md` lists all launch arguments.
+
+The first time on a machine, run `npx agent-device doctor`. The warnings
+about HarmonyOS and Vega are expected.
+
+## Doctor
+
+```bash
+cd e2e
+npx e2e list                                          # loads the config, starts nothing; exit 0
+npx e2e run tests/ios/smoke.e2e.ts --target ios       # installs, launches, all 5 tabs and the Lease empty state; exit 0
+```
+
+- `list` fails: the config or a dependency is broken (run `pnpm install`).
+- `INSTALL_FAILED` or an app path error: the build is missing or stale.
+  Run `pnpm build:ios`.
+- `APP_UNREACHABLE`: the server died on boot. Read
+  `.e2e/logs/server-ios.log`.
+
+## Drive
+
+**Scripted lane.** `tests/ios/*.e2e.ts` uses `screen` locators. These
+handles are stable:
+
+- Tabs: `getByRole('tab', { name: 'Lease' | 'Evidence' | 'Repairs' | 'Letters' | 'Ask' })`.
+  They also carry test ids `tab.<name>`, but the code comment in
+  `ios/FinePrint/App/AppTab.swift` says not to rely on them on iOS 26.0.
+- Test ids: `settingsButton`, `settings.version`, `settings.close`,
+  `settings.developerOptions`, `deadlineAccessory`, and the
+  `developer.*` ids in `DeveloperMenuView.swift`.
+- Empty-state titles: "No lease yet", "No move-in photos yet".
+
+`agent.*` steps use the Gemini model and need the key (see Bug bash).
+`mobileTools` is wired for app switching, swipes, and system alerts.
+
+**Live lane.** Use `e2e mcp` (topic `mcp`). The e2e MCP server is not
+registered in this repo yet, so register it before a live walk. Only one
+session may drive the simulator at a time: close it before a scripted run.
+
+## Evidence
+
+Every run writes `e2e/.e2e/report.json`, and a failed test gets
+`e2e/.e2e/results/<test>/trace.md` with a screenshot and the screen tree.
+The next run clears `results/`, so a proof for a PR runs with
+`--output .e2e/proof/<name> --trace on`, and `--video on` for UI changes.
+
+A proof drives the real screen through taps, never by calling an internal
+setter. It records the action and the resulting screen. For anything that
+calls the server, it also checks the matching `request` line in
+`.e2e/logs/server-ios.log`. Nothing in the app calls the server yet.
+
+## Bug bash
+
+The model is Gemini (`gemini-flash-latest` through `@ai-sdk/google`) and
+reads `GEMINI_API_KEY`. The worktree's `.env` (gitignored) holds a
+1Password reference, not the key, so run anything that calls the model as
+`op run --env-file ../.env -- <command>` from `e2e/`. Never print the
+value. On macOS without 1Password, keep the key in the login keychain
+(service `fineprint-gemini-api-key`, see `CONTRIBUTING.md`) and use
+`../scripts/with-gemini-key.sh <command>` in place of `op run ... --`.
+
+`e2e/e2e.bugbash.config.ts` is gitignored and local. It spreads
+`e2e.config.ts` and adds the `skeptic` and `fuzzer` personas (topic
+`bug-bash`, step 1). Its `context` lists what is not a bug here:
+
+- placeholder screens on every tab
+- the sample deadline in DEBUG builds
+- no network calls yet
+
+There is one simulator, so iOS charters run **one at a time**, never
+fanned out in parallel.
+
+`e2e explore --target ios` needs e2e 0.21.3 or later. On 0.21.2 it fails
+before its first step with `APP_NOT_OPEN` ("No active session e2e-ios-0").
+On a loaded machine, give an `agent.assert` `{ timeout: 120_000 }`, because
+the default 30 s includes the device observation.
+
+The charters are in [features/](features/), one per feature, in the
+`slug|target|agent|charter` format:
+
+```bash
+cd e2e
+op run --env-file ../.env -- npx e2e explore '<charter>' \
+  --config e2e.bugbash.config.ts --target ios --agent <persona> --max-steps 3 \
+  --output .e2e/bugbash/<slug> --reporter list,markdown
+```
+
+A finding is a bug once `tests/ios/bugbash/<slug>.e2e.ts` fails with
+`ASSERTION_FAILED` on the assertion that encodes it. Tag those tests
+`bugbash` and leave them out of gating runs with `--exclude-tag bugbash`.
+
+## Cleanup
+
+The runner stops the server it started. The simulator stays booted, which
+makes the next run fast. To shut it down, run
+`xcrun simctl shutdown 'iPhone 17 Pro'`, and only if you booted it. Never
+`pkill` the simulator or node. Keep `e2e/.e2e/` (the report, `proof/`,
+`logs/`): that is the evidence, and all of it is gitignored. Delete
+`ios/DerivedData/` only to force a clean build.
+
+## Helpers
+
+- `pnpm build:ios` builds the app.
+- `pnpm test:e2e` runs everything on both targets.
+- `pnpm test:e2e:ios` runs the iOS target only.
+- Unit tests: `xcodebuild ... test` (see `ios/README.md`).
