@@ -40,11 +40,13 @@ struct RootTabView: View {
 #Preview("With deadline") {
     RootTabView()
         .environment(AppConfiguration.preview())
+        .environment(AuthSession.preview())
         .environment(DeadlineStore(launchOptions: LaunchOptions(deadlineStub: .present)))
 }
 
 #Preview("No deadline") {
     RootTabView()
         .environment(AppConfiguration.preview())
+        .environment(AuthSession.preview())
         .environment(DeadlineStore(launchOptions: LaunchOptions(deadlineStub: .empty)))
 }

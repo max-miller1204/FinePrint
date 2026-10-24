@@ -5,5 +5,12 @@ packages:
   - e2e
 
 # esbuild (via tsx) runs an install script that checks its platform binary.
+# firebase-admin pulls in two install scripts the server does not need:
+# @firebase/util writes client SDK defaults, protobufjs checks its own version.
+# firebase-tools (dev only, for the emulators) adds re2, a native regex build
+# that only the Hosting emulator uses.
 allowBuilds:
   esbuild: true
+  '@firebase/util': false
+  protobufjs: false
+  re2: false

@@ -69,5 +69,6 @@ struct SettingsView: View {
 #Preview {
     SettingsView()
         .environment(AppConfiguration.preview())
+        .environment(AuthSession.preview())
         .environment(DeadlineStore(launchOptions: LaunchOptions()))
 }

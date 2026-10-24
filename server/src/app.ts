@@ -1,8 +1,11 @@
 import { Hono } from 'hono';
 import { requestId } from 'hono/request-id';
+import { firebaseIdTokenVerifier, type VerifyIdToken } from './auth.js';
 import { ApiError } from './errors.js';
 import { runChecks, stubbedChecks, type HealthChecks } from './health.js';
 import { createLogger, type LogSink, type Logger } from './log.js';
+import { createV1 } from './routes/v1.js';
+import { clientConfigFromEnv, createWellKnown, type ClientConfig } from './routes/wellknown.js';
 
 export type AppEnv = {
   Variables: { requestId: string; log: Logger };
@@ -11,9 +14,16 @@ export type AppEnv = {
 export interface AppDeps {
   checks?: HealthChecks;
   logSink?: LogSink;
+  verifyIdToken?: VerifyIdToken;
+  clientConfig?: ClientConfig | null;
 }
 
-export function createApp({ checks = stubbedChecks, logSink }: AppDeps = {}) {
+export function createApp({
+  checks = stubbedChecks,
+  logSink,
+  verifyIdToken = firebaseIdTokenVerifier(),
+  clientConfig = clientConfigFromEnv(),
+}: AppDeps = {}) {
   const app = new Hono<AppEnv>();
 
   // Honors a client's `X-Request-Id` (up to 255 safe characters) or mints a
@@ -43,6 +53,10 @@ export function createApp({ checks = stubbedChecks, logSink }: AppDeps = {}) {
     }
     return c.json({ status: 'ok', checks: results });
   });
+
+  // Public: /healthz above, /.well-known/*, and later /r/* and /impact.
+  app.route('/.well-known', createWellKnown(clientConfig));
+  app.route('/v1', createV1(verifyIdToken));
 
   // Returned, not thrown: a throw here skips the access line above.
   app.notFound((c) => c.json(new ApiError(404, 'NOT_FOUND', 'No route matches this request').toEnvelope(), 404));

@@ -37,12 +37,21 @@
     },
     "A launch argument sets the server for this launch. Saved changes apply the next time the app opens without it." : {},
     "About" : {},
+    "Account" : {
+      "comment" : "Developer menu section header for the anonymous sign-in."
+    },
     "Add a host name, like localhost or example.org." : {},
     "Add your lease and FinePrint will check it against Virginia law and explain each part in plain words." : {},
+    "Anonymous sign-in is turned off for this server." : {},
     "Ask" : {},
     "Ask a question about your lease or Virginia rental law. Each answer will show the clause or law it comes from." : {},
     "Ask about your rental" : {},
+    "Can't connect. Check your connection and try again." : {},
     "Change Server" : {},
+    "Check with Server" : {
+      "comment" : "Developer menu button that asks the server to confirm it accepts the app's sign-in."
+    },
+    "Couldn't sign in" : {},
     "Default" : {},
     "Developer" : {},
     "Developer Options" : {},
@@ -51,8 +60,12 @@
     "Enter a server address." : {},
     "Evidence" : {},
     "FinePrint gives legal information, not legal advice." : {},
+    "FinePrint signs in without an account. It never asks for an email or phone number." : {},
     "Good to know" : {},
     "Hide Developer Options" : {},
+    "ID Token" : {
+      "comment" : "Developer menu label. The ID token is the short-lived proof of sign-in the app sends to the server."
+    },
     "In Use" : {
       "comment" : "Developer menu label for the server address the app is using right now."
     },
@@ -78,6 +91,7 @@
     "No letters yet" : {},
     "No move-in photos yet" : {},
     "No repairs yet" : {},
+    "Not signed in" : {},
     "Object to move-in report" : {
       "comment" : "Title of the sample deadline: the tenant's 5-day window to object to the landlord's move-in report."
     },
@@ -94,18 +108,39 @@
     "Server address saved." : {},
     "Settings" : {},
     "Show Sample Deadline" : {},
+    "Signed in anonymously" : {},
+    "Signing in…" : {},
     "Source" : {
       "comment" : "Developer menu label for where the server address came from (default, saved, or launch argument)."
     },
     "Start the address with http:// or https://." : {},
+    "Status" : {
+      "comment" : "Developer menu label for the state of the anonymous sign-in."
+    },
+    "The server accepted this sign-in." : {},
+    "The server answered with an error (%lld)." : {
+      "comment" : "The number is the HTTP status code the server returned."
+    },
+    "The server didn't accept this sign-in." : {},
+    "The server sent a reply FinePrint couldn't read." : {},
+    "This account has been turned off." : {},
     "This doesn't look like a web address." : {},
+    "This server isn't set up for sign-in yet." : {},
+    "Try Signing In Again" : {},
     "Turns the deadline above the tab bar on or off so both states can be checked." : {},
     "Use http:// or https:// with a host name, for example https://fineprint.example.org." : {},
+    "User ID" : {
+      "comment" : "Developer menu label for the anonymous account's Firebase user ID."
+    },
+    "Valid until %@" : {
+      "comment" : "Developer menu: when the current ID token expires. The value is a time of day, such as 4:05 PM."
+    },
     "Verified" : {},
     "Version" : {},
     "Waiting to seal" : {},
     "When something breaks, add it here. You'll see who is likely responsible and get help writing a repair request." : {},
-    "Worth asking about" : {}
+    "Worth asking about" : {},
+    "Your sign-in ended. FinePrint will start a new one." : {}
   },
   "version" : "1.0"
 }

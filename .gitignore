@@ -23,3 +23,8 @@ DerivedData/
 
 # e2e bug-bash config (local only)
 e2e/e2e.bugbash.config.ts
+
+# Firebase emulator logs
+firebase-debug.log
+firestore-debug.log
+ui-debug.log

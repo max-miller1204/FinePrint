@@ -4,8 +4,10 @@ import Foundation
 ///
 /// Arguments use a `-FinePrint` prefix, matching `-FinePrintFixtureCamera` in the spec:
 /// - `-FinePrintServerURL <url>` overrides the server URL for this launch only.
-/// - `-FinePrintInMemoryStore` keeps SwiftData in memory (also on automatically under tests).
+/// - `-FinePrintInMemoryStore` keeps SwiftData and the sign-in in memory (also on automatically under tests).
 /// - `-FinePrintDeadlineStub present|empty` (DEBUG builds) forces the sample deadline on or off.
+/// - `-FinePrintDeveloperMenu` (DEBUG builds) shows the developer menu for this launch, so UI tests
+///   need not race the five-tap unlock.
 nonisolated struct LaunchOptions: Equatable, Sendable {
     enum DeadlineStub: String, Equatable, Sendable {
         case present
@@ -15,15 +17,22 @@ nonisolated struct LaunchOptions: Equatable, Sendable {
     static let serverURLArgument = "-FinePrintServerURL"
     static let inMemoryStoreArgument = "-FinePrintInMemoryStore"
     static let deadlineStubArgument = "-FinePrintDeadlineStub"
+    static let developerMenuArgument = "-FinePrintDeveloperMenu"
 
     var serverURLOverride: String?
     var usesInMemoryStore: Bool
     var deadlineStub: DeadlineStub?
+    /// Read in DEBUG builds only (see `AppConfiguration`).
+    var showsDeveloperMenu: Bool
+    /// Unit tests host the app; it must not sign in to a server while they run.
+    var isRunningTests: Bool
 
-    init(serverURLOverride: String? = nil, usesInMemoryStore: Bool = false, deadlineStub: DeadlineStub? = nil) {
+    init(serverURLOverride: String? = nil, usesInMemoryStore: Bool = false, deadlineStub: DeadlineStub? = nil, showsDeveloperMenu: Bool = false, isRunningTests: Bool = false) {
         self.serverURLOverride = serverURLOverride
         self.usesInMemoryStore = usesInMemoryStore
         self.deadlineStub = deadlineStub
+        self.showsDeveloperMenu = showsDeveloperMenu
+        self.isRunningTests = isRunningTests
     }
 
     init(arguments: [String], environment: [String: String]) {
@@ -32,12 +41,14 @@ nonisolated struct LaunchOptions: Equatable, Sendable {
         let runningTests = environment["XCTestConfigurationFilePath"] != nil
             || environment["XCTestBundlePath"] != nil
             || environment["XCTestSessionIdentifier"] != nil
+        isRunningTests = runningTests
         let inMemoryValue = Self.value(after: Self.inMemoryStoreArgument, in: arguments)
         let inMemoryFlag = arguments.contains(Self.inMemoryStoreArgument)
             && !["NO", "no", "false", "0"].contains(inMemoryValue ?? "")
         usesInMemoryStore = runningTests || inMemoryFlag
 
         deadlineStub = Self.value(after: Self.deadlineStubArgument, in: arguments).flatMap(DeadlineStub.init(rawValue:))
+        showsDeveloperMenu = arguments.contains(Self.developerMenuArgument)
     }
 
     static let current = LaunchOptions(
