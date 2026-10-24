@@ -38,15 +38,15 @@ Camera.
 
 ## Driving it with e2e
 
-- `e2e.config.ts` launches the app with `-FinePrintFixtureCamera
+- Every launch gets `-FinePrintFixtureCamera
   e2e/fixtures/photos/move-in` (an absolute host path the simulator reads
-  directly). `tests/ios/capture.e2e.ts` opens the camera, taps
+  directly; `e2e/ios-launch.ts` lists the default arguments). `tests/ios/capture.e2e.ts` opens the camera, taps
   `camera.shutter`, reads the 64-character `camera.hash`, taps `camera.use`
   (or `camera.keep` if the quality gate asks for a retake), and checks that
   `developer.lastCaptureHash` contains the same hash. A second test checks that
   two shutters give two different photos (hashes).
-- `tests/ios/camera.e2e.ts` (no-camera state) runs only with
-  `E2E_IOS_FIXTURE_CAMERA=off`, which drops the launch argument.
+- `tests/ios/camera.e2e.ts` (no-camera state) relaunches with
+  `iosLaunchArguments({ without: ['-FinePrintFixtureCamera'] })`.
 - `e2e/fixtures/photos/` holds the generated move-in and move-out pairs of the
   same three views (see `e2e/fixtures/README.md`). To drive a move-out pair,
   point the argument at `photos/move-out`.
