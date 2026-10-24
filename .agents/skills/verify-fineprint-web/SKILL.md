@@ -40,7 +40,8 @@ engine; that is expected.
 There is no UI yet, so the scripted lane is the only lane: API tests that
 take only `app` and call `fetch(new URL(path, app.baseUrl))` with value
 matchers (topic `writing-tests`, "APIs live in the same suite"). They call
-no model. When the web report (`/r/:token`) lands, drive it with `screen`
+no model. Agent steps (`agent.act`, `agent.assert`) use the Gemini model
+in the config and need the key (see Bug bash). When the web report (`/r/:token`) lands, drive it with `screen`
 locators and the live MCP lane (topic `mcp`); the e2e MCP server is not
 registered in this repo yet.
 
@@ -61,16 +62,32 @@ internal function, and checks the status, the body, and the headers.
 
 ## Bug bash
 
-Not runnable yet: the config has no model. To enable it, add
-`@ai-sdk/google` and `ai` to `e2e/`, write an untracked
-`e2e/e2e.bugbash.config.ts` that spreads `e2e.config.ts`, adds
-`tests/web/bugbash/**` to the glob and a Gemini model reading
-`GEMINI_API_KEY`, and a `context` that says `/healthz` checks are stubbed
-by design. The charters are in [features/](features/), one block per
-feature in the `slug|target|agent|charter` format (topic `bug-bash`).
+The model is Gemini (`gemini-flash-latest` through `@ai-sdk/google`),
+reading `GEMINI_API_KEY`. The worktree's `.env` (gitignored) holds a
+1Password reference, not the key, so run anything that calls the model as
+`op run --env-file ../.env -- <command>` from `e2e/`. Never print the
+value. Tests without agent steps need no key.
+
+`e2e/e2e.bugbash.config.ts` is gitignored and local: it spreads
+`e2e.config.ts` and adds the `skeptic` and `fuzzer` personas with a
+`context` that says what is not a bug here (stubbed checks, replaced
+malformed request ids, 404 on an unsupported method). If it is missing,
+recreate it from the example in topic `bug-bash`, step 1. Each explorer
+starts its own server on port 0, so charters can run in parallel. The
+charters are in [features/](features/), one block per feature in the
+`slug|target|agent|charter` format (topic `bug-bash`, step 3):
+
+```bash
+cd e2e
+E2E_TELEMETRY_DISABLED=1 op run --env-file ../.env -- npx e2e explore '<charter>' \
+  --config e2e.bugbash.config.ts --target web --agent <persona> --max-steps 3 \
+  --output .e2e/bugbash/<slug> --reporter list,markdown
+```
+
 `.e2e/` is gitignored, which covers `.e2e/bugbash/`. A finding is a bug
 once `tests/web/bugbash/<slug>.e2e.ts` fails with `ASSERTION_FAILED` on
-the assertion that encodes it.
+the assertion that encodes it; tag those tests `bugbash` and leave them
+out of gating runs with `--exclude-tag bugbash`.
 
 ## Cleanup
 

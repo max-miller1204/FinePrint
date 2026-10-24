@@ -1,6 +1,11 @@
 import { join } from 'node:path';
 import type { E2EConfig } from 'e2e';
 import { web } from '@e2e-dev/web';
+import { createGoogleGenerativeAI } from '@ai-sdk/google';
+
+// The key comes from the environment: run with `op run --env-file ../.env --`.
+// Tests without agent steps never call the model and need no key.
+const google = createGoogleGenerativeAI({ apiKey: process.env.GEMINI_API_KEY });
 
 const server = join(import.meta.dirname, '..', 'server');
 
@@ -25,4 +30,10 @@ export default {
       },
     },
   ],
+  agents: {
+    default: {
+      model: google('gemini-flash-latest'),
+      system: 'You are a thorough QA agent for the FinePrint API. Verify every outcome against the response.',
+    },
+  },
 } satisfies E2EConfig;

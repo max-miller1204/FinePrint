@@ -8,7 +8,9 @@
     "test:e2e": "e2e run"
   },
   "devDependencies": {
+    "@ai-sdk/google": "^4.0.104",
     "@e2e-dev/web": "^0.15.2",
+    "ai": "^7.0.151",
     "e2e": "^0.21.2"
   }
 }
