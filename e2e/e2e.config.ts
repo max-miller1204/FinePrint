@@ -73,7 +73,9 @@ export default {
         appPath: join(import.meta.dirname, '..', 'ios', 'DerivedData', 'Build', 'Products', 'Debug-iphonesimulator', 'FinePrint.app'),
         // -FinePrintDeveloperMenu (DEBUG) skips the five-tap unlock, which
         // scripted taps are too slow for.
-        launchArguments: ['-FinePrintServerURL', iosServerURL, '-FinePrintInMemoryStore', '-FinePrintDeveloperMenu'],
+        // -FinePrintSkipOnboarding starts at the tabs with a default Virginia rental; the
+        // onboarding test relaunches without it (tests/ios/onboarding.e2e.ts).
+        launchArguments: ['-FinePrintServerURL', iosServerURL, '-FinePrintInMemoryStore', '-FinePrintDeveloperMenu', '-FinePrintSkipOnboarding'],
         readyUrl: `${iosServerURL}/healthz`,
         command: serverCommand(iosServerPort, '.e2e/logs/server-ios.log', join(import.meta.dirname, 'firebase.ios.json'), 'auth'),
       },

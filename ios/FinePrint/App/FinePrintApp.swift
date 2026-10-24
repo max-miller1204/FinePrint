@@ -9,6 +9,7 @@ struct FinePrintApp: App {
     @State private var auth: AuthSession
     @Environment(\.scenePhase) private var scenePhase
     private let signsInAutomatically: Bool
+    private let skipsOnboarding: Bool
     private let modelContainer: ModelContainer
     private let evidenceStore: EvidenceStore
 
@@ -22,13 +23,18 @@ struct FinePrintApp: App {
             serverURL: { configuration.serverURL }
         ))
         signsInAutomatically = !options.isRunningTests
+        #if DEBUG
+        skipsOnboarding = options.skipsOnboarding
+        #else
+        skipsOnboarding = false
+        #endif
         modelContainer = Self.makeModelContainer(inMemory: options.usesInMemoryStore)
         evidenceStore = EvidenceStore.live(inMemory: options.usesInMemoryStore)
     }
 
     var body: some Scene {
         WindowGroup {
-            RootTabView()
+            RootView(skipsOnboarding: skipsOnboarding)
                 .environment(configuration)
                 .environment(deadlines)
                 .environment(auth)

@@ -3,7 +3,12 @@ import SwiftUI
 /// The app shell: four content tabs, Ask as the search-role tab, and the next-deadline accessory.
 struct RootTabView: View {
     @Environment(DeadlineStore.self) private var deadlines
-    @State private var navigation = AppNavigation()
+    @State private var navigation: AppNavigation
+
+    /// `initialTab` is where onboarding sent the tenant (spec §4.2 step 4).
+    init(initialTab: AppTab = .lease) {
+        _navigation = State(initialValue: AppNavigation(selectedTab: initialTab))
+    }
 
     var body: some View {
         @Bindable var navigation = navigation

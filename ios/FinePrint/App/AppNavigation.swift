@@ -4,6 +4,10 @@ import Observation
 /// being rebuilt when the deadline accessory appears or disappears.
 @Observable
 final class AppNavigation {
-    var selectedTab: AppTab = .lease
+    var selectedTab: AppTab
     var isSettingsPresented = false
+
+    init(selectedTab: AppTab = .lease) {
+        self.selectedTab = selectedTab
+    }
 }
