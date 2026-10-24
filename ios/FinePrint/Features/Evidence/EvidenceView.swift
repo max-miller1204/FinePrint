@@ -1,7 +1,17 @@
 import SwiftUI
 
 struct EvidenceView: View {
+    @Environment(DeadlineStore.self) private var deadlines
+
     var body: some View {
+        if !deadlines.visibleDeadlines.isEmpty || deadlines.needsMoveOutDate {
+            EvidenceDeadlinesScreen()
+        } else {
+            placeholder
+        }
+    }
+
+    private var placeholder: some View {
         PlaceholderScreen(
             navigationTitle: "Evidence",
             title: "No move-in photos yet",

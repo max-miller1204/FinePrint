@@ -66,6 +66,7 @@ final class Rental {
     var phase: RentalPhase = RentalPhase.preSigning
     var occupancyDate: CalendarDay?
     var tenancyEndDate: CalendarDay?
+    @Relationship(deleteRule: .cascade, inverse: \Deadline.rental) var deadlines: [Deadline] = []
 
     init(
         id: UUID = UUID(),

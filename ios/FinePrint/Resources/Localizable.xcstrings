@@ -35,6 +35,29 @@
         }
       }
     },
+    "%lld days left. Due %@." : {
+      "comment" : "Deadline reminder notification body: whole days until the deadline, then its due date such as “Friday, October 30”.",
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld day left. Due %@."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld days left. Due %@."
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "A launch argument sets the server for this launch. Saved changes apply the next time the app opens without it." : {},
     "About" : {},
     "Account" : {

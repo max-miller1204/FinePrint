@@ -19,8 +19,8 @@ struct RootTabView: View {
             .accessibilityIdentifier(AppTab.ask.accessibilityIdentifier)
         }
         .tabBarMinimizeBehavior(.onScrollDown)
-        .deadlineAccessory(deadlines.next) {
-            navigation.selectedTab = .evidence
+        .deadlineAccessory(deadlines.next) { deadline in
+            navigation.open(deadline)
         }
         // Presented outside the accessory modifier so toggling the accessory never dismisses it.
         .sheet(isPresented: $navigation.isSettingsPresented) {
