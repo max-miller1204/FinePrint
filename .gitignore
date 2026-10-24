@@ -1,0 +1,22 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+*.tsbuildinfo
+
+# Env and secrets
+.env
+.env.*
+!.env.example
+
+# e2e run artifacts
+.e2e/
+
+# Xcode
+xcuserdata/
+DerivedData/
+*.xcuserstate
+
+# macOS
+.DS_Store

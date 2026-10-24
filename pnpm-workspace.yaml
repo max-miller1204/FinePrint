@@ -1,0 +1,5 @@
+packages:
+  - server
+  - eval
+  - scripts
+  - e2e
