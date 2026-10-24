@@ -163,6 +163,12 @@ Use only the flags for fields the board has (see `board profile`). Status defaul
 <!-- end -->
 Report the URL.
 
+If the new issue cannot start until another issue is done, list the blocker under `### Blocked by` in the body and add a blocked-by link:
+
+```
+gh api -X POST repos/OWNER/REPO/issues/N/dependencies/blocked_by -F issue_id=$(gh api repos/OWNER/REPO/issues/BLOCKER -q .id)
+```
+
 <!-- when: cycle -->
 ## 3. Cycle planning and review
 
@@ -176,12 +182,18 @@ Report the URL.
 <!-- when: self-paced -->
 ## 3. What's next
 
-Run `board next` (or `board next --limit 10`). It shows:
+Run `board next --limit 15`. It shows:
 
 - **Now**: items In Progress<!-- review --> or In Review<!-- /review -->, and the WIP count against the limit of __WIP__.
 - **Next**: open Todo<!-- backlog --> and Backlog<!-- /backlog --> items, ordered by priority (Urgent first), then by age (oldest first).
 
-Suggest the top item. When the user starts it, run `board set REF status="In Progress"`. If the board is over the WIP limit, the command prints a warning: tell the user and suggest finishing or pausing something first. Do not refuse to start the item.
+`board next` does not know about blocked-by links. Check each Next item in order until one has no open blockers:
+
+```
+gh api repos/OWNER/REPO/issues/N/dependencies/blocked_by --jq '[.[] | select(.state == "open") | .number]'
+```
+
+Suggest the first item that returns `[]`. Name the higher-priority items you skipped and what blocks them, such as "#14 waits on #13". If every item is blocked, say so and suggest working on the blockers. When the user starts it, run `board set REF status="In Progress"`. If the board is over the WIP limit, the command prints a warning: tell the user and suggest finishing or pausing something first. Do not refuse to start the item.
 
 To see what got done, run `board digest --dry-run`.
 <!-- end -->
