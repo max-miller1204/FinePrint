@@ -3,5 +3,12 @@
   "version": "0.0.0",
   "private": true,
   "license": "Apache-2.0",
-  "type": "module"
+  "type": "module",
+  "scripts": {
+    "test:e2e": "e2e run"
+  },
+  "devDependencies": {
+    "@e2e-dev/web": "^0.15.2",
+    "e2e": "^0.21.2"
+  }
 }

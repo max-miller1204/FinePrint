@@ -1,0 +1,85 @@
+---
+name: verify-fineprint-web
+description: Launch, check, drive, prove, and bug bash the FinePrint Hono server (server/), the API and the web Evidence Report, with e2e. Use before claiming a server or web report change works, when asked to verify a route, or to bug bash the server.
+---
+
+# Verify the FinePrint server
+
+Read the [e2e skill](../e2e/SKILL.md) first. This skill only says what is
+true of this app. Every command runs from `e2e/`. The config is
+`e2e/e2e.config.ts` (target `web`, tests `tests/web/**/*.e2e.ts`). Set
+`E2E_TELEMETRY_DISABLED=1` for every run (privacy stance, spec §12.1).
+
+## Launch
+
+The target's `app.command` runs `node --import tsx src/index.ts` in
+`server/` with `PORT` set to a free port (`app.url` is
+`http://127.0.0.1:0`). The runner starts it, polls `/healthz` until it
+answers, and stops it with SIGTERM after the run. Nothing to start by hand.
+The server needs no env, seeds, or emulators yet: `/healthz` checks are
+stubbed until M6. Run `pnpm install` at the repo root first.
+
+To watch the server by hand: `pnpm --filter server dev` from the repo root
+(port 8080, or `PORT=<n>`). The port-0 target never collides with it.
+
+## Doctor
+
+```bash
+cd e2e
+E2E_TELEMETRY_DISABLED=1 npx e2e list                          # loads the config, starts nothing; exit 0
+E2E_TELEMETRY_DISABLED=1 npx e2e run tests/web/smoke.e2e.ts     # boots the server, GET /healthz is 200 ok; exit 0
+```
+
+`list` failing is the config or a dependency (`pnpm install`). `run`
+failing with `APP_UNREACHABLE` is a server that died on boot: read
+`e2e/.e2e/logs/server.log`. The first run downloads Chromium for the web
+engine; that is expected.
+
+## Drive
+
+There is no UI yet, so the scripted lane is the only lane: API tests that
+take only `app` and call `fetch(new URL(path, app.baseUrl))` with value
+matchers (topic `writing-tests`, "APIs live in the same suite"). They call
+no model. When the web report (`/r/:token`) lands, drive it with `screen`
+locators and the live MCP lane (topic `mcp`); the e2e MCP server is not
+registered in this repo yet.
+
+Stable handles: routes, status codes, the `error.code` field of the
+envelope, and the `X-Request-Id` header. Never assert an error `message`
+that a later change might reword unless the test is about that message.
+
+## Evidence
+
+Every run writes `e2e/.e2e/report.json`; a failed test gets
+`e2e/.e2e/results/<test>/trace.md` (`--trace on` for passing ones). The
+next run clears `.e2e/results/`, Doctor included, so a proof for a PR runs
+with `--output .e2e/proof/<name>`. Side effects: the server writes one
+JSON log line per request to `e2e/.e2e/logs/server.log`; read it to prove
+`requestId` is on every line and that no request content was logged. The
+server stores nothing yet. A proof calls the real route over HTTP, never an
+internal function, and checks the status, the body, and the headers.
+
+## Bug bash
+
+Not runnable yet: the config has no model. To enable it, add
+`@ai-sdk/google` and `ai` to `e2e/`, write an untracked
+`e2e/e2e.bugbash.config.ts` that spreads `e2e.config.ts`, adds
+`tests/web/bugbash/**` to the glob and a Gemini model reading
+`GEMINI_API_KEY`, and a `context` that says `/healthz` checks are stubbed
+by design. The charters are in [features/](features/), one block per
+feature in the `slug|target|agent|charter` format (topic `bug-bash`).
+`.e2e/` is gitignored, which covers `.e2e/bugbash/`. A finding is a bug
+once `tests/web/bugbash/<slug>.e2e.ts` fails with `ASSERTION_FAILED` on
+the assertion that encodes it.
+
+## Cleanup
+
+The runner stops the server it started. A `pnpm --filter server dev` you
+started is yours to stop by its pid, never `pkill node`. Keep
+`e2e/.e2e/report.json`, `e2e/.e2e/proof/`, and `e2e/.e2e/logs/`: that is
+the evidence, and all of it is gitignored.
+
+## Helpers
+
+None. The e2e CLI is the helper. Unit tests: `pnpm --filter server test`
+(vitest).
