@@ -23,7 +23,8 @@ Read
   items [--repo R] [--status S]     Board items as JSON (archived items excluded)
   show <ref>                        One item as JSON
   triage                            Inbox (Triage, or unprioritized inbox items) plus items labeled stale
-  next [--limit 5]                  Now (in progress) and the top open items by priority, then age
+  next [--limit 5]                  Now (in progress), the top unblocked open items by priority, then age,
+                                    and the blocked items with what they wait on
   cycles                            Cycle iterations (completed, current, upcoming)
   projects                          Parent "project" issues with lead, progress (and target, health)
   overdue                           Overdue items and SLA breaches (Timeboxed)
@@ -37,7 +38,9 @@ Write
   duplicate <ref> <of-ref>          Close as duplicate of <of-ref> (+ Canceled when the board has it)
   create --title T [--repo R] [--body B] [--type TYPE]
          [--priority P] [--estimate N] [--cycle @current|@next|TITLE] [--due YYYY-MM-DD]
-         [--parent REF] [--status S] [--assignee LOGIN]
+         [--parent REF] [--status S] [--assignee LOGIN] [--blocked-by REF[,REF...]]
+  block <ref> <blocker-ref>...      Mark ref as blocked by each blocker (GitHub issue dependencies)
+  unblock <ref> <blocker-ref>...    Remove those blocked-by links
   project-create --title T [--repo R] [--body B] [--lead LOGIN] [--target YYYY-MM-DD]
          [--health "On track"|"At risk"|"Off track"]
   project-add <parent-ref> <child-ref>   Make child a sub-issue of a project
@@ -73,7 +76,7 @@ EOF
 CONFIG=${LINEAR_BOARD_CONFIG:-}
 if [[ ${1:-} == --config ]]; then CONFIG=$2; shift 2; fi
 if [[ -z $CONFIG ]]; then
-  root=$(git rev-parse --show-toplevel)
+  root=$(git rev-parse --show-toplevel 2>/dev/null || pwd)
   CONFIG=$root/.github/linear-board.json
 fi
 [[ -f $CONFIG ]] || die "config not found: $CONFIG"
@@ -97,8 +100,7 @@ field_name() { cfg ".fields.$1.name"; }
 write_config() { # JQ_ARGS... (the filter and its --arg options, applied to $CONFIG)
   local t
   t=$(mktemp)
-  jq "$@" "$CONFIG" >"$t"
-  cat "$t" >"$CONFIG"
+  jq "$@" "$CONFIG" >"$t" && cat "$t" >"$CONFIG"
   rm -f "$t"
 }
 
@@ -150,6 +152,7 @@ ITEM_FIELDS='
       assignees(first: 10) { nodes { login } }
       parent { number repository { nameWithOwner } }
       subIssuesSummary { total completed percentCompleted }
+      blockedBy(first: 20) { nodes { number state repository { nameWithOwner } } }
     }
     ... on PullRequest {
       id number title state url createdAt updatedAt closedAt
@@ -190,6 +193,7 @@ NORMALIZE='
     assignees: [.content.assignees.nodes[]?.login],
     parent: (if .content.parent then "\(.content.parent.repository.nameWithOwner)#\(.content.parent.number)" else null end),
     subIssues: .content.subIssuesSummary,
+    blockedBy: [.content.blockedBy.nodes[]? | select(.state == "OPEN") | "\(.repository.nameWithOwner)#\(.number)"],
     status: fv("status").name,
     statusSetAt: fv("status").updatedAt,
     statusSetBy: fv("status").creator.login,
@@ -331,7 +335,7 @@ wip_warning() {
 }
 
 add_label() { gh issue edit "$2" -R "$1" --add-label "$3" >/dev/null; }
-remove_label() { gh issue edit "$2" -R "$1" --remove-label "$3" >/dev/null; }
+remove_label() { gh issue edit "$2" -R "$1" --remove-label "$3" >/dev/null 2>&1 || true; }
 
 # ---------------------------------------------------------------- cycles
 
@@ -444,10 +448,19 @@ cmd_next() {
     [[ -z $w ]] || echo "warning: $w"
   fi
   echo
-  echo "## Next (by priority, then age)"
-  jq --argjson order "$order" --argjson n "$limit" \
+  echo "## Next (by priority, then age; blocked items skipped)"
+  local open blocked
+  open=$(jq --argjson order "$order" \
     "[.[] | select((.status == \"Todo\" or .status == \"Backlog\") and $ACTIVE and ((.labels | index(\"project\")) | not))]
-     | sort_by($PRIORITY_RANK, .createdAt) | .[:\$n]" <<<"$items" | fmt_items
+     | sort_by($PRIORITY_RANK, .createdAt)" <<<"$items")
+  jq --argjson n "$limit" '[.[] | select(.blockedBy | length == 0)] | .[:$n]' <<<"$open" | fmt_items
+  blocked=$(jq --argjson n "$limit" '[.[] | select(.blockedBy | length > 0)] | .[:$n]' <<<"$open")
+  [[ $(jq length <<<"$blocked") -gt 0 ]] || return 0
+  echo
+  echo "## Blocked (waiting on open issues)"
+  jq -r '.[] | .repo as $r | [.ref, (.priority // "-"), .title,
+      "waits on " + (.blockedBy | map(if startswith($r + "#") then "#" + split("#")[1] else . end) | join(", "))] | @tsv' \
+    <<<"$blocked" | column -t -s $'\t'
 }
 
 cmd_profile() {
@@ -643,14 +656,45 @@ add_sub_issue() { # PARENT_REF CHILD_REF
     "$(jq -n --arg p "$pid" --arg c "$cid" '{p: $p, c: $c}')" >/dev/null
 }
 
+# issue_node_id REF -> node ID, or nothing when the issue does not exist
+issue_node_id() {
+  parse_ref "$1"
+  { content_json "$REF_REPO" "$REF_NUM" | jq -r '.id // empty'; } 2>/dev/null || true
+}
+
+# blocked_by add|remove REF BLOCKER_REF: GitHub's native "blocked by" issue dependency.
+# Adding a link that already exists is not an error.
+blocked_by() {
+  local op=$1 iid bid out m
+  iid=$(issue_node_id "$2"); [[ -n $iid ]] || die "not found: $2"
+  bid=$(issue_node_id "$3"); [[ -n $bid ]] || die "not found: $3"
+  if [[ $op == add ]]; then m=addBlockedBy; else m=removeBlockedBy; fi
+  if ! out=$(gql "mutation(\$i: ID!, \$b: ID!) { $m(input: {issueId: \$i, blockingIssueId: \$b}) { issue { id } } }" \
+    "$(jq -n --arg i "$iid" --arg b "$bid" '{i: $i, b: $b}')" 2>&1); then
+    [[ $op == add && $out == *"already been taken"* ]] || die "$m $2 <- $3: $out"
+  fi
+}
+
+cmd_block() { # REF BLOCKER_REF...
+  (($# >= 2)) || die "block: usage: block <ref> <blocker-ref>..."
+  local ref=$1 b; shift
+  for b in "$@"; do blocked_by add "$ref" "$b"; echo "$ref is blocked by $b"; done
+}
+
+cmd_unblock() { # REF BLOCKER_REF...
+  (($# >= 2)) || die "unblock: usage: unblock <ref> <blocker-ref>..."
+  local ref=$1 b; shift
+  for b in "$@"; do blocked_by remove "$ref" "$b"; echo "$ref is no longer blocked by $b"; done
+}
+
 cmd_create() {
-  local repo title="" body="" type="" priority="" estimate="" cycle="" due="" parent="" status="" assignee=""
+  local repo title="" body="" type="" priority="" estimate="" cycle="" due="" parent="" status="" assignee="" blockers=""
   repo=$(default_repo)
   while (($#)); do
     case $1 in
       --repo) repo=$2 ;; --title) title=$2 ;; --body) body=$2 ;; --type) type=$2 ;;
       --priority) priority=$2 ;; --estimate) estimate=$2 ;; --cycle) cycle=$2 ;; --due) due=$2 ;;
-      --parent) parent=$2 ;; --status) status=$2 ;; --assignee) assignee=$2 ;;
+      --parent) parent=$2 ;; --status) status=$2 ;; --assignee) assignee=$2 ;; --blocked-by) blockers=${2//,/ } ;;
       *) die "create: unknown arg $1" ;;
     esac
     shift 2
@@ -665,6 +709,9 @@ cmd_create() {
   [[ -z $cycle ]] || need_field cycle
   [[ -z $due ]] || need_field dueDate
   [[ -z $parent ]] || has_label project || off "Projects"
+  # Bare blocker refs (#12) mean the new issue's repo. Check they exist before the issue does.
+  local BOARD_REPO=$repo b
+  for b in $blockers; do [[ -n $(issue_node_id "$b") ]] || die "create: blocker not found: $b"; done
   [[ -n $status ]] || if [[ -n $cycle ]]; then status=Todo; else status=$(backlog_status); fi
   [[ -z $status ]] || option_id status "$status" >/dev/null
   local args=(-R "$repo" --title "$title" --body "$body")
@@ -680,8 +727,9 @@ cmd_create() {
   [[ -z $cycle ]] || set_field "$item" cycle "$cycle"
   [[ -z $due ]] || set_field "$item" dueDate "$due"
   [[ -z $parent ]] || add_sub_issue "$parent" "$repo#$num"
+  for b in $blockers; do blocked_by add "$repo#$num" "$b"; done
   echo "$url"
-  item_json "$item" | jq -c '{ref, status, priority, estimate, cycle: .cycle.title, dueDate, parent}'
+  item_json "$item" | jq -c '{ref, status, priority, estimate, cycle: .cycle.title, dueDate, parent, blockedBy}'
 }
 
 cmd_project_create() {
@@ -778,7 +826,7 @@ wip_comment() { # REPO NUM
 cmd_git_sync() {
   git_sync_event
   # Hackathon boards with an end date: refresh the README countdown on every run (there is no schedule).
-  if [[ -n $(cfg '.endDate // empty') ]]; then cmd_readme; fi
+  if [[ -n $(cfg '.endDate // empty') ]]; then cmd_readme || log "README countdown not updated"; fi
 }
 
 git_sync_event() {
@@ -1232,7 +1280,7 @@ cmd_render() {
 cmd_sync_files() {
   local dir="" primary=false
   while (($#)); do case $1 in --dir) dir=$2; shift 2 ;; --primary) primary=true; shift ;; *) die "sync-files: unknown arg $1" ;; esac; done
-  [[ -n $dir ]] || dir=$(git rev-parse --show-toplevel)
+  [[ -n $dir ]] || dir=$(git rev-parse --show-toplevel 2>/dev/null || pwd)
   local T=$dir/.github/linear-board/templates G=$dir/.github f added=()
   [[ -d $T ]] || die "templates not found: $T"
   mkdir -p "$G/workflows" "$G/ISSUE_TEMPLATE"
@@ -1268,7 +1316,7 @@ cmd_upgrade() {
     esac
     shift 2
   done
-  [[ -n $dir ]] || dir=$(git rev-parse --show-toplevel)
+  [[ -n $dir ]] || dir=$(git rev-parse --show-toplevel 2>/dev/null || pwd)
   jq -en --arg a "$(preset)" --arg b "$to_preset" --argjson o "$PRESETS" '($o | index($b)) != null and ($o | index($b)) >= ($o | index($a))' >/dev/null ||
     die "upgrade: preset can only go hackathon -> solo -> full (now $(preset), asked $to_preset)"
   jq -en --arg a "$(pace)" --arg b "$to_pace" --argjson o "$PACES" '($o | index($b)) != null and ($o | index($b)) >= ($o | index($a))' >/dev/null ||
@@ -1359,6 +1407,8 @@ case $cmd in
   decline) cmd_decline "$@" ;;
   duplicate) cmd_duplicate "$@" ;;
   create) cmd_create "$@" ;;
+  block) cmd_block "$@" ;;
+  unblock) cmd_unblock "$@" ;;
   project-create) cmd_project_create "$@" ;;
   project-add) cmd_project_add "$@" ;;
   status-update) cmd_status_update "$@" ;;
