@@ -413,7 +413,7 @@ Stored in the app container with `NSFileProtectionComplete`, never uploaded:
 2. **Structured output everywhere.** Every Gemma call uses `responseMimeType: "application/json"` + `responseSchema` derived from a Zod schema. Enums constrain the space of possible harms.
 3. **Documents are data, not instructions.** All user content is wrapped in `<document id="...">` tags with an explicit system instruction that text inside documents can never change the task.
 4. **English first, translate last.** Analysis, verification, and readability checks run in English. Translation is a separate final call over already-verified text.
-5. **Few, batched calls.** Gemini API free-tier limits for Gemma 4 are reportedly ~15 RPM (verify in AI Studio). The pipeline batches work so a full lease analysis is about 6 to 8 calls. A server-side token-bucket limiter + exponential backoff on 429.
+5. **Few, batched calls.** Gemma 4 on our Tier 1 project allows 30 RPM, 16K input TPM, and 14.4K RPD per model (measured, see `docs/ai-pipeline.md`). Input tokens per minute are the bottleneck. The pipeline batches work so a full lease analysis is about 6 to 8 calls. A server-side token-bucket limiter budgets requests and input tokens, with exponential backoff on 429.
 
 ### 7.2 Model routing
 
@@ -427,7 +427,7 @@ Stored in the app container with `NSFileProtectionComplete`, never uploaded:
 | Ask (function calling) | `gemma-4-26b-a4b-it` | Tool use, short answers |
 | Explanation, translation | `gemma-4-26b-a4b-it` | Cheap generation |
 
-All model IDs live in `server/src/ai/models.ts` and env vars (`GEMMA_PRIMARY`, `GEMMA_VERIFIER`). Thinking level: `low` for triage/vision, `high` for mapping and verification (measure the cost difference and report it).
+All model IDs live in `server/src/ai/models.ts` and env vars (`GEMMA_PRIMARY`, `GEMMA_VERIFIER`). Thinking level: `minimal` for triage/vision, `high` for mapping and verification. Gemma 4 rejects `low` and `medium` (see `docs/ai-pipeline.md`).
 
 ### 7.3 Lease analysis pipeline
 
@@ -808,7 +808,7 @@ Error envelope: `{ "error": { "code": "RATE_LIMITED", "message": "...", "retryIn
 
 ## 14. Cost and scalability
 
-Pricing below uses **third-party-reported** Gemma 4 rates (26B-A4B ~$0.12/M input, ~$0.37/M output). **Verify against Google's pricing page and replace with measured numbers from the `usage` collection before submission.** The free tier is reportedly ~15 RPM / ~1,500 requests per day per model.
+Google's pricing page lists Gemma 4 on the Gemini API as **free of charge** (paid tier "Not available"), so the model cost column below is $0 in practice. The estimates used third-party-reported rates (26B-A4B ~$0.12/M input, ~$0.37/M output) and are kept only as a self-hosting comparison. Limits are 30 RPM, 16K input TPM, and 14.4K RPD per model on Tier 1. Sources and the smoke test are in `docs/ai-pipeline.md`.
 
 | Operation | Calls | Est. tokens (in / out) | Est. cost |
 |---|---|---|---|
@@ -822,7 +822,7 @@ Pricing below uses **third-party-reported** Gemma 4 rates (26B-A4B ~$0.12/M inpu
 **Per tenant, full tenancy** (1 lease, 2 walkthroughs, 1 diff, 3 issues, 20 asks): about **$0.05**.
 **1,000 tenants/month:** about $50 in model costs + infrastructure: Cloud Run (scales to zero, likely within free tier at this volume), Firestore (free tier covers most), Cloud Storage (~2 GB per tenant-year of photos ≈ $0.04/tenant/month in `us-east4` standard), KMS (key version + signing ops, under $1/month). Estimate the totals in `docs/cost.md`.
 
-Cost levers (documented): 1536px model copies (not originals), batched clause mapping, 31B only on legal findings and high-confidence verdicts, `low` thinking for triage and vision, no embeddings until packs exceed ~100 rules, scale-to-zero Cloud Run.
+Cost levers (documented): 1536px model copies (not originals), batched clause mapping, 31B only on legal findings and high-confidence verdicts, `minimal` thinking for triage and vision, no embeddings until packs exceed ~100 rules, scale-to-zero Cloud Run.
 
 Scalability: stateless API; Firestore and GCS scale automatically. The Gemma rate limit is the bottleneck; the limiter queues work and the SSE stream reports wait time honestly.
 

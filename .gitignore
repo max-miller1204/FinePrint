@@ -20,3 +20,6 @@ DerivedData/
 
 # macOS
 .DS_Store
+
+# Smoke test output
+scripts/smoke/out/
