@@ -44,6 +44,12 @@ final class CameraModel {
     /// Guidance must hold for two samples (about a second) before it changes, so it never flickers.
     private var pendingGuidance: Guidance?
     private var lastAnnouncement = Date.distantPast
+    #if DEBUG
+    /// A folder of photos that replaces the camera hardware (spec §12.1). Only the shutter and
+    /// the preview are replaced; the pipeline and review are the real ones.
+    private var fixtureDirectory: URL?
+    private var fixtures: FixtureCameraSource?
+    #endif
 
     init(context: CaptureContext, store: EvidenceStore, camera: CameraSession = CameraSession()) {
         self.context = context
@@ -56,6 +62,17 @@ final class CameraModel {
     /// Runs for as long as the screen is visible: checks access, starts the camera, and turns
     /// preview frames into guidance until the task is cancelled.
     func run() async {
+        #if DEBUG
+        if let fixtureDirectory {
+            do {
+                fixtures = try FixtureCameraSource(directory: fixtureDirectory)
+                phase = .ready
+            } catch {
+                phase = .failed
+            }
+            return
+        }
+        #endif
         guard camera.isAvailable else {
             phase = .unavailable
             return
@@ -105,10 +122,7 @@ final class CameraModel {
         let shutter = CapturePipeline.Shutter.now()
         phase = .processing
         do {
-            let data = try await camera.capturePhoto(
-                flash: isFlashOn,
-                rotationAngle: rotationCoordinator?.videoRotationAngleForHorizonLevelCapture
-            )
+            let data = try await photoData()
             let photo = try await pipeline.process(data, context: context, shutter: shutter)
             phase = .review(photo)
             announce(photo.issues.first.map { String(localized: $0.retakeReason) } ?? String(localized: "Photo saved."), force: true)
@@ -116,6 +130,21 @@ final class CameraModel {
             phase = .ready
             announce(String(localized: "The photo didn't save. Try again."), force: true)
         }
+    }
+
+    /// The encoded file from the shutter: the camera, or in DEBUG the next fixture photo.
+    private func photoData() async throws -> Data {
+        #if DEBUG
+        if fixtureDirectory != nil {
+            guard var source = fixtures else { throw CameraError.noCamera }
+            defer { fixtures = source }
+            return try source.nextPhoto()
+        }
+        #endif
+        return try await camera.capturePhoto(
+            flash: isFlashOn,
+            rotationAngle: rotationCoordinator?.videoRotationAngleForHorizonLevelCapture
+        )
     }
 
     /// Discards the photo under review. It was never uploaded, so nothing else refers to it.
@@ -152,3 +181,13 @@ final class CameraModel {
         }
     }
 }
+
+#if DEBUG
+extension CameraModel {
+    /// A model whose shutter returns the photos in `fixtureDirectory` instead of using the camera.
+    convenience init(context: CaptureContext, store: EvidenceStore, fixtureDirectory: URL) {
+        self.init(context: context, store: store)
+        self.fixtureDirectory = fixtureDirectory
+    }
+}
+#endif

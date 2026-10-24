@@ -122,9 +122,28 @@ struct DeveloperMenuView: View {
         }
         .sensoryFeedback(.success, trigger: saveCount)
         .fullScreenCover(isPresented: $isCameraPresented) {
-            CameraScreen(context: .developerSample, store: evidenceStore) { photo in
+            camera
+        }
+    }
+
+    @ViewBuilder
+    private var camera: some View {
+        #if DEBUG
+        if let fixtureDirectory = configuration.fixtureCameraDirectory {
+            CameraScreen(context: .developerSample, store: evidenceStore, fixtureDirectory: fixtureDirectory) { photo in
                 lastCapture = photo.record
             }
+        } else {
+            realCamera
+        }
+        #else
+        realCamera
+        #endif
+    }
+
+    private var realCamera: some View {
+        CameraScreen(context: .developerSample, store: evidenceStore) { photo in
+            lastCapture = photo.record
         }
     }
 
