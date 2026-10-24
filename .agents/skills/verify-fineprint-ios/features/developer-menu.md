@@ -1,8 +1,8 @@
 # Developer menu
 
 Hidden developer options in Settings: the server URL in use and where it
-came from, the anonymous sign-in ([sign-in](sign-in.md)), and in DEBUG
-builds, the sample-deadline switch.
+came from, the anonymous sign-in ([sign-in](sign-in.md)), the evidence
+camera ([camera](camera.md)), and in DEBUG builds, the sample-deadline switch.
 
 ## Sub-features
 
@@ -15,6 +15,8 @@ builds, the sample-deadline switch.
 - Set (`developer.serverURLField`, `developer.saveServerURL`) and reset
   (`developer.resetServerURL`) the saved URL. An invalid URL shows
   `developer.serverURLError`.
+- Camera: Open Camera (`developer.openCamera`) and, after a kept photo, its
+  hash (`developer.lastCaptureHash`).
 - DEBUG builds only: `developer.sampleDeadlineToggle`.
 
 ## How to get to it (user POV)

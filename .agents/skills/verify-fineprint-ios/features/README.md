@@ -9,16 +9,17 @@ feature in spec §4.3 (F1 to F10) gets its own file as its screens land
 | [App shell](app-shell.md) | Tab bar, next-deadline accessory, Settings sheet | `tests/ios/smoke.e2e.ts`, `tests/ios/app-shell.e2e.ts` | tested |
 | [Developer menu](developer-menu.md) | Settings > Version (5 taps) > Developer Options | `tests/ios/auth.e2e.ts` (opens it) | partly tested |
 | [Anonymous sign-in](sign-in.md) | No screen; shown in Developer Options > Account | `tests/ios/auth.e2e.ts` | tested |
+| [Evidence camera](camera.md) | Developer Options > Camera > Open Camera (full-screen camera, review) | `tests/ios/camera.e2e.ts` (no-camera state), `ios/FinePrintTests/CaptureTests.swift` | partly tested |
 
 ## Planned features (spec §4.3)
 
-None of these has a feature file yet. Each one gets a file in this folder as
-its screens land.
+Each one gets a file in this folder as its screens land. So far only F2's
+camera has one ([camera](camera.md)).
 
 | Feature | Screen | Board issues | Status |
 | --- | --- | --- | --- |
 | F1 Lease Explainer | Lease tab: scan, redaction review, findings list, key terms card, clause explorer | #17, #18 | not built |
-| F2 Move-in Evidence | Evidence tab: start move-in, rooms, checklist, capture screen, seal | #21 (camera), #22, #23, #25 (walkthrough), #26 | not built |
+| F2 Move-in Evidence | Evidence tab: start move-in, rooms, checklist, capture screen, seal | #21 (camera), #22, #23, #25 (walkthrough), #26 | camera built (#21); rest not built |
 | F3 Landlord Report Diff + 5-Day Objection | Evidence tab: landlord report, diff, countdown; Letters tab: objection | #28, #29, #30 | not built |
 | F4 Responsibility Check | Repairs tab: new issue, result card | #31 | not built |
 | F5 Repair Request + Rent Escrow Path | Repairs tab: repair notice, tracking, escrow explainer, emergency guidance | #32 | not built |
