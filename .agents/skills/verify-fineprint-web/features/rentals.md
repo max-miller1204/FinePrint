@@ -70,7 +70,7 @@ rentals-input|web|fuzzer|POST /v1/rentals and PATCH /v1/rentals/:id with wrong t
   so the command's `startupTimeout` is 180 s.
 - The Firestore emulator port is fixed (8090, `firebase.json`), as is
   Storage (9190): run one web e2e run or `test:emulator` at a time.
-- The ios target still runs only the Auth emulator, so rentals there would
-  fail until the app needs them and `e2e/firebase.ios.json` gains its own
-  Firestore port.
+- The ios target runs its own Auth, Firestore, and Storage emulators
+  (`e2e/firebase.ios.json`: 9199, 8190, 9290). The app's upload queue
+  creates the rental there before its first photo upload.
 - Money is US dollars to the cent (`1450.5`), not integer cents.

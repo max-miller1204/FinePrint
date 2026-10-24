@@ -59,7 +59,7 @@ export function createRentals(store: Store, now: () => Date = () => new Date()) 
 const notFound = () => new ApiError(404, 'NOT_FOUND', 'No such rental');
 
 // The message names fields, never values: a body is user content.
-async function readBody<T extends z.ZodType>(c: Context<AuthEnv>, schema: T): Promise<z.output<T>> {
+export async function readBody<T extends z.ZodType>(c: Context<AuthEnv>, schema: T): Promise<z.output<T>> {
   let body: unknown;
   try {
     body = await c.req.json();
@@ -78,7 +78,7 @@ async function readBody<T extends z.ZodType>(c: Context<AuthEnv>, schema: T): Pr
 }
 
 // Firestore not answering is a 503 the client can retry, not a 500.
-async function guard<T>(work: Promise<T>): Promise<T> {
+export async function guard<T>(work: Promise<T>): Promise<T> {
   try {
     return await work;
   } catch (err) {

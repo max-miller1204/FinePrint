@@ -8,10 +8,13 @@ struct DeveloperMenuView: View {
     @Environment(DeadlineStore.self) private var deadlines
     @Environment(\.dismiss) private var dismiss
     @Environment(\.evidenceStore) private var evidenceStore
+    @Environment(\.modelContext) private var modelContext
+    @Environment(UploadQueue.self) private var uploads: UploadQueue?
     @State private var draft = ""
     @State private var error: ServerURLError?
     @State private var saveCount = 0
     @State private var isCameraPresented = false
+    @State private var cameraContext = CaptureContext.developerSample
     @State private var lastCapture: CaptureRecord?
     @FocusState private var isFieldFocused: Bool
 
@@ -76,6 +79,7 @@ struct DeveloperMenuView: View {
 
             Section {
                 Button("Open Camera") {
+                    cameraContext = .developer(in: modelContext)
                     isCameraPresented = true
                 }
                 .accessibilityIdentifier("developer.openCamera")
@@ -87,10 +91,13 @@ struct DeveloperMenuView: View {
                     }
                     .accessibilityIdentifier("developer.lastCaptureHash")
                 }
+                if let uploads {
+                    UploadQueueRows(uploads: uploads, lastCapture: lastCapture)
+                }
             } header: {
                 Text("Camera")
             } footer: {
-                Text("Takes a test photo for the kitchen walls. It is hashed and saved on this device only.")
+                Text("Takes a test photo for the kitchen walls. It is hashed, saved on this device, and uploaded to the server in use.")
             }
 
             #if DEBUG
@@ -130,7 +137,7 @@ struct DeveloperMenuView: View {
     private var camera: some View {
         #if DEBUG
         if let fixtureDirectory = configuration.fixtureCameraDirectory {
-            CameraScreen(context: .developerSample, store: evidenceStore, fixtureDirectory: fixtureDirectory) { photo in
+            CameraScreen(context: cameraContext, store: evidenceStore, fixtureDirectory: fixtureDirectory) { photo in
                 lastCapture = photo.record
             }
         } else {
@@ -142,7 +149,7 @@ struct DeveloperMenuView: View {
     }
 
     private var realCamera: some View {
-        CameraScreen(context: .developerSample, store: evidenceStore) { photo in
+        CameraScreen(context: cameraContext, store: evidenceStore) { photo in
             lastCapture = photo.record
         }
     }
@@ -194,4 +201,27 @@ struct DeveloperMenuView: View {
         .environment(AppConfiguration.preview())
         .environment(DeadlineStore(launchOptions: LaunchOptions()))
         .environment(AuthSession.preview())
+}
+
+/// The last photo's seal status and the upload queue, which update as uploads finish.
+private struct UploadQueueRows: View {
+    @Bindable var uploads: UploadQueue
+    let lastCapture: CaptureRecord?
+
+    var body: some View {
+        if let lastCapture {
+            LabeledContent("Seal Status") {
+                SealStatusPill(status: uploads.status(for: lastCapture.itemID) ?? .waiting)
+            }
+            .accessibilityIdentifier("developer.sealStatus")
+        }
+        LabeledContent("Waiting to Upload") {
+            Text(uploads.waitingCount, format: .number)
+        }
+        .accessibilityIdentifier("developer.uploadQueueCount")
+        #if DEBUG
+        Toggle("Simulate Offline", isOn: $uploads.simulatesOffline)
+            .accessibilityIdentifier("developer.simulateOfflineToggle")
+        #endif
+    }
 }
