@@ -1,8 +1,8 @@
-import { getApps, initializeApp } from 'firebase-admin/app';
 import { getAuth } from 'firebase-admin/auth';
 import type { MiddlewareHandler } from 'hono';
 import type { AppEnv } from './app.js';
 import { ApiError } from './errors.js';
+import { firebaseApp, projectIdFromEnv } from './firebase.js';
 
 // Firebase ID token auth for /v1 (spec §5.2, §13). The app signs in
 // anonymously; Sign in with Apple links to the same uid later.
@@ -82,13 +82,13 @@ const INVALID_TOKEN_CODES = new Set([
 // FIREBASE_AUTH_EMULATOR_HOST, firebase-admin skips the signature check, so
 // emulator mode is refused for anything but a `demo-` project.
 export function firebaseIdTokenVerifier(env: NodeJS.ProcessEnv = process.env): VerifyIdToken {
-  const projectId = env.FIREBASE_PROJECT_ID ?? env.GOOGLE_CLOUD_PROJECT ?? env.GCLOUD_PROJECT;
+  const projectId = projectIdFromEnv(env);
   if (env.FIREBASE_AUTH_EMULATOR_HOST && !projectId?.startsWith('demo-')) {
     throw new Error('FIREBASE_AUTH_EMULATOR_HOST is set, so the project ID must start with "demo-"');
   }
   let auth: ReturnType<typeof getAuth> | undefined;
   return async (idToken) => {
-    auth ??= getAuth(getApps()[0] ?? initializeApp(projectId ? { projectId } : undefined));
+    auth ??= getAuth(firebaseApp(env));
     try {
       const decoded = await auth.verifyIdToken(idToken);
       return { uid: decoded.uid, provider: providerOf(decoded.firebase?.sign_in_provider) };

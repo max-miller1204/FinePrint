@@ -14,22 +14,27 @@ also boots the simulator). The config sets `E2E_TELEMETRY_DISABLED=1`
 
 ## Launch
 
-The target's `app.command` runs `firebase emulators:exec --only auth
---project demo-fineprint "node --import tsx src/index.ts"` in `server/`
+The target's `app.command` runs `firebase emulators:exec --only
+auth,firestore,storage --project demo-fineprint "node --import tsx
+src/index.ts"` in `server/`
 (firebase-tools is a server dev dependency) with `PORT` set to a free port
-(`app.url` is `http://127.0.0.1:0`). The Auth emulator listens on
-127.0.0.1:9099 (`firebase.json`; the ios target's uses 9199, so a run with
-both targets never collides); emulators:exec sets
-`FIREBASE_AUTH_EMULATOR_HOST` and `GCLOUD_PROJECT` for the server. The
+(`app.url` is `http://127.0.0.1:0`). The emulators listen on
+127.0.0.1: Auth 9099, Firestore 8090, Storage 9190 (`firebase.json`; the
+ios target runs only Auth, on 9199, so a run with both targets never
+collides); emulators:exec sets `FIREBASE_AUTH_EMULATOR_HOST`,
+`FIRESTORE_EMULATOR_HOST`, `FIREBASE_STORAGE_EMULATOR_HOST`, and
+`GCLOUD_PROJECT` for the server. Firestore and Storage need Java 21 and
+can take most of a minute to start on an 8 GB Mac, so the command's
+`startupTimeout` is 180 s. The
 runner starts it, polls `/healthz` until it answers, and stops it with
-SIGTERM after the run, which shuts the emulator down too. Nothing to start
+SIGTERM after the run, which shuts the emulators down too. Nothing to start
 by hand. No seeds yet: `/healthz` checks are stubbed until M6. Run
 `pnpm install` at the repo root first.
 
 To watch the server by hand: `pnpm --filter @fineprint/server dev:emulated`
 from the repo root (port 8080, or `PORT=<n>`), or `dev` with no emulator
 (then `/v1` needs `FIREBASE_PROJECT_ID` and a real token). The port-0 target
-never collides with it, but the emulator port does: stop it before a run.
+never collides with it, but the emulator ports do: stop it before a run.
 
 ## Doctor
 
@@ -67,8 +72,10 @@ Every run writes `e2e/.e2e/report.json`; a failed test gets
 next run clears `.e2e/results/`, Doctor included, so a proof for a PR runs
 with `--output .e2e/proof/<name>`. Side effects: the server writes one
 JSON log line per request to `e2e/.e2e/logs/server.log`; read it to prove
-`requestId` is on every line and that no request content was logged. The
-server stores nothing yet. A proof calls the real route over HTTP, never an
+`requestId` is on every line and that no request content was logged. Rentals are stored in the Firestore emulator,
+which starts empty on every run; read a document back with `GET
+http://127.0.0.1:8090/v1/projects/demo-fineprint/databases/(default)/documents/<path>`
+and `Authorization: Bearer owner` (`tests/web/rentals.e2e.ts`). A proof calls the real route over HTTP, never an
 internal function, and checks the status, the body, and the headers.
 
 ## Bug bash
@@ -87,8 +94,8 @@ value. Tests without agent steps need no key. On macOS without
 `context` that says what is not a bug here (stubbed checks, replaced
 malformed request ids, 404 on an unsupported method, 401 on any `/v1` path
 without a token). If it is missing, recreate it from the example in topic
-`bug-bash`, step 1. Each explorer starts its own server and Auth emulator,
-and the emulator's port is fixed, so run charters one at a time. The
+`bug-bash`, step 1. Each explorer starts its own server and
+emulators, and the emulator ports are fixed, so run charters one at a time. The
 charters are in [features/](features/), one block per feature in the
 `slug|target|agent|charter` format (topic `bug-bash`, step 3):
 

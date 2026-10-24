@@ -16,24 +16,29 @@ const google = createGoogleGenerativeAI({ apiKey: process.env.GEMINI_API_KEY });
 
 const server = join(import.meta.dirname, '..', 'server');
 
-// The server process both targets boot, run inside the Firebase Auth
-// emulator so /v1 accepts the app's anonymous tokens. emulators:exec sets
-// FIREBASE_AUTH_EMULATOR_HOST and GCLOUD_PROJECT for the server, and the
-// runner's SIGTERM stops both. Port, log, and emulator config differ per
-// target: each target gets its own emulator port, so a run that starts both
-// never collides (web 9099 in ../firebase.json, ios 9199 in firebase.ios.json).
-const serverCommand = (port: string, log: string, firebaseConfig: string) => ({
+// The server process both targets boot, run inside the Firebase emulators
+// so /v1 accepts the app's anonymous tokens. emulators:exec sets
+// FIREBASE_AUTH_EMULATOR_HOST (and the Firestore and Storage hosts when it
+// runs those) and GCLOUD_PROJECT for the server, and the runner's SIGTERM
+// stops both. Port, log, and emulator config differ per target: each target
+// gets its own emulator ports, so a run that starts both never collides (web
+// in ../firebase.json, ios auth on 9199 in firebase.ios.json). Only web runs
+// Firestore and Storage, for the rentals API; the app does not call it yet.
+const serverCommand = (port: string, log: string, firebaseConfig: string, emulators: string) => ({
   executable: join(server, 'node_modules', '.bin', 'firebase'),
   args: [
     'emulators:exec',
     '--config', firebaseConfig,
-    '--only', 'auth',
+    '--only', emulators,
     '--project', 'demo-fineprint',
     'node --import tsx src/index.ts',
   ],
   cwd: server,
   env: { PORT: port },
   log,
+  // The Firestore and Storage emulators are JVMs; on an 8 GB Mac they can
+  // take over a minute to start, past the 60 s default.
+  startupTimeout: 180_000,
 });
 
 // A mobile target has no `url`, so its server gets a fixed port that the app
@@ -56,7 +61,7 @@ export default {
         // with a dev server you started by hand.
         url: 'http://127.0.0.1:0',
         readyUrl: 'http://127.0.0.1:{port}/healthz',
-        command: serverCommand('{port}', '.e2e/logs/server.log', join(import.meta.dirname, '..', 'firebase.json')),
+        command: serverCommand('{port}', '.e2e/logs/server.log', join(import.meta.dirname, '..', 'firebase.json'), 'auth,firestore,storage'),
       },
     },
     {
@@ -70,7 +75,7 @@ export default {
         // scripted taps are too slow for.
         launchArguments: ['-FinePrintServerURL', iosServerURL, '-FinePrintInMemoryStore', '-FinePrintDeveloperMenu'],
         readyUrl: `${iosServerURL}/healthz`,
-        command: serverCommand(iosServerPort, '.e2e/logs/server-ios.log', join(import.meta.dirname, 'firebase.ios.json')),
+        command: serverCommand(iosServerPort, '.e2e/logs/server-ios.log', join(import.meta.dirname, 'firebase.ios.json'), 'auth'),
       },
     },
   ],

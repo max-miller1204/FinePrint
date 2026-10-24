@@ -27,6 +27,19 @@ pnpm install
 | `scripts/` | Maintenance and seeding scripts |
 | `e2e/` | End-to-end tests |
 
+## Checks
+
+CI (`.github/workflows/ci.yml`) runs these on every push and pull request. Run them locally before you push:
+
+```sh
+pnpm lint                  # Biome
+pnpm typecheck             # tsc in every workspace with a typecheck script
+pnpm test                  # vitest in every workspace with a test script
+pnpm check:jurisdictions   # rule pack JSON and schema
+```
+
+CI also runs [gitleaks](https://github.com/gitleaks/gitleaks) over the history. A new workspace joins the gate by adding `typecheck` and `test` scripts to its `package.json`.
+
 ## End-to-end tests
 
 The `e2e/` workspace runs [e2e](https://github.com/tester-army/e2e) against two targets: `web` (the Hono server on a free port) and `ios` (the Debug app on the iPhone 17 Pro simulator). Everything is a project dev dependency. Nothing is installed globally.
