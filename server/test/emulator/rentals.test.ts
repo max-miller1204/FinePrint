@@ -44,7 +44,7 @@ describe.runIf(authHost && process.env.FIRESTORE_EMULATOR_HOST)('rentals against
     // A Timestamp, so a Firestore TTL policy on the field can purge it.
     const after = (await db().doc(`rentals/${id}`).get()).data();
     expect(after?.purgeAfter).toBeInstanceOf(Timestamp);
-    expect((after?.purgeAfter as Timestamp).toDate().toISOString()).toBe('2028-07-30T00:00:00.000Z');
+    expect((after?.purgeAfter as Timestamp | undefined)?.toDate().toISOString()).toBe('2028-07-30T00:00:00.000Z');
     expect(after?.ownerUid).toBe(localId);
   });
 

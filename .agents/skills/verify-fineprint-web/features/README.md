@@ -28,3 +28,18 @@ its routes land.
 | F8 Legal-Aid Web Evidence Report | `GET /r/:token`, `/.well-known/fineprint-keys.json`, share link routes | #33, #34, #35, #36 | not built |
 | F9 Insurance Claim Packet | none (the PDF is built on the device) | #55 | not built |
 | F10 High-Stakes Handoff | triage step inside the model-backed `/v1` routes; no route of its own | #37, #38 | not built |
+
+## CI gate
+
+`.github/workflows/ci.yml` runs on every push and pull request. It runs
+the root scripts, so a feature's server unit tests gate merges once they
+are in `server/test/` (or any workspace with a `test` script). The e2e
+tests in this map do not run in CI yet; run them locally before a PR.
+
+| Job | Command | Fails on |
+| --- | --- | --- |
+| lint | `pnpm lint` (Biome, recommended rules, no formatter) | any lint error; warnings pass |
+| typecheck | `pnpm typecheck` | a `tsc` error in any workspace with a `typecheck` script |
+| unit tests | `pnpm test` | a failing vitest test in any workspace with a `test` script (emulator tests excluded) |
+| jurisdictions schema | `pnpm check:jurisdictions` | invalid JSON under `jurisdictions/`, or a rule that fails `jurisdictions/schema/rule.schema.json` |
+| gitleaks | gitleaks 8.30.1, `gitleaks git` | a secret in any commit reachable from HEAD |
