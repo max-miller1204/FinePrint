@@ -1,0 +1,111 @@
+{
+  "sourceLanguage" : "en",
+  "strings" : {
+    "%@: %@" : {
+      "comment" : "Large Content Viewer text for the deadline accessory: deadline title, then countdown such as “3 days left”.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@: %2$@"
+          }
+        }
+      }
+    },
+    "%lld days left" : {
+      "comment" : "Countdown in the next-deadline accessory. The number is whole days until the deadline.",
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld day left"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld days left"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "A launch argument sets the server for this launch. Saved changes apply the next time the app opens without it." : {},
+    "About" : {},
+    "Add a host name, like localhost or example.org." : {},
+    "Add your lease and FinePrint will check it against Virginia law and explain each part in plain words." : {},
+    "Ask" : {},
+    "Ask a question about your lease or Virginia rental law. Each answer will show the clause or law it comes from." : {},
+    "Ask about your rental" : {},
+    "Change Server" : {},
+    "Default" : {},
+    "Developer" : {},
+    "Developer Options" : {},
+    "Developer options are now shown." : {},
+    "Due today" : {},
+    "Enter a server address." : {},
+    "Evidence" : {},
+    "FinePrint gives legal information, not legal advice." : {},
+    "Good to know" : {},
+    "Hide Developer Options" : {},
+    "In Use" : {
+      "comment" : "Developer menu label for the server address the app is using right now."
+    },
+    "In Virginia, you have 5 days after you get your landlord's move-in report to object to it in writing, so take your photos early." : {},
+    "Launch argument" : {},
+    "Lease" : {},
+    "Legal information, not legal advice." : {},
+    "Letters" : {},
+    "Letters you write with FinePrint, like a move-in objection or a repair request, are kept here with their status." : {},
+    "Likely unenforceable" : {},
+    "Next deadline: %@, %@" : {
+      "comment" : "VoiceOver label for the deadline accessory: deadline title, then countdown such as “3 days left”.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Next deadline: %1$@, %2$@"
+          }
+        }
+      }
+    },
+    "No lease yet" : {},
+    "No letters yet" : {},
+    "No move-in photos yet" : {},
+    "No repairs yet" : {},
+    "Object to move-in report" : {
+      "comment" : "Title of the sample deadline: the tenant's 5-day window to object to the landlord's move-in report."
+    },
+    "Opens Evidence" : {},
+    "Past due" : {},
+    "Repairs" : {},
+    "Reset to Default" : {},
+    "Sample Data" : {},
+    "Save Server URL" : {},
+    "Saved here" : {},
+    "Server" : {},
+    "Server URL" : {},
+    "Server address reset to default." : {},
+    "Server address saved." : {},
+    "Settings" : {},
+    "Show Sample Deadline" : {},
+    "Source" : {
+      "comment" : "Developer menu label for where the server address came from (default, saved, or launch argument)."
+    },
+    "Start the address with http:// or https://." : {},
+    "This doesn't look like a web address." : {},
+    "Turns the deadline above the tab bar on or off so both states can be checked." : {},
+    "Use http:// or https:// with a host name, for example https://fineprint.example.org." : {},
+    "Verified" : {},
+    "Version" : {},
+    "Waiting to seal" : {},
+    "When something breaks, add it here. You'll see who is likely responsible and get help writing a repair request." : {},
+    "Worth asking about" : {}
+  },
+  "version" : "1.0"
+}
