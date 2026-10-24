@@ -17,7 +17,8 @@ Cross-cutting conventions every route follows (spec §13, §15.4).
 
 ## How to get to it (user POV)
 
-Any request. `GET /v1/does-not-exist` shows the envelope.
+Any request. `GET /does-not-exist` shows the envelope. (Under `/v1` an
+unknown path without a token is 401; see [auth](auth.md).)
 
 ## Driving it with e2e
 

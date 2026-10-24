@@ -16,10 +16,21 @@ const google = createGoogleGenerativeAI({ apiKey: process.env.GEMINI_API_KEY });
 
 const server = join(import.meta.dirname, '..', 'server');
 
-// The server process both targets boot. Port and log differ per target.
-const serverCommand = (port: string, log: string) => ({
-  executable: 'node',
-  args: ['--import', 'tsx', 'src/index.ts'],
+// The server process both targets boot, run inside the Firebase Auth
+// emulator so /v1 accepts the app's anonymous tokens. emulators:exec sets
+// FIREBASE_AUTH_EMULATOR_HOST and GCLOUD_PROJECT for the server, and the
+// runner's SIGTERM stops both. Port, log, and emulator config differ per
+// target: each target gets its own emulator port, so a run that starts both
+// never collides (web 9099 in ../firebase.json, ios 9199 in firebase.ios.json).
+const serverCommand = (port: string, log: string, firebaseConfig: string) => ({
+  executable: join(server, 'node_modules', '.bin', 'firebase'),
+  args: [
+    'emulators:exec',
+    '--config', firebaseConfig,
+    '--only', 'auth',
+    '--project', 'demo-fineprint',
+    'node --import tsx src/index.ts',
+  ],
   cwd: server,
   env: { PORT: port },
   log,
@@ -45,7 +56,7 @@ export default {
         // with a dev server you started by hand.
         url: 'http://127.0.0.1:0',
         readyUrl: 'http://127.0.0.1:{port}/healthz',
-        command: serverCommand('{port}', '.e2e/logs/server.log'),
+        command: serverCommand('{port}', '.e2e/logs/server.log', join(import.meta.dirname, '..', 'firebase.json')),
       },
     },
     {
@@ -55,9 +66,11 @@ export default {
         bundleId: 'org.fineprint.FinePrint',
         // Built by `pnpm build:ios` (xcodebuild, Debug, simulator).
         appPath: join(import.meta.dirname, '..', 'ios', 'DerivedData', 'Build', 'Products', 'Debug-iphonesimulator', 'FinePrint.app'),
-        launchArguments: ['-FinePrintServerURL', iosServerURL, '-FinePrintInMemoryStore'],
+        // -FinePrintDeveloperMenu (DEBUG) skips the five-tap unlock, which
+        // scripted taps are too slow for.
+        launchArguments: ['-FinePrintServerURL', iosServerURL, '-FinePrintInMemoryStore', '-FinePrintDeveloperMenu'],
         readyUrl: `${iosServerURL}/healthz`,
-        command: serverCommand(iosServerPort, '.e2e/logs/server-ios.log'),
+        command: serverCommand(iosServerPort, '.e2e/logs/server-ios.log', join(import.meta.dirname, 'firebase.ios.json')),
       },
     },
   ],

@@ -1,8 +1,10 @@
 import SwiftUI
 
-/// Hidden developer options: the server address and, in DEBUG builds, sample data switches.
+/// Hidden developer options: the server address, the anonymous sign-in, and, in DEBUG builds,
+/// sample data switches.
 struct DeveloperMenuView: View {
     @Environment(AppConfiguration.self) private var configuration
+    @Environment(AuthSession.self) private var auth
     @Environment(DeadlineStore.self) private var deadlines
     @Environment(\.dismiss) private var dismiss
     @State private var draft = ""
@@ -67,6 +69,8 @@ struct DeveloperMenuView: View {
                 Text("Use http:// or https:// with a host name, for example https://fineprint.example.org.")
             }
 
+            AccountSection()
+
             #if DEBUG
             Section {
                 Toggle("Show Sample Deadline", isOn: sampleDeadlineBinding)
@@ -122,6 +126,8 @@ struct DeveloperMenuView: View {
             isFieldFocused = false
             saveCount += 1
             AccessibilityNotification.Announcement(String(localized: "Server address saved.")).post()
+            // Each server names its own Firebase project, so the account may need to change.
+            Task { await auth.start() }
         } catch {
             self.error = error
             AccessibilityNotification.Announcement(String(localized: error.message)).post()
@@ -133,6 +139,7 @@ struct DeveloperMenuView: View {
         draft = ""
         error = nil
         AccessibilityNotification.Announcement(String(localized: "Server address reset to default.")).post()
+        Task { await auth.start() }
     }
 }
 
@@ -140,4 +147,5 @@ struct DeveloperMenuView: View {
     NavigationStack { DeveloperMenuView() }
         .environment(AppConfiguration.preview())
         .environment(DeadlineStore(launchOptions: LaunchOptions()))
+        .environment(AuthSession.preview())
 }

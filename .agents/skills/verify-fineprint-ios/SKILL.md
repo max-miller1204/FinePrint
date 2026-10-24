@@ -31,15 +31,21 @@ Then `npx e2e run ... --target ios` does the rest:
   `E2E_IOS_SERVER_PORT` too. Otherwise the boot fails with `ENGINE_FAILURE`
   "Daemon request timed out".
 - It starts the Hono server (`node --import tsx src/index.ts` in `server/`)
-  on fixed port **18080**, waits for `/healthz`, and logs to
-  `e2e/.e2e/logs/server-ios.log`. Set `E2E_IOS_SERVER_PORT` when 18080 is
-  taken.
+  inside the Firebase Auth emulator (`firebase emulators:exec`, config
+  `e2e/firebase.ios.json`, emulator on **9199**) on fixed port **18080**,
+  waits for `/healthz`, and logs both to `e2e/.e2e/logs/server-ios.log`. Set
+  `E2E_IOS_SERVER_PORT` when 18080 is taken. The emulator port is fixed, so a
+  parallel session on another simulator still collides on 9199: run one iOS
+  run at a time.
 - The `test` from `tests/ios/fixtures.ts` installs the build once per
   worker. Every iOS test imports `test` from there, not from
   `@e2e-dev/mobile`.
-- Every fresh launch gets `-FinePrintServerURL http://127.0.0.1:18080`
-  and `-FinePrintInMemoryStore`, so nothing persists between launches.
-  `ios/README.md` lists all launch arguments.
+- Every fresh launch gets `-FinePrintServerURL http://127.0.0.1:18080`,
+  `-FinePrintInMemoryStore`, and `-FinePrintDeveloperMenu`. Nothing persists
+  between launches, so each launch signs up a new anonymous account (the app
+  reads the emulator host from the server's
+  `/.well-known/fineprint-client.json`), and Settings shows the Developer
+  section without the five taps. `ios/README.md` lists all launch arguments.
 
 The first time on a machine, run `npx agent-device doctor`. The warnings
 about HarmonyOS and Vega are expected.
@@ -68,7 +74,9 @@ handles are stable:
   `ios/FinePrint/App/AppTab.swift` says not to rely on them on iOS 26.0.
 - Test ids: `settingsButton`, `settings.version`, `settings.close`,
   `settings.developerOptions`, `deadlineAccessory`, and the
-  `developer.*` ids in `DeveloperMenuView.swift`.
+  `developer.*` ids in `DeveloperMenuView.swift` and `AccountSection.swift`
+  (`developer.authStatus`, `developer.userID`, `developer.checkServer`,
+  `developer.serverCheckResult`).
 - Empty-state titles: "No lease yet", "No move-in photos yet".
 
 `agent.*` steps use the Gemini model and need the key (see Bug bash).

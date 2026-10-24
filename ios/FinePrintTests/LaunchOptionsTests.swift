@@ -5,12 +5,13 @@ import Testing
 struct LaunchOptionsTests {
     @Test func `reads every argument`() {
         let options = LaunchOptions(
-            arguments: ["FinePrint", "-FinePrintServerURL", "http://127.0.0.1:1234", "-FinePrintInMemoryStore", "-FinePrintDeadlineStub", "empty"],
+            arguments: ["FinePrint", "-FinePrintServerURL", "http://127.0.0.1:1234", "-FinePrintInMemoryStore", "-FinePrintDeadlineStub", "empty", "-FinePrintDeveloperMenu"],
             environment: [:]
         )
         #expect(options.serverURLOverride == "http://127.0.0.1:1234")
         #expect(options.usesInMemoryStore)
         #expect(options.deadlineStub == .empty)
+        #expect(options.showsDeveloperMenu)
     }
 
     @Test func `defaults when nothing is passed`() {
@@ -18,6 +19,8 @@ struct LaunchOptionsTests {
         #expect(options.serverURLOverride == nil)
         #expect(!options.usesInMemoryStore)
         #expect(options.deadlineStub == nil)
+        #expect(!options.isRunningTests)
+        #expect(!options.showsDeveloperMenu)
     }
 
     @Test func `a missing value is ignored`() {
@@ -34,6 +37,7 @@ struct LaunchOptionsTests {
     @Test func `tests always use the in-memory store`() {
         let options = LaunchOptions(arguments: ["FinePrint"], environment: ["XCTestConfigurationFilePath": "/tmp/x"])
         #expect(options.usesInMemoryStore)
+        #expect(options.isRunningTests)
     }
 
     @Test func `this test process runs in memory`() {

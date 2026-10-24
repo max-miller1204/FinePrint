@@ -89,6 +89,14 @@ struct AppConfigurationTests {
         #expect(configuration.storedServerURL == nil)
     }
 
+    #if DEBUG
+    @Test func `developer menu launch argument shows the menu without saving it`() {
+        let options = LaunchOptions(arguments: ["FinePrint", "-FinePrintDeveloperMenu"], environment: [:])
+        #expect(AppConfiguration(launchOptions: options, defaults: defaults).isDeveloperMenuUnlocked)
+        #expect(!AppConfiguration(launchOptions: LaunchOptions(), defaults: defaults).isDeveloperMenuUnlocked)
+    }
+    #endif
+
     @Test func `launch argument wins over a saved value`() throws {
         let options = LaunchOptions(arguments: ["FinePrint", "-FinePrintServerURL", "http://127.0.0.1:1234"], environment: [:])
         let configuration = AppConfiguration(launchOptions: options, defaults: defaults)

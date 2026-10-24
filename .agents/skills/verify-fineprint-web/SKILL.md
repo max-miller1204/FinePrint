@@ -14,15 +14,22 @@ also boots the simulator). The config sets `E2E_TELEMETRY_DISABLED=1`
 
 ## Launch
 
-The target's `app.command` runs `node --import tsx src/index.ts` in
-`server/` with `PORT` set to a free port (`app.url` is
-`http://127.0.0.1:0`). The runner starts it, polls `/healthz` until it
-answers, and stops it with SIGTERM after the run. Nothing to start by hand.
-The server needs no env, seeds, or emulators yet: `/healthz` checks are
-stubbed until M6. Run `pnpm install` at the repo root first.
+The target's `app.command` runs `firebase emulators:exec --only auth
+--project demo-fineprint "node --import tsx src/index.ts"` in `server/`
+(firebase-tools is a server dev dependency) with `PORT` set to a free port
+(`app.url` is `http://127.0.0.1:0`). The Auth emulator listens on
+127.0.0.1:9099 (`firebase.json`; the ios target's uses 9199, so a run with
+both targets never collides); emulators:exec sets
+`FIREBASE_AUTH_EMULATOR_HOST` and `GCLOUD_PROJECT` for the server. The
+runner starts it, polls `/healthz` until it answers, and stops it with
+SIGTERM after the run, which shuts the emulator down too. Nothing to start
+by hand. No seeds yet: `/healthz` checks are stubbed until M6. Run
+`pnpm install` at the repo root first.
 
-To watch the server by hand: `pnpm --filter server dev` from the repo root
-(port 8080, or `PORT=<n>`). The port-0 target never collides with it.
+To watch the server by hand: `pnpm --filter @fineprint/server dev:emulated`
+from the repo root (port 8080, or `PORT=<n>`), or `dev` with no emulator
+(then `/v1` needs `FIREBASE_PROJECT_ID` and a real token). The port-0 target
+never collides with it, but the emulator port does: stop it before a run.
 
 ## Doctor
 
@@ -48,7 +55,9 @@ locators and the live MCP lane (topic `mcp`); the e2e MCP server is not
 registered in this repo yet.
 
 Stable handles: routes, status codes, the `error.code` field of the
-envelope, and the `X-Request-Id` header. Never assert an error `message`
+envelope, and the `X-Request-Id` header. For `/v1`, sign up against the
+emulator the client config names (`tests/web/auth.e2e.ts`,
+`signUpAnonymously`) and send the `idToken` as a bearer token. Never assert an error `message`
 that a later change might reword unless the test is about that message.
 
 ## Evidence
@@ -76,9 +85,10 @@ value. Tests without agent steps need no key. On macOS without
 `e2e/e2e.bugbash.config.ts` is gitignored and local: it spreads
 `e2e.config.ts` and adds the `skeptic` and `fuzzer` personas with a
 `context` that says what is not a bug here (stubbed checks, replaced
-malformed request ids, 404 on an unsupported method). If it is missing,
-recreate it from the example in topic `bug-bash`, step 1. Each explorer
-starts its own server on port 0, so charters can run in parallel. The
+malformed request ids, 404 on an unsupported method, 401 on any `/v1` path
+without a token). If it is missing, recreate it from the example in topic
+`bug-bash`, step 1. Each explorer starts its own server and Auth emulator,
+and the emulator's port is fixed, so run charters one at a time. The
 charters are in [features/](features/), one block per feature in the
 `slug|target|agent|charter` format (topic `bug-bash`, step 3):
 

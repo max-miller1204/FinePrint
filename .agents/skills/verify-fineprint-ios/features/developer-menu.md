@@ -1,7 +1,8 @@
 # Developer menu
 
 Hidden developer options in Settings: the server URL in use and where it
-came from, and in DEBUG builds, the sample-deadline switch.
+came from, the anonymous sign-in ([sign-in](sign-in.md)), and in DEBUG
+builds, the sample-deadline switch.
 
 ## Sub-features
 
@@ -22,14 +23,15 @@ Gear > Settings > tap Version 5 times quickly > Developer Options.
 
 ## Driving it with e2e
 
-Untested. A scripted `tap()` takes about 1.2 s and a `doubleTap()` about
-1.7 s, so the fastest mix tried (two double taps and a tap) took about
-4.6 s, past the 3 s window. Nothing scripted unlocks the menu yet. Ways
-to fix it, in the app: a DEBUG launch argument that starts with the menu
-unlocked, or a longer window under UI tests. Under the e2e target,
-expect Source "Launch argument" and URL `http://127.0.0.1:18080`.
+Scripted taps are too slow for the five-tap unlock (about 1.2 s per
+`tap()`, past the 3 s window), so the ios target launches with the DEBUG
+argument `-FinePrintDeveloperMenu`, which shows the Developer section for
+that launch without saving it. `tests/ios/auth.e2e.ts` opens Developer
+Options that way. The five-tap gesture itself stays untested in e2e; the
+server URL rows have no e2e test yet. Under the e2e target, expect Source
+"Launch argument" and URL `http://127.0.0.1:18080`.
 `ios/FinePrintTests/LaunchOptionsTests.swift` and `ServerURLTests.swift`
-cover the parsing.
+cover the parsing and that the argument never saves the unlock.
 
 ## Proof
 

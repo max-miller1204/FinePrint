@@ -20,7 +20,17 @@ final class AppConfiguration {
         self.defaults = defaults
         launchServerURL = launchOptions.serverURLOverride
         storedServerURL = defaults.string(forKey: Self.storedServerURLKey)
-        isDeveloperMenuUnlocked = defaults.bool(forKey: Self.developerMenuKey)
+        // `-FinePrintDeveloperMenu` applies to this launch only. One assignment, so `didSet` never
+        // runs and nothing is saved.
+        isDeveloperMenuUnlocked = defaults.bool(forKey: Self.developerMenuKey) || Self.debugShowsDeveloperMenu(launchOptions)
+    }
+
+    private static func debugShowsDeveloperMenu(_ launchOptions: LaunchOptions) -> Bool {
+        #if DEBUG
+        launchOptions.showsDeveloperMenu
+        #else
+        false
+        #endif
     }
 
     var serverURL: URL { resolution.url }
