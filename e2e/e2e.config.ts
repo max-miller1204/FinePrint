@@ -23,7 +23,7 @@ const server = join(import.meta.dirname, '..', 'server');
 // runs those) and GCLOUD_PROJECT for the server, and the runner's SIGTERM
 // stops both. Port, log, and emulator config differ per target: each target
 // gets its own emulator ports, so a run that starts both never collides (web
-// in ../firebase.json; ios in firebase.ios.json: auth 9199, Firestore 8190,
+// in ../firebase.json; ios in ../firebase.ios.json: auth 9199, Firestore 8190,
 // Storage 9290). Both run Firestore and Storage, since the app uploads
 // evidence. Under the Storage emulator the server hands out emulator upload
 // URLs on 127.0.0.1, which the simulator reaches directly (server/src/storage/gcs.ts).
@@ -72,7 +72,7 @@ export default {
         // See ios-launch.ts for what each argument does.
         launchArguments: iosLaunchArguments(),
         readyUrl: `${iosServerURL}/healthz`,
-        command: serverCommand(iosServerPort, '.e2e/logs/server-ios.log', join(import.meta.dirname, 'firebase.ios.json'), 'auth,firestore,storage'),
+        command: serverCommand(iosServerPort, '.e2e/logs/server-ios.log', join(import.meta.dirname, '..', 'firebase.ios.json'), 'auth,firestore,storage'),
       },
     },
   ],

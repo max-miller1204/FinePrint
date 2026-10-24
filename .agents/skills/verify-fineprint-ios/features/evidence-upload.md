@@ -52,7 +52,7 @@ that is Gear > Settings > tap Version 5 times > Developer Options > Camera
 ## Driving it with e2e
 
 The ios target runs the server under the Auth, Firestore, and Storage
-emulators (`e2e/firebase.ios.json`: 9199, 8190, 9290). Under the Storage
+emulators (`firebase.ios.json`: 9199, 8190, 9290). Under the Storage
 emulator the server returns emulator upload URLs on 127.0.0.1, which the
 simulator reaches directly.
 

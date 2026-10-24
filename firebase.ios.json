@@ -1,9 +1,9 @@
 {
   "firestore": {
-    "rules": "../firestore.rules"
+    "rules": "firestore.rules"
   },
   "storage": {
-    "rules": "../storage.rules"
+    "rules": "storage.rules"
   },
   "emulators": {
     "singleProjectMode": true,

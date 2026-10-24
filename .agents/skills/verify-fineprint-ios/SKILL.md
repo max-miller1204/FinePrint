@@ -32,7 +32,7 @@ Then `npx e2e run ... --target ios` does the rest:
   "Daemon request timed out".
 - It starts the Hono server (`node --import tsx src/index.ts` in `server/`)
   inside the Firebase Auth, Firestore, and Storage emulators
-  (`firebase emulators:exec`, config `e2e/firebase.ios.json`: Auth **9199**,
+  (`firebase emulators:exec`, config `firebase.ios.json`: Auth **9199**,
   Firestore **8190**, Storage **9290**) on fixed port **18080**, waits for
   `/healthz`, and logs both to `e2e/.e2e/logs/server-ios.log`. Set
   `E2E_IOS_SERVER_PORT` when 18080 is taken. Firestore and Storage are JVMs

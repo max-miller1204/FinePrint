@@ -71,6 +71,6 @@ rentals-input|web|fuzzer|POST /v1/rentals and PATCH /v1/rentals/:id with wrong t
 - The Firestore emulator port is fixed (8090, `firebase.json`), as is
   Storage (9190): run one web e2e run or `test:emulator` at a time.
 - The ios target runs its own Auth, Firestore, and Storage emulators
-  (`e2e/firebase.ios.json`: 9199, 8190, 9290). The app's upload queue
+  (`firebase.ios.json`: 9199, 8190, 9290). The app's upload queue
   creates the rental there before its first photo upload.
 - Money is US dollars to the cent (`1450.5`), not integer cents.
