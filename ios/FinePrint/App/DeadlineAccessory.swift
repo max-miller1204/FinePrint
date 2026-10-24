@@ -6,19 +6,19 @@ extension View {
     ///
     /// The iOS 26.0 SDK only has `tabViewBottomAccessory(content:)`, which always reserves the
     /// glass capsule even for empty content. So the modifier is applied conditionally instead.
-    func deadlineAccessory(_ deadline: NextDeadline?, onOpen: @escaping () -> Void) -> some View {
+    func deadlineAccessory(_ deadline: NextDeadline?, onOpen: @escaping (NextDeadline) -> Void) -> some View {
         modifier(DeadlineAccessoryModifier(deadline: deadline, onOpen: onOpen))
     }
 }
 
 private struct DeadlineAccessoryModifier: ViewModifier {
     let deadline: NextDeadline?
-    let onOpen: () -> Void
+    let onOpen: (NextDeadline) -> Void
 
     func body(content: Content) -> some View {
         if let deadline {
             content.tabViewBottomAccessory {
-                DeadlineAccessoryView(deadline: deadline, onOpen: onOpen)
+                DeadlineAccessoryView(deadline: deadline) { onOpen(deadline) }
             }
         } else {
             content
@@ -38,6 +38,7 @@ struct DeadlineAccessoryView: View {
     @Environment(\.scenePhase) private var scenePhase
 
     var body: some View {
+        // Counts tick without animation (fineprint-ios-ui §5).
         let countdown = deadline.countdown(from: now)
         Button(action: onOpen) {
             HStack(spacing: 10) {
@@ -78,7 +79,7 @@ struct DeadlineAccessoryView: View {
             }
         }
         .accessibilityLabel(Text("Next deadline: \(deadline.title), \(Text(countdown.text))"))
-        .accessibilityHint(Text("Opens Evidence"))
+        .accessibilityHint(Text("Opens \(Text(deadline.tab.title))"))
         .accessibilityIdentifier("deadlineAccessory")
         .onChange(of: scenePhase) { _, phase in
             if phase == .active { now = .now }
