@@ -1,0 +1,62 @@
+# The merge gate (spec §12.2): lint, typecheck, unit tests, the jurisdictions
+# schema check, and a gitleaks scan of every commit reachable from HEAD. Each
+# Node job runs a root script from package.json that recurses into every
+# workspace defining it, so a new package is covered by adding `typecheck` or
+# `test` to its own package.json. The e2e and eval jobs land separately.
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.event_name }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  E2E_TELEMETRY_DISABLED: "1"
+
+jobs:
+  node:
+    name: ${{ matrix.check.name }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        check:
+          - { name: lint, run: pnpm lint }
+          - { name: typecheck, run: pnpm typecheck }
+          - { name: unit tests, run: pnpm test }
+          - { name: jurisdictions schema, run: pnpm check:jurisdictions }
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: ${{ matrix.check.run }}
+
+  gitleaks:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      GITLEAKS_VERSION: 8.30.1
+      GITLEAKS_SHA256: 551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - name: Install gitleaks
+        run: |
+          archive="gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz"
+          curl -sSfLO "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/${archive}"
+          echo "${GITLEAKS_SHA256}  ${archive}" | sha256sum -c -
+          tar -xzf "${archive}" -C "${RUNNER_TEMP}" gitleaks
+      - name: Scan the full history
+        run: '"${RUNNER_TEMP}/gitleaks" git . --redact --no-banner --verbose'
