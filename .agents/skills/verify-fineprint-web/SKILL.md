@@ -7,8 +7,10 @@ description: Launch, check, drive, prove, and bug bash the FinePrint Hono server
 
 Read the [e2e skill](../e2e/SKILL.md) first. This skill only says what is
 true of this app. Every command runs from `e2e/`. The config is
-`e2e/e2e.config.ts` (target `web`, tests `tests/web/**/*.e2e.ts`). Set
-`E2E_TELEMETRY_DISABLED=1` for every run (privacy stance, spec §12.1).
+`e2e/e2e.config.ts` (target `web`, tests `tests/web/**/*.e2e.ts`; the
+same config holds the `ios` target, so pass `--target web` or every run
+also boots the simulator). The config sets `E2E_TELEMETRY_DISABLED=1`
+(privacy stance, spec §12.1) and the package scripts set it too.
 
 ## Launch
 
@@ -26,8 +28,8 @@ To watch the server by hand: `pnpm --filter server dev` from the repo root
 
 ```bash
 cd e2e
-E2E_TELEMETRY_DISABLED=1 npx e2e list                          # loads the config, starts nothing; exit 0
-E2E_TELEMETRY_DISABLED=1 npx e2e run tests/web/smoke.e2e.ts     # boots the server, GET /healthz is 200 ok; exit 0
+npx e2e list                                        # loads the config, starts nothing; exit 0
+npx e2e run tests/web/smoke.e2e.ts --target web     # boots the server, GET /healthz is 200 ok; exit 0
 ```
 
 `list` failing is the config or a dependency (`pnpm install`). `run`
@@ -38,8 +40,8 @@ engine; that is expected.
 ## Drive
 
 There is no UI yet, so the scripted lane is the only lane: API tests that
-take only `app` and call `fetch(new URL(path, app.baseUrl))` with value
-matchers (topic `writing-tests`, "APIs live in the same suite"). They call
+take only `app`, declare `{ platforms: ['web'] }` so the ios target skips
+them, and call `fetch(new URL(path, app.baseUrl))` with value matchers (topic `writing-tests`, "APIs live in the same suite"). They call
 no model. Agent steps (`agent.act`, `agent.assert`) use the Gemini model
 in the config and need the key (see Bug bash). When the web report (`/r/:token`) lands, drive it with `screen`
 locators and the live MCP lane (topic `mcp`); the e2e MCP server is not
@@ -66,7 +68,10 @@ The model is Gemini (`gemini-flash-latest` through `@ai-sdk/google`),
 reading `GEMINI_API_KEY`. The worktree's `.env` (gitignored) holds a
 1Password reference, not the key, so run anything that calls the model as
 `op run --env-file ../.env -- <command>` from `e2e/`. Never print the
-value. Tests without agent steps need no key.
+value. Tests without agent steps need no key. On macOS without
+1Password, keep the key in the login keychain (service
+`fineprint-gemini-api-key`, see `CONTRIBUTING.md`) and use
+`../scripts/with-gemini-key.sh <command>` in place of `op run ... --`.
 
 `e2e/e2e.bugbash.config.ts` is gitignored and local: it spreads
 `e2e.config.ts` and adds the `skeptic` and `fuzzer` personas with a
@@ -79,7 +84,7 @@ charters are in [features/](features/), one block per feature in the
 
 ```bash
 cd e2e
-E2E_TELEMETRY_DISABLED=1 op run --env-file ../.env -- npx e2e explore '<charter>' \
+op run --env-file ../.env -- npx e2e explore '<charter>' \
   --config e2e.bugbash.config.ts --target web --agent <persona> --max-steps 3 \
   --output .e2e/bugbash/<slug> --reporter list,markdown
 ```
@@ -98,5 +103,5 @@ the evidence, and all of it is gitignored.
 
 ## Helpers
 
-None. The e2e CLI is the helper. Unit tests: `pnpm --filter server test`
-(vitest).
+`pnpm test:e2e:web` in `e2e/` runs this target only. Otherwise the e2e
+CLI is the helper. Unit tests: `pnpm --filter server test` (vitest).

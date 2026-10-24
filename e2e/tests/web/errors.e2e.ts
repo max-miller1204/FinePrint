@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'e2e';
 
-describe('error envelope and request ids', () => {
+describe('error envelope and request ids', { platforms: ['web'] }, () => {
   test('an unknown route answers 404 in the envelope', async ({ app }) => {
     const res = await fetch(new URL('/v1/does-not-exist', app.baseUrl));
     expect(res.status).toBe(404);
