@@ -91,7 +91,7 @@ struct FixtureCameraTests {
     @Test func `the launch argument reaches the app configuration`() {
         let options = LaunchOptions(arguments: ["FinePrint", "-FinePrintFixtureCamera", "/tmp/photos"], environment: [:])
         let configuration = AppConfiguration.preview(launchOptions: options)
-        #expect(configuration.fixtureCameraDirectory?.path(percentEncoded: false) == "/tmp/photos")
+        #expect(configuration.fixtureCameraDirectory == URL(fileURLWithPath: "/tmp/photos", isDirectory: true))
     }
 }
 #endif
