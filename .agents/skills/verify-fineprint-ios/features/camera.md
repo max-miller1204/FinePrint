@@ -23,6 +23,11 @@ Developer Options, for the "Walls" item in the "Kitchen".
   `camera.keep`). Retake and close delete the discarded files.
 - Developer Options shows the last kept photo's hash
   (`developer.lastCaptureHash`).
+- Fixture camera (DEBUG only, `-FinePrintFixtureCamera <dir>`, #22): the viewfinder is
+  black and ready at once, and the shutter returns the next photo in `<dir>` (file name order,
+  wrapping around). Everything after the shutter is the real pipeline, so the review, hash, quality
+  gate, Use Photo, and the Developer Options hash behave as on a device. A missing or empty folder
+  shows "The camera didn't start" (`camera.failed`).
 - No camera: "Camera not available" (`camera.unavailable`). Access denied:
   "Camera access is off" with Open Settings (`camera.openSettings`).
 
@@ -33,21 +38,33 @@ Camera.
 
 ## Driving it with e2e
 
-- `tests/ios/camera.e2e.ts` opens the camera from Developer Options, checks
-  the no-camera state, and closes it. Simulators have no camera, so that is
-  the only state e2e can reach until the DEBUG fixture camera (#22).
+- `e2e.config.ts` launches the app with `-FinePrintFixtureCamera
+  e2e/fixtures/photos/move-in` (an absolute host path the simulator reads
+  directly). `tests/ios/capture.e2e.ts` opens the camera, taps
+  `camera.shutter`, reads the 64-character `camera.hash`, taps `camera.use`
+  (or `camera.keep` if the quality gate asks for a retake), and checks that
+  `developer.lastCaptureHash` contains the same hash. A second test checks that
+  two shutters give two different photos (hashes).
+- `tests/ios/camera.e2e.ts` (no-camera state) runs only with
+  `E2E_IOS_FIXTURE_CAMERA=off`, which drops the launch argument.
+- `e2e/fixtures/photos/` holds the generated move-in and move-out pairs of the
+  same three views (see `e2e/fixtures/README.md`). To drive a move-out pair,
+  point the argument at `photos/move-out`.
+- `ios/FinePrintTests/FixtureCameraTests.swift` covers the source (order,
+  wrap-around, unreadable and empty folders) and a fixture photo through
+  `CapturePipeline`.
 - `ios/FinePrintTests/CaptureTests.swift` covers hashing, the capture record,
   GPS removal (JPEG, HEIC, PNG), the model copy, the quality gate, and
   retake deletion.
-- Real capture, flash, rotation, and spoken guidance need a physical iPhone:
+- Real camera hardware, flash, rotation, and spoken guidance need a physical iPhone:
   check them by hand.
 
 ## Proof
 
-After the tap, "Camera not available" and `camera.close` are on screen;
-after close, `developer.openCamera` is back. On a device, the review screen
-shows a 64-character hash, and Developer Options shows the same hash after
-Use Photo.
+With the fixture camera: after the shutter, the review screen shows a
+64-character hash, and Developer Options shows the same hash after Use Photo.
+Without it: "Camera not available" and `camera.close` are on screen; after
+close, `developer.openCamera` is back.
 
 ## Charters
 
@@ -56,6 +73,12 @@ camera-entry|ios|skeptic|Open the camera from Developer Options, close it, reope
 ```
 
 ## Gotchas
+
+- The fixture camera never exists in Release: `FixtureCameraSource`, the
+  launch argument parsing, and the model hooks are all `#if DEBUG`.
+- The fixture index lives in the camera model, so each time the camera opens it
+  starts again at the first photo. The viewfinder is black (no preview).
+- Retake deletes the discarded files but the next shutter still advances.
 
 - The quality thresholds are lenient starting points (`QualityThresholds`).
   A sharp photo of a blank wall can read as blurry; the tenant can keep it.

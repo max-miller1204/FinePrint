@@ -14,6 +14,14 @@ struct CameraScreen: View {
         self.onFinish = onFinish
     }
 
+    #if DEBUG
+    /// The camera with a folder of fixture photos in place of the hardware.
+    init(context: CaptureContext, store: EvidenceStore, fixtureDirectory: URL, onFinish: @escaping (CapturedPhoto) -> Void = { _ in }) {
+        _model = State(initialValue: CameraModel(context: context, store: store, fixtureDirectory: fixtureDirectory))
+        self.onFinish = onFinish
+    }
+    #endif
+
     var body: some View {
         ZStack {
             Color.black.ignoresSafeArea()

@@ -22,7 +22,9 @@ nonisolated struct LaunchOptions: Equatable, Sendable {
     static let inMemoryStoreArgument = "-FinePrintInMemoryStore"
     static let deadlineStubArgument = "-FinePrintDeadlineStub"
     static let developerMenuArgument = "-FinePrintDeveloperMenu"
+    #if DEBUG
     static let fixtureCameraArgument = "-FinePrintFixtureCamera"
+    #endif
     static let skipOnboardingArgument = "-FinePrintSkipOnboarding"
 
     var serverURLOverride: String?
@@ -61,7 +63,12 @@ nonisolated struct LaunchOptions: Equatable, Sendable {
 
         deadlineStub = Self.value(after: Self.deadlineStubArgument, in: arguments).flatMap(DeadlineStub.init(rawValue:))
         showsDeveloperMenu = arguments.contains(Self.developerMenuArgument)
+        // Not parsed in Release, so the argument string is not in the binary.
+        #if DEBUG
         fixtureCameraDirectory = Self.value(after: Self.fixtureCameraArgument, in: arguments)
+        #else
+        fixtureCameraDirectory = nil
+        #endif
         skipsOnboarding = arguments.contains(Self.skipOnboardingArgument)
     }
 

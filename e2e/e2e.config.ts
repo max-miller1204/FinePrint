@@ -46,6 +46,14 @@ const serverCommand = (port: string, log: string, firebaseConfig: string, emulat
 const iosServerPort = process.env.E2E_IOS_SERVER_PORT ?? '18080';
 const iosServerURL = `http://127.0.0.1:${iosServerPort}`;
 
+// -FinePrintFixtureCamera (DEBUG) feeds the photos in a folder through the capture pipeline in
+// place of the camera, which simulators lack (spec §12.1). The simulator reads the host path
+// directly, so nothing is copied into the app. E2E_IOS_FIXTURE_CAMERA=off drops it, to reach the
+// no-camera state in camera.e2e.ts.
+const fixtureCameraArguments = process.env.E2E_IOS_FIXTURE_CAMERA === 'off'
+  ? []
+  : ['-FinePrintFixtureCamera', join(import.meta.dirname, 'fixtures', 'photos', 'move-in')];
+
 // Two sessions on one simulator fight over it. A parallel session picks
 // another with E2E_IOS_DEVICE (and E2E_IOS_SERVER_PORT above).
 const iphone = mobile({ platform: 'ios', device: process.env.E2E_IOS_DEVICE ?? 'iPhone 17 Pro' });
@@ -73,7 +81,7 @@ export default {
         appPath: join(import.meta.dirname, '..', 'ios', 'DerivedData', 'Build', 'Products', 'Debug-iphonesimulator', 'FinePrint.app'),
         // -FinePrintDeveloperMenu (DEBUG) skips the five-tap unlock, which
         // scripted taps are too slow for.
-        launchArguments: ['-FinePrintServerURL', iosServerURL, '-FinePrintInMemoryStore', '-FinePrintDeveloperMenu'],
+        launchArguments: ['-FinePrintServerURL', iosServerURL, '-FinePrintInMemoryStore', '-FinePrintDeveloperMenu', ...fixtureCameraArguments],
         readyUrl: `${iosServerURL}/healthz`,
         command: serverCommand(iosServerPort, '.e2e/logs/server-ios.log', join(import.meta.dirname, 'firebase.ios.json'), 'auth'),
       },
