@@ -29,6 +29,7 @@ The Gemma script calls the REST API with `fetch`. Its request bodies use the sam
 | `systemInstruction` | Confirmed | Confirmed |
 | Structured output, `responseSchema` | Confirmed (3/3 strict JSON) | **Partial**: 3/3 match the schema, 1/3 strict JSON (see gap 1) |
 | Structured output, `responseJsonSchema` | Confirmed (3/3 strict JSON) | **Partial**: same trailing-fence behavior |
+| Structured output, `responseSchema` + `stopSequences` set to a code fence (three backticks) | Confirmed | Confirmed (6/6 strict JSON) |
 | Function calling (call, then answer from `functionResponse`) | Confirmed | Confirmed |
 | `thinkingLevel: "minimal"` | Confirmed (0 thought tokens) | Confirmed (0 thought tokens) |
 | `thinkingLevel: "low"` | **Not supported** (HTTP 400) | **Not supported** (HTTP 400) |
@@ -75,7 +76,8 @@ Checked with Xcode 27.1 (27A9275), Swift 6.4, and the iOS 27.1 simulator SDK. Th
 
 ### Gaps
 
-1. **31B sometimes appends a markdown fence after its JSON.** With either schema form, about 2 in 3 replies end in `` ``` ``. The keys, enum values, and numbers always matched the schema. The Gemma client must strip a leading or trailing code fence before `JSON.parse`, then validate with Zod. 26B returned strict JSON every time. Affects #9 and #15.
+1. **31B sometimes appends a markdown fence after its JSON.** With either schema form, about 2 in 3 replies end in `` ``` ``. The keys, enum values, and numbers always matched the schema. 26B returned strict JSON every time. **Fix:** set `stopSequences` to a code fence (three backticks) on every structured-output call, as `scripts/smoke/gemma-capabilities.ts` does with `JSON_FENCE`. On 31B that gave 6/6 strict JSON, up from 2/6. A "raw JSON only, no code fences" system instruction made it worse (0/6). Keep fence stripping and Zod validation as a backup. Affects #9 and #15.
 2. **Only `minimal` and `high` thinking levels exist.** `low` and `medium` return HTTP 400 on both models. The spec planned `low` for triage and vision. Use `minimal` there and `high` for mapping and verification. `minimal` still returns one empty thought part, so read the answer from the parts where `thought` is not true. Affects #9, #26, #37.
 3. **Input tokens per minute (16K per model) are the real bottleneck, not requests.** The spec estimates a 12-page lease analysis at about 31K input tokens. On 26B alone that is about two minutes of token budget per lease, so one lease at a time per project. The limiter must budget input tokens as well as requests (count with `countTokens` or estimate before sending). The SSE stream must report the wait. Splitting work between 26B and 31B spreads the load, since each model has its own quota. Affects #9, #14, #16.
 4. **Structured output is not strictly guaranteed on any model.** 26B was strict in every sample here, but one sample per call is not a guarantee. Every call must validate with Zod and retry once on failure, as spec §7.1 already plans. Affects #9.
+5. **31B has transient server errors.** On 2026-10-24, `gemma-4-31b-it` returned HTTP 503 ("experiencing high demand") and HTTP 500 ("Internal error") between successful calls over several minutes. 26B was unaffected. The client must retry 500 and 503 with backoff, not only 429. The verifier also needs a fallback for when 31B stays down, such as marking findings "unverified" instead of failing the analysis. The smoke script retries these up to 3 times (10, 20, 40 s). Affects #9 and #15.

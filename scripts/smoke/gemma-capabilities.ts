@@ -20,10 +20,14 @@ import { deflateSync } from 'node:zlib';
 const API = 'https://generativelanguage.googleapis.com/v1beta';
 const MODELS = ['gemma-4-26b-a4b-it', 'gemma-4-31b-it'] as const;
 const THINKING_LEVELS = ['minimal', 'low', 'medium', 'high'] as const;
-// Published free-tier estimate is 15 RPM; pace under it.
+// Tier 1 allows 30 RPM per model; pace well under it.
 const PACE_MS = 4500;
+// 31B returns transient 500 and 503 under load; retry these before calling a check failed.
+const RETRY_STATUSES = new Set([500, 502, 503, 504]);
+const RETRY_DELAYS_MS = [10_000, 20_000, 40_000];
 // Structured output is sampled several times; a single run hid a 31B fence bug.
 const STRUCTURED_RUNS = 3;
+const JSON_FENCE = '```';
 
 type Status = 'confirmed' | 'partial' | 'not supported' | 'error';
 interface Check {
@@ -47,17 +51,24 @@ if (!key) {
 
 let lastCall = 0;
 async function generate(model: string, body: unknown) {
-  const wait = lastCall + PACE_MS - Date.now();
-  if (wait > 0) await new Promise((r) => setTimeout(r, wait));
-  lastCall = Date.now();
-  const started = performance.now();
-  const res = await fetch(`${API}/models/${model}:generateContent`, {
-    method: 'POST',
-    headers: { 'content-type': 'application/json', 'x-goog-api-key': key! },
-    body: JSON.stringify(body),
-  });
-  const json: any = await res.json().catch(() => ({}));
-  return { ok: res.ok, status: res.status, json, latencyMs: Math.round(performance.now() - started) };
+  for (let attempt = 0; ; attempt++) {
+    const wait = lastCall + PACE_MS - Date.now();
+    if (wait > 0) await new Promise((r) => setTimeout(r, wait));
+    lastCall = Date.now();
+    const started = performance.now();
+    const res = await fetch(`${API}/models/${model}:generateContent`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', 'x-goog-api-key': key! },
+      body: JSON.stringify(body),
+    });
+    const json: any = await res.json().catch(() => ({}));
+    if (RETRY_STATUSES.has(res.status) && attempt < RETRY_DELAYS_MS.length) {
+      console.log(`  (HTTP ${res.status}, retry ${attempt + 1} of ${RETRY_DELAYS_MS.length} in ${RETRY_DELAYS_MS[attempt] / 1000}s)`);
+      await new Promise((r) => setTimeout(r, RETRY_DELAYS_MS[attempt]));
+      continue;
+    }
+    return { ok: res.ok, status: res.status, json, latencyMs: Math.round(performance.now() - started), retries: attempt };
+  }
 }
 
 function parts(json: any): any[] {
@@ -65,6 +76,10 @@ function parts(json: any): any[] {
 }
 function answerText(json: any): string {
   return parts(json).filter((p) => !p.thought && typeof p.text === 'string').map((p) => p.text).join('');
+}
+// Only a 400 means the API rejects the feature; anything else (a 5xx after retries) is an outage.
+function failure(r: { status: number }): Status {
+  return r.status === 400 ? 'not supported' : 'error';
 }
 function errorText(r: { status: number; json: any }): string {
   return `HTTP ${r.status}: ${r.json?.error?.message ?? JSON.stringify(r.json).slice(0, 300)}`;
@@ -204,7 +219,7 @@ async function runModel(model: string): Promise<Check[]> {
     add({
       capability: 'systemInstruction',
       required: false,
-      status: !r.ok ? 'not supported' : text && text === text.toUpperCase() ? 'confirmed' : 'error',
+      status: !r.ok ? failure(r) : text && text === text.toUpperCase() ? 'confirmed' : 'error',
       detail: r.ok ? `answered "${text.slice(0, 40)}"` : errorText(r),
       latencyMs: r.latencyMs,
     });
@@ -215,9 +230,16 @@ async function runModel(model: string): Promise<Check[]> {
   const schemaForms = [
     { capability: 'structured output (responseSchema)', required: true, config: { responseSchema: SEVERITY_SCHEMA } },
     { capability: 'structured output (responseJsonSchema)', required: false, config: { responseJsonSchema: SEVERITY_JSON_SCHEMA } },
+    // The fix for 31B's trailing fence: stop generation at the fence. 6/6 strict on 31B, where a
+    // "raw JSON only" system instruction made it worse (0/6).
+    {
+      capability: 'structured output (responseSchema + stopSequences)',
+      required: false,
+      config: { responseSchema: SEVERITY_SCHEMA, stopSequences: [JSON_FENCE] },
+    },
   ];
   for (const form of schemaForms) {
-    let strict = 0, conforming = 0, latencyMs = 0, rejected: string | null = null, problem: string | null = null, sample = '';
+    let strict = 0, conforming = 0, latencyMs = 0, rejected: string | null = null, rejectedStatus: Status = 'error', problem: string | null = null, sample = '';
     for (let run = 0; run < STRUCTURED_RUNS && !rejected; run++) {
       const r = await generate(model, {
         contents: [{ role: 'user', parts: [{ text: LEASE_PROMPT }] }],
@@ -226,6 +248,7 @@ async function runModel(model: string): Promise<Check[]> {
       latencyMs += r.latencyMs;
       if (!r.ok) {
         rejected = errorText(r);
+        rejectedStatus = failure(r);
         break;
       }
       const text = answerText(r.json);
@@ -236,7 +259,7 @@ async function runModel(model: string): Promise<Check[]> {
       else conforming++;
     }
     const status: Status = rejected
-      ? 'not supported'
+      ? rejectedStatus
       : conforming < STRUCTURED_RUNS
         ? 'error'
         : strict < STRUCTURED_RUNS
@@ -265,7 +288,7 @@ async function runModel(model: string): Promise<Check[]> {
       add({
         capability: 'function calling',
         required: true,
-        status: r.ok ? 'error' : 'not supported',
+        status: r.ok ? 'error' : failure(r),
         detail: r.ok ? `no functionCall part; text "${answerText(r.json).slice(0, 80)}"` : errorText(r),
         latencyMs: r.latencyMs,
       });
@@ -315,7 +338,7 @@ async function runModel(model: string): Promise<Check[]> {
     add({
       capability: `thinkingLevel=${level}`,
       required: false,
-      status: r.ok ? 'confirmed' : 'not supported',
+      status: r.ok ? 'confirmed' : failure(r),
       detail: r.ok
         ? `accepted; thoughtsTokenCount=${thoughts}; thought parts=${parts(r.json).filter((p) => p.thought).length}`
         : errorText(r),
@@ -347,7 +370,7 @@ async function runModel(model: string): Promise<Check[]> {
     add({
       capability: 'image input',
       required: true,
-      status: !r.ok ? 'not supported' : seen ? 'confirmed' : 'error',
+      status: !r.ok ? failure(r) : seen ? 'confirmed' : 'error',
       detail: r.ok ? `answered "${text.trim().slice(0, 80)}"` : errorText(r),
       latencyMs: r.latencyMs,
       usage: r.json?.usageMetadata,
@@ -365,6 +388,7 @@ async function runModel(model: string): Promise<Check[]> {
           properties: { colors: { type: 'ARRAY', items: { type: 'STRING', enum: ['red', 'green', 'blue', 'white', 'black'] } } },
           required: ['colors'],
         },
+        stopSequences: [JSON_FENCE],
         thinkingConfig: { thinkingLevel: thinkingResults.low?.ok ? 'low' : 'minimal' },
       },
     });
@@ -375,7 +399,7 @@ async function runModel(model: string): Promise<Check[]> {
     add({
       capability: 'image + structured output + thinking',
       required: false,
-      status: !r.ok ? 'not supported' : colors?.[0] === 'red' && colors?.includes('blue') ? 'confirmed' : 'error',
+      status: !r.ok ? failure(r) : colors?.[0] === 'red' && colors?.includes('blue') ? 'confirmed' : 'error',
       detail: r.ok ? `colors=${JSON.stringify(colors)}` : errorText(r),
       latencyMs: r.latencyMs,
     });
