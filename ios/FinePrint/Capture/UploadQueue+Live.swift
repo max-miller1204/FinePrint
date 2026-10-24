@@ -36,7 +36,7 @@ struct LiveEvidenceUploader: EvidenceUploading {
 }
 
 /// Finds `Rental.serverID` in SwiftData. A rental the server has not heard of yet is created there
-/// first (`POST /v1/rentals`), which needs a city or county; until then its photos wait.
+/// first through `RentalSync`, which needs a city or county; until then its photos wait.
 struct SwiftDataRentalResolver: RentalResolving {
     let container: ModelContainer
     let api: () -> APIClient
@@ -49,35 +49,9 @@ struct SwiftDataRentalResolver: RentalResolving {
         if let serverID = rental.serverID { return serverID }
         guard rental.city != nil || rental.county != nil else { return nil }
 
-        let created: CreatedRental = try await api().post("v1/rentals", body: NewServerRental(rental))
-        // Something else may have created it while this call waited.
-        if let serverID = rental.serverID { return serverID }
-        rental.serverID = created.id
+        try await RentalSync.upload(rental, with: api())
         try? context.save()
-        return created.id
-    }
-
-    /// `POST /v1/rentals`: where the rental is, never a street address (spec §6.3).
-    private struct NewServerRental: Encodable {
-        var jurisdiction: String
-        var city: String?
-        var county: String?
-        var phase: String
-        var occupancyDate: String?
-        var tenancyEndDate: String?
-
-        init(_ rental: Rental) {
-            jurisdiction = rental.jurisdiction
-            city = rental.city
-            county = rental.county
-            phase = rental.phase.rawValue
-            occupancyDate = rental.occupancyDate?.isoString
-            tenancyEndDate = rental.tenancyEndDate?.isoString
-        }
-    }
-
-    private struct CreatedRental: Decodable {
-        var id: String
+        return rental.serverID
     }
 }
 

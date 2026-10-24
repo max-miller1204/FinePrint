@@ -36,12 +36,26 @@ extension APIClient {
 
 /// Creates local rentals on the server. Onboarding saves the rental on the device first so it always
 /// finishes, even offline; whatever has no `serverID` yet is retried at the next foreground or sign-in.
+/// The one place rentals are created on the server: the launch sync and the upload queue both call
+/// `upload`, and a create already in flight for a rental is shared, so neither makes a second one.
 enum RentalSync {
+    private static var inFlight: [UUID: Task<String, any Error>] = [:]
+
     /// Creates `rental` on the server and records its `serverID`.
     static func upload(_ rental: Rental, with client: APIClient) async throws(APIError) {
         guard rental.serverID == nil else { return }
-        let created = try await client.createRental(CreateRentalRequest(rental))
-        rental.serverID = created.id
+        let id = rental.id
+        let create = inFlight[id] ?? Task { try await client.createRental(CreateRentalRequest(rental)).id }
+        inFlight[id] = create
+        defer { inFlight[id] = nil }
+        do {
+            let serverID = try await create.value
+            if rental.serverID == nil { rental.serverID = serverID }
+        } catch let error as APIError {
+            throw error
+        } catch {
+            throw .offline
+        }
     }
 
     /// Uploads each rental that has no `serverID`, oldest first, and stops at the first failure.

@@ -150,6 +150,19 @@ struct RentalSyncTests {
         #expect(request.value(forHTTPHeaderField: "Authorization") == "Bearer id-1")
     }
 
+    @Test func `the launch sync and the upload queue share one create`() async throws {
+        let http = StubHTTP(["rentals": [Self.created, Self.created]])
+        let rental = OnboardingDraft.skipped()
+        let api = client(http)
+
+        async let launchSync: Void = RentalSync.upload(rental, with: api)
+        async let uploadQueue: Void = RentalSync.upload(rental, with: api)
+        _ = try await (launchSync, uploadQueue)
+
+        #expect(rental.serverID == "rental-1")
+        #expect(http.requests(to: "rentals").count == 1)
+    }
+
     @Test func `offline leaves the rental local and a retry creates it once`() async throws {
         let http = StubHTTP([:])
         let rental = OnboardingDraft.skipped()
