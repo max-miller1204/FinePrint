@@ -25,8 +25,11 @@ Pass these with `xcrun simctl launch booted org.fineprint.FinePrint <args>`, or 
 |---|---|
 | `-FinePrintServerURL <url>` | Uses this server for this launch only. Beats the developer-menu value. Must be `http` or `https` with a host; an invalid value is ignored. |
 | `-FinePrintInMemoryStore` | Keeps SwiftData and the sign-in in memory, so nothing persists and every launch signs in as a new anonymous user. Always on when running tests. |
-| `-FinePrintDeadlineStub present` / `empty` | DEBUG builds only. Shows or hides the sample deadline above the tab bar. DEBUG builds show it by default. |
+| `-FinePrintDeadlineStub present` / `empty` | DEBUG builds only. `present` shows the sample deadline even over real ones; `empty` turns the sample off (real deadlines still show). With neither, DEBUG builds show real deadlines, or the sample when nothing is due. |
+| `-FinePrintSeedDeadline move_in_report` / `objection` / `deposit_itemization` | DEBUG builds only. Starts that clock today on a new "Sample rental", the way onboarding seeds one, so it never asks for notification permission. For e2e. |
 | `-FinePrintDeveloperMenu` | DEBUG builds only. Shows the developer menu for this launch without the five taps, for UI tests. |
+| `-FinePrintSkipOnboarding` | DEBUG builds only. Starts at the tabs with a default Virginia rental (Richmond, living there), created on the server like an onboarded one. For UI tests that are not about onboarding. |
+| `-FinePrintFixtureCamera <dir>` | DEBUG builds only. Feeds the jpg, heic, and png files in `<dir>` (an absolute path), in file name order and wrapping around, through the capture pipeline in place of the camera. Compiled out of Release. |
 
 ## Developer menu
 
@@ -36,6 +39,8 @@ Open Settings with the gear in any tab, then tap the **Version** row 5 times wit
 - set a new server URL, which is validated before it is saved, or reset to the default (`http://localhost:8080`)
 - see the anonymous sign-in (status, user ID, when the ID token expires) and check that the server accepts it
 - in DEBUG builds, turn the sample deadline on or off
+- open the camera, see the last kept photo's hash and seal status, and how many photos wait to upload
+- in DEBUG builds, Simulate Offline holds the upload queue as if offline; turning it off counts as a reconnect
 
 Server URL precedence: launch argument, then the developer-menu value, then the default.
 

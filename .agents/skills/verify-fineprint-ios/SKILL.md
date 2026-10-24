@@ -31,21 +31,37 @@ Then `npx e2e run ... --target ios` does the rest:
   `E2E_IOS_SERVER_PORT` too. Otherwise the boot fails with `ENGINE_FAILURE`
   "Daemon request timed out".
 - It starts the Hono server (`node --import tsx src/index.ts` in `server/`)
-  inside the Firebase Auth emulator (`firebase emulators:exec`, config
-  `e2e/firebase.ios.json`, emulator on **9199**) on fixed port **18080**,
-  waits for `/healthz`, and logs both to `e2e/.e2e/logs/server-ios.log`. Set
-  `E2E_IOS_SERVER_PORT` when 18080 is taken. The emulator port is fixed, so a
-  parallel session on another simulator still collides on 9199: run one iOS
-  run at a time.
+  inside the Firebase Auth, Firestore, and Storage emulators
+  (`firebase emulators:exec`, config `e2e/firebase.ios.json`: Auth **9199**,
+  Firestore **8190**, Storage **9290**) on fixed port **18080**, waits for
+  `/healthz`, and logs both to `e2e/.e2e/logs/server-ios.log`. Set
+  `E2E_IOS_SERVER_PORT` when 18080 is taken. Firestore and Storage are JVMs
+  (Java 21) and can take most of a minute to start on an 8 GB Mac. The
+  emulator ports are fixed, so a parallel session on another simulator still
+  collides: run one iOS run at a time.
 - The `test` from `tests/ios/fixtures.ts` installs the build once per
   worker. Every iOS test imports `test` from there, not from
   `@e2e-dev/mobile`.
-- Every fresh launch gets `-FinePrintServerURL http://127.0.0.1:18080`,
-  `-FinePrintInMemoryStore`, and `-FinePrintDeveloperMenu`. Nothing persists
-  between launches, so each launch signs up a new anonymous account (the app
-  reads the emulator host from the server's
-  `/.well-known/fineprint-client.json`), and Settings shows the Developer
-  section without the five taps. `ios/README.md` lists all launch arguments.
+- Every fresh launch gets the arguments in `e2e/ios-launch.ts`:
+  `-FinePrintServerURL http://127.0.0.1:18080`, `-FinePrintInMemoryStore`,
+  `-FinePrintDeveloperMenu`, `-FinePrintSkipOnboarding`, and
+  `-FinePrintFixtureCamera <abs path to e2e/fixtures/photos/move-in>`.
+  Nothing persists between launches, so each launch signs up a new anonymous
+  account (the app reads the emulator host from the server's
+  `/.well-known/fineprint-client.json`), starts at the tabs with a default
+  Richmond rental (created on the server like an onboarded one), and Settings
+  shows the Developer section without the five taps. The shutter takes the
+  next fixture photo through the real pipeline (regenerate the photos with
+  `swift e2e/fixtures/generate-photos.swift`). `ios/README.md` lists all
+  launch arguments.
+- A test that needs other arguments relaunches with
+  `device.openApp(iosBundleId, { relaunch: true, launchArguments: iosLaunchArguments({ without: [...] }) })`
+  from `e2e/ios-launch.ts`; a launch's arguments replace the target's. That
+  is how `onboarding.e2e.ts` reaches onboarding and `camera.e2e.ts` reaches
+  "Camera not available". Pass `permissions: { notifications: 'grant' }` (or
+  `'reset'`) so a system prompt never blocks a scripted run, and
+  `-FinePrintSeedDeadline <kind>` to start a real deadline
+  (`deadlines.e2e.ts`).
 
 The first time on a machine, run `npx agent-device doctor`. The warnings
 about HarmonyOS and Vega are expected.
@@ -76,7 +92,16 @@ handles are stable:
   `settings.developerOptions`, `deadlineAccessory`, and the
   `developer.*` ids in `DeveloperMenuView.swift` and `AccountSection.swift`
   (`developer.authStatus`, `developer.userID`, `developer.checkServer`,
-  `developer.serverCheckResult`).
+  `developer.serverCheckResult`, `developer.openCamera`,
+  `developer.lastCaptureHash`, `developer.sealStatus`,
+  `developer.uploadQueueCount`, `developer.simulateOfflineToggle`).
+  Onboarding: `onboarding.*` (see [onboarding](features/onboarding.md)).
+  Camera: `camera.*` (see [camera](features/camera.md)). Deadlines:
+  `deadline.card.<move_in_report|objection|deposit_itemization>`,
+  `deadline.remindMe`, `deadline.remindersOn`, `deadline.openSettings`,
+  `deadline.reportReceived`, `deposit.forwardingAddress`,
+  `deposit.inspection`, `deposit.moveOutCard`, `deposit.addMoveOutDate`,
+  `dayEntry.save`, `dayEntry.cancel`.
 - Empty-state titles: "No lease yet", "No move-in photos yet".
 
 `agent.*` steps use the Gemini model and need the key (see Bug bash).
@@ -96,7 +121,10 @@ The next run clears `results/`, so a proof for a PR runs with
 A proof drives the real screen through taps, never by calling an internal
 setter. It records the action and the resulting screen. For anything that
 calls the server, it also checks the matching `request` line in
-`.e2e/logs/server-ios.log`. Nothing in the app calls the server yet.
+`.e2e/logs/server-ios.log`. The app calls `POST /v1/rentals` (log line
+"rental created") and the evidence routes ("evidence upload urls issued",
+"evidence received"); under the Storage emulator the upload URLs point at
+127.0.0.1:9290. See [evidence upload](features/evidence-upload.md).
 
 ## Bug bash
 
@@ -112,9 +140,10 @@ value. On macOS without 1Password, keep the key in the login keychain
 `e2e.config.ts` and adds the `skeptic` and `fuzzer` personas (topic
 `bug-bash`, step 1). Its `context` lists what is not a bug here:
 
-- placeholder screens on every tab
-- the sample deadline in DEBUG builds
-- no network calls yet
+- placeholder screens on every tab except onboarding and the Evidence
+  deadline cards
+- the sample deadline in DEBUG builds when no real deadline is due
+- "Sealed" never shows: sealing is #24
 
 There is one simulator, so iOS charters run **one at a time**, never
 fanned out in parallel.

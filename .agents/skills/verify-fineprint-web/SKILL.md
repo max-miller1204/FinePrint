@@ -20,8 +20,8 @@ src/index.ts"` in `server/`
 (firebase-tools is a server dev dependency) with `PORT` set to a free port
 (`app.url` is `http://127.0.0.1:0`). The emulators listen on
 127.0.0.1: Auth 9099, Firestore 8090, Storage 9190 (`firebase.json`; the
-ios target runs only Auth, on 9199, so a run with both targets never
-collides); emulators:exec sets `FIREBASE_AUTH_EMULATOR_HOST`,
+ios target runs its own set on 9199, 8190, and 9290, so a run with both
+targets never collides); emulators:exec sets `FIREBASE_AUTH_EMULATOR_HOST`,
 `FIRESTORE_EMULATOR_HOST`, `FIREBASE_STORAGE_EMULATOR_HOST`, and
 `GCLOUD_PROJECT` for the server. Firestore and Storage need Java 21 and
 can take most of a minute to start on an 8 GB Mac, so the command's
