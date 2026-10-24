@@ -5,6 +5,7 @@ export type ErrorCode =
   | 'UNAUTHENTICATED'
   | 'FORBIDDEN'
   | 'NOT_FOUND'
+  | 'PAYLOAD_TOO_LARGE'
   | 'RATE_LIMITED'
   | 'DEPENDENCY_UNAVAILABLE'
   | 'INTERNAL';
