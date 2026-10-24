@@ -113,7 +113,7 @@ describe('POST /v1/rentals', () => {
 
   it('answers 503 when Firestore does not answer', async () => {
     const unavailable = Object.assign(new Error('14 UNAVAILABLE'), { code: 14 });
-    const { send } = setup({ createRental: () => Promise.reject(unavailable), updateRental: () => Promise.reject(unavailable) });
+    const { send } = setup({ ...memoryStore().store, createRental: () => Promise.reject(unavailable), updateRental: () => Promise.reject(unavailable) });
     const res = await send('POST', '/v1/rentals', 'alice', richmond);
     expect(res.status).toBe(503);
     expect(await res.json()).toMatchObject({ error: { code: 'DEPENDENCY_UNAVAILABLE' } });

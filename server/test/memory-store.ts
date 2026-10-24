@@ -1,4 +1,5 @@
 import type { AuthUser } from '../src/auth.js';
+import { Evidence } from '../src/models/evidence.js';
 import { Rental } from '../src/models/rental.js';
 import type { Store } from '../src/storage/firestore.js';
 
@@ -6,6 +7,8 @@ import type { Store } from '../src/storage/firestore.js';
 export function memoryStore() {
   const rentals = new Map<string, Rental>();
   const users = new Map<string, AuthUser['provider']>();
+  // Keyed `rentalId/itemId`.
+  const evidence = new Map<string, Evidence>();
   let nextId = 1;
   const store: Store = {
     async createRental(owner, build) {
@@ -21,6 +24,22 @@ export function memoryStore() {
       rentals.set(id, next);
       return next;
     },
+    async getRental(id) {
+      return structuredClone(rentals.get(id) ?? null);
+    },
+    async getEvidence(rentalId, itemIds) {
+      return itemIds.map((id) => structuredClone(evidence.get(`${rentalId}/${id}`) ?? null));
+    },
+    async createEvidence(rentalId, items) {
+      if (items.some((item) => evidence.has(`${rentalId}/${item.id}`))) throw Object.assign(new Error('6 ALREADY_EXISTS'), { code: 6 });
+      for (const item of items) evidence.set(`${rentalId}/${item.id}`, Evidence.parse(item));
+    },
+    async markEvidenceReceived(rentalId, itemId, at) {
+      const item = evidence.get(`${rentalId}/${itemId}`);
+      if (!item) return null;
+      if (item.receivedAtServer === null) item.receivedAtServer = at;
+      return structuredClone(item);
+    },
   };
-  return { store, rentals, users };
+  return { store, rentals, users, evidence };
 }
