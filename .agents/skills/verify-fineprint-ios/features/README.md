@@ -13,6 +13,7 @@ feature in spec §4.3 (F1 to F10) gets its own file as its screens land
 | [Evidence camera](camera.md) | Developer Options > Camera > Open Camera (full-screen camera, review); DEBUG fixture camera `-FinePrintFixtureCamera <dir>` (#22) | `tests/ios/capture.e2e.ts`, `tests/ios/camera.e2e.ts` (no-camera state), `ios/FinePrintTests/CaptureTests.swift`, `ios/FinePrintTests/FixtureCameraTests.swift` | partly tested |
 | [Evidence upload queue and seal status](evidence-upload.md) | Use Photo in the camera; Developer Options > Camera > Seal Status, Waiting to Upload, Simulate Offline | `tests/ios/capture.e2e.ts` (offline, then upload), `ios/FinePrintTests/UploadQueueTests.swift` | tested |
 | [Rentals and the rental switcher](rentals.md) | Lease tab > house button: pick a rental or Add Rental; the current rental's name under every tab's title (#46) | `tests/ios/rentals.e2e.ts`, `ios/FinePrintTests/DeadlineStoreTests.swift` (scoping) | tested |
+| [Lease scan, OCR, and redaction review](lease-scan.md) | Lease tab: Scan Lease or Import PDF, redaction review, What Gets Sent; DEBUG fixture lease `-FinePrintFixtureLease <pdf>` (#17) | `tests/ios/lease.e2e.ts`, `ios/FinePrintTests/LeaseRedactionTests.swift` | tested |
 | [Deadlines and reminders](deadlines.md) | Next-deadline accessory; Evidence tab deadline cards, Remind Me, deposit tracker | `tests/ios/deadlines.e2e.ts`, `ios/FinePrintTests/DeadlineStoreTests.swift` | tested |
 
 ## Planned features (spec §4.3)
@@ -23,7 +24,7 @@ share [deadlines](deadlines.md).
 
 | Feature | Screen | Board issues | Status |
 | --- | --- | --- | --- |
-| F1 Lease Explainer | Lease tab: scan, redaction review, findings list, key terms card, clause explorer | #17, #18 | not built |
+| F1 Lease Explainer | Lease tab: scan, redaction review, findings list, key terms card, clause explorer | #17, #18 | scan, OCR, and redaction review built (#17, [lease scan](lease-scan.md)); upload and findings not built |
 | F2 Move-in Evidence | Evidence tab: start move-in, rooms, checklist, capture screen, seal | #21 (camera), #22, #23, #25 (walkthrough), #26 | camera (#21), fixture camera (#22), upload queue and seal status pill (#23) built; rest not built |
 | F3 Landlord Report Diff + 5-Day Objection | Evidence tab: landlord report, diff, countdown; Letters tab: objection | #28, #29, #30 | deadlines and the countdown built (#29); rest not built |
 | F4 Responsibility Check | Repairs tab: new issue, result card | #31 | not built |

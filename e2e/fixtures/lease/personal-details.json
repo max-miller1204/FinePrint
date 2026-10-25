@@ -1,0 +1,39 @@
+{
+  "comment": "Every personal detail in fixture-lease.pdf (all made up). None may appear in the text the app would upload. Used by ios/FinePrintTests/LeaseRedactionTests.swift and e2e/tests/ios/lease.e2e.ts.",
+  "details": [
+    "Jordan Lee",
+    "Jordan",
+    "Harbor Point Properties LLC",
+    "Harbor Point",
+    "Marisol Quintero-Vance",
+    "Marisol",
+    "Quintero",
+    "张伟",
+    "Zoë Ångström",
+    "Zoë",
+    "Ångström",
+    "Priya Ramanathan",
+    "Priya",
+    "Ramanathan",
+    "1427 Example Lane",
+    "harborpoint-example.com",
+    "jordan.lee@example.com",
+    "000123456789",
+    "123456780",
+    "555-0134",
+    "555-0199",
+    "555-0172",
+    "03/14/1990",
+    "987-65-4321",
+    "T12345678"
+  ],
+  "kept": [
+    "$1,450.00",
+    "$2,900.00",
+    "September 1, 2026",
+    "August 31, 2027",
+    "55.1-1226",
+    "24 hours' notice",
+    "Virginia Residential Landlord and Tenant Act"
+  ]
+}

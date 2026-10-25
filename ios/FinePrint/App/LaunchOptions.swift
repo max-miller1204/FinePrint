@@ -10,6 +10,8 @@ import Foundation
 ///   need not race the five-tap unlock.
 /// - `-FinePrintFixtureCamera <dir>` (DEBUG builds) feeds the photos in `<dir>` through the capture
 ///   pipeline in place of the camera, for simulator e2e (spec §12.1).
+/// - `-FinePrintFixtureLease <pdf>` (DEBUG builds) reads this PDF when the tenant taps Scan Lease or
+///   Import PDF, in place of the document camera and the file picker, for simulator e2e.
 /// - `-FinePrintSkipOnboarding` (DEBUG builds) starts at the tabs with a default Virginia rental, so
 ///   UI tests that are not about onboarding need not walk through it.
 nonisolated struct LaunchOptions: Equatable, Sendable {
@@ -25,6 +27,7 @@ nonisolated struct LaunchOptions: Equatable, Sendable {
     #if DEBUG
     static let fixtureCameraArgument = "-FinePrintFixtureCamera"
     static let skipOnboardingArgument = "-FinePrintSkipOnboarding"
+    static let fixtureLeaseArgument = "-FinePrintFixtureLease"
     #endif
 
     var serverURLOverride: String?
@@ -34,17 +37,20 @@ nonisolated struct LaunchOptions: Equatable, Sendable {
     var showsDeveloperMenu: Bool
     /// Read in DEBUG builds only. A folder of photos that stands in for the camera.
     var fixtureCameraDirectory: String?
+    /// Read in DEBUG builds only. A PDF that stands in for the document camera and the file picker.
+    var fixtureLeaseFile: String?
     /// Read in DEBUG builds only.
     var skipsOnboarding: Bool
     /// Unit tests host the app; it must not sign in to a server while they run.
     var isRunningTests: Bool
 
-    init(serverURLOverride: String? = nil, usesInMemoryStore: Bool = false, deadlineStub: DeadlineStub? = nil, showsDeveloperMenu: Bool = false, fixtureCameraDirectory: String? = nil, skipsOnboarding: Bool = false, isRunningTests: Bool = false) {
+    init(serverURLOverride: String? = nil, usesInMemoryStore: Bool = false, deadlineStub: DeadlineStub? = nil, showsDeveloperMenu: Bool = false, fixtureCameraDirectory: String? = nil, fixtureLeaseFile: String? = nil, skipsOnboarding: Bool = false, isRunningTests: Bool = false) {
         self.serverURLOverride = serverURLOverride
         self.usesInMemoryStore = usesInMemoryStore
         self.deadlineStub = deadlineStub
         self.showsDeveloperMenu = showsDeveloperMenu
         self.fixtureCameraDirectory = fixtureCameraDirectory
+        self.fixtureLeaseFile = fixtureLeaseFile
         self.skipsOnboarding = skipsOnboarding
         self.isRunningTests = isRunningTests
     }
@@ -66,9 +72,11 @@ nonisolated struct LaunchOptions: Equatable, Sendable {
         // Not parsed in Release, so these argument strings are not in the binary.
         #if DEBUG
         fixtureCameraDirectory = Self.value(after: Self.fixtureCameraArgument, in: arguments)
+        fixtureLeaseFile = Self.value(after: Self.fixtureLeaseArgument, in: arguments)
         skipsOnboarding = arguments.contains(Self.skipOnboardingArgument)
         #else
         fixtureCameraDirectory = nil
+        fixtureLeaseFile = nil
         skipsOnboarding = false
         #endif
     }
