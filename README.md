@@ -28,7 +28,7 @@ This is a hackathon build. The README describes the code on `dev`, the integrati
 
 | Area | On `main` | Planned |
 | --- | --- | --- |
-| iOS app shell | Tab bar (Lease, Evidence, Repairs, Letters, Ask), the next-deadline accessory, onboarding, settings, Delete Everything with a receipt, the developer menu, multiple rentals with a switcher, the grounded Ask tab, report share links in Settings, the opt-in impact count, TestFlight builds | The Letters screens |
+| iOS app shell | Tab bar (Lease, Evidence, Repairs, Letters, Ask), the next-deadline accessory, onboarding, settings, Delete Everything with a receipt, the developer menu with an AI trace toggle, multiple rentals with a switcher, the grounded Ask tab, report share links in Settings, the opt-in impact count, TestFlight builds | The Letters screens |
 | Lease | Scan or import a PDF, on-device OCR (Apple Vision), on-device PII redaction, a redaction review, and "What Gets Sent" | Upload from the app and the findings screens (#18) |
 | Repairs | New issue (description, room, item, photos), the Gemma responsibility check with its result card, and emergency guidance | Repair notices and the rent escrow path (#32) |
 | Deadlines | The move-in report, objection, and deposit itemization clocks, with local reminders and a deposit tracker | |
@@ -36,7 +36,7 @@ This is a hackathon build. The README describes the code on `dev`, the integrati
 | Evidence integrity | Server hash check, Cloud KMS-signed manifests (RFC 8785 JCS), a hash-chained signed ledger, logged deletion, published public keys | |
 | Web Evidence Report | Server-rendered report at `/r/:token` that checks hashes and manifest signatures in the browser, opened by expiring, revocable share links with an optional PIN and an access log, and gated in CI by axe WCAG 2.2 AA checks ([docs/web-evidence-report.md](docs/web-evidence-report.md)) | |
 | Sign-in | Firebase anonymous auth (Identity Platform) | Sign in with Apple |
-| AI | The Gemma 4 client, the VRLTA rule pack (31 rules), triage, the lease pipeline (S1 to S9) streamed over SSE, the responsibility check, grounded Ask with function calling, and a self-hosted provider ([docs/ai-pipeline.md](docs/ai-pipeline.md)) | Vision (#26), landlord report diff (#28), the AI trace overlay (#39) |
+| AI | The Gemma 4 client, the VRLTA rule pack (31 rules), triage, the lease pipeline (S1 to S9) streamed over SSE, the responsibility check, grounded Ask with function calling, a self-hosted provider, and an AI trace (model, stage, time, tokens per call) returned by each AI route and shown by a developer toggle in the app (#39) ([docs/ai-pipeline.md](docs/ai-pipeline.md)) | Vision (#26), landlord report diff (#28) |
 | Deploy | Idempotent `deploy.sh` and `--destroy`, secrets in Secret Manager, a scheduled purge job | |
 
 ## Models and licenses
@@ -69,7 +69,7 @@ Design rule: **Gemma interprets, code verifies.** Each call returns structured J
 | Ask | 26B | `minimal` | Answers questions grounded in the tenant's lease and the rule pack, with function calling | Built (#41): `POST /v1/rentals/:id/ask` and the Ask tab ([docs/grounded-ask.md](docs/grounded-ask.md)) |
 | Explanation, translation | 26B | `minimal` | Plain-language explanations, checked in code at grade 7 or lower (5 for Simpler). Translation is a separate, last step over text that is already verified. Legal quotes stay verbatim. | Built (#15): lease S8 and S9 |
 
-Every stage calls one client: `generate(stage, schema, docs, options)` in [`server/src/ai/gemma.ts`](server/src/ai/gemma.ts). The lease pipeline is in [`server/src/ai/pipeline/lease.ts`](server/src/ai/pipeline/lease.ts), and `GET /v1/rentals/:id/leases/:leaseId/stream` streams its stages, key terms, and findings over Server-Sent Events as each one is verified. The stage table, retry policy, fallback chains, and measured model behavior are in [docs/ai-pipeline.md](docs/ai-pipeline.md).
+Every stage calls one client: `generate(stage, schema, docs, options)` in [`server/src/ai/gemma.ts`](server/src/ai/gemma.ts). The lease pipeline is in [`server/src/ai/pipeline/lease.ts`](server/src/ai/pipeline/lease.ts), and `GET /v1/rentals/:id/leases/:leaseId/stream` streams its stages, key terms, and findings over Server-Sent Events as each one is verified. The repair check, Ask, and the stream's `done` event also return a `trace`: one entry per model call with its stage, model ID, latency, and tokens, and never the prompt or answer. Developer Options > Show AI Trace displays it in the app, so a repair check shows both `gemma-4-26b-a4b-it` and `gemma-4-31b-it` at work (#39). The stage table, retry policy, fallback chains, and measured model behavior are in [docs/ai-pipeline.md](docs/ai-pipeline.md).
 
 ## Architecture
 
