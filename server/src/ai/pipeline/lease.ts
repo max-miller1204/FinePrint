@@ -36,11 +36,24 @@ export const MAX_REQUEST_TOKENS = 12_000;
 export const CLAUSES_PER_BATCH = 10;
 // About 10K tokens of lease per S2 call: a 12-page lease is one or two calls.
 export const SEGMENT_CHUNK_CHARS = 40_000;
-// Output caps (gemma.ts, maxOutputTokens). The synthetic lease's S2 answer is
-// about 1,700 tokens and a mapping batch about 500; a looping answer hits the
-// cap and is retried instead of running for minutes.
-export const SEGMENT_MAX_OUTPUT_TOKENS = 8_192;
-export const MAPPING_MAX_OUTPUT_TOKENS = 4_096;
+// Output caps (gemma.ts, maxOutputTokens), sized to the work so a looping
+// answer is cut off and retried instead of running for minutes, while a long
+// lease still fits. Measured on 26B (2026-10-25): S2 writes about 1 token per
+// 4.5 characters of lease (1,700 for the 7,837-character synthetic lease), and
+// a 12-page lease's 25-clause mapping batches ran past 4,096 tokens, thinking
+// included.
+const MIN_OUTPUT_TOKENS = 4_096;
+const MAX_OUTPUT_TOKENS = 16_384;
+const clampOutput = (tokens: number) => Math.min(MAX_OUTPUT_TOKENS, Math.max(MIN_OUTPUT_TOKENS, Math.ceil(tokens)));
+
+// Twice the measured rate, for clause-dense pages.
+export function segmentOutputCap(chunkChars: number): number {
+  return clampOutput(chunkChars / 2);
+}
+
+export function mappingOutputCap(clauses: number): number {
+  return clampOutput(clauses * 400);
+}
 
 export interface LeaseInput {
   leaseId: string;
@@ -217,7 +230,7 @@ export async function analyzeLease(input: LeaseInput, deps: LeaseDeps, { signal,
         await gemma.generate('extraction', SegmentationSchema, [doc], {
           task: segmentTask(i + 1, chunks.length),
           instruction: SEGMENT_INSTRUCTION,
-          maxOutputTokens: SEGMENT_MAX_OUTPUT_TOKENS,
+          maxOutputTokens: segmentOutputCap(end - start),
           ...common,
         }),
       );
@@ -270,7 +283,7 @@ export async function analyzeLease(input: LeaseInput, deps: LeaseDeps, { signal,
           await gemma.generate('mapping', schema, docs, {
             task: mappingTask(batch.map((c) => c.id)),
             instruction,
-            maxOutputTokens: MAPPING_MAX_OUTPUT_TOKENS,
+            maxOutputTokens: mappingOutputCap(batch.length),
             ...common,
           }),
         );
