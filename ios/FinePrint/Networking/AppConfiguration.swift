@@ -14,6 +14,8 @@ final class AppConfiguration {
     #if DEBUG
     /// Set with `-FinePrintFixtureCamera`: a folder of photos that stands in for the camera.
     let fixtureCameraDirectory: URL?
+    /// Set with `-FinePrintFixtureLease`: a PDF that stands in for the document camera and the file picker.
+    let fixtureLeaseFile: URL?
     #endif
 
     var isDeveloperMenuUnlocked: Bool {
@@ -25,6 +27,7 @@ final class AppConfiguration {
         launchServerURL = launchOptions.serverURLOverride
         #if DEBUG
         fixtureCameraDirectory = launchOptions.fixtureCameraDirectory.map { URL(fileURLWithPath: $0, isDirectory: true) }
+        fixtureLeaseFile = launchOptions.fixtureLeaseFile.map { URL(fileURLWithPath: $0, isDirectory: false) }
         #endif
         storedServerURL = defaults.string(forKey: Self.storedServerURLKey)
         // `-FinePrintDeveloperMenu` applies to this launch only. One assignment, so `didSet` never

@@ -23,6 +23,10 @@ const defaults: string[][] = [
   // path directly, so nothing is copied into the app. camera.e2e.ts relaunches
   // without it to reach the no-camera state.
   ['-FinePrintFixtureCamera', join(import.meta.dirname, 'fixtures', 'photos', 'move-in')],
+  // DEBUG: Scan Lease and Import PDF read this PDF in place of the document
+  // camera and the file picker. Page 1 has a text layer, page 2 is an image,
+  // so an import runs both the text-layer and the OCR path (lease.e2e.ts).
+  ['-FinePrintFixtureLease', join(import.meta.dirname, 'fixtures', 'lease', 'fixture-lease.pdf')],
 ];
 
 /** The default launch arguments, minus each flag in `without` and its value. */

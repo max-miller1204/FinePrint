@@ -29,6 +29,7 @@ Pass these with `xcrun simctl launch booted org.fineprint.FinePrint <args>`, or 
 | `-FinePrintSeedDeadline move_in_report` / `objection` / `deposit_itemization` | DEBUG builds only. Starts that clock today on a new "Sample rental", the way onboarding seeds one, so it never asks for notification permission. For e2e. |
 | `-FinePrintDeveloperMenu` | DEBUG builds only. Shows the developer menu for this launch without the five taps, for UI tests. |
 | `-FinePrintSkipOnboarding` | DEBUG builds only. Starts at the tabs with a default Virginia rental (Richmond, living there), created on the server like an onboarded one. For UI tests that are not about onboarding. |
+| `-FinePrintFixtureLease <pdf>` | DEBUG builds only. Scan Lease and Import PDF read this PDF (an absolute path) in place of the document camera and the file picker: Import reads it as a PDF (text layer, OCR for image pages), Scan renders every page and OCRs it. Compiled out of Release. |
 | `-FinePrintFixtureCamera <dir>` | DEBUG builds only. Feeds the jpg, heic, and png files in `<dir>` (an absolute path), in file name order and wrapping around, through the capture pipeline in place of the camera. Compiled out of Release. |
 
 ## Developer menu

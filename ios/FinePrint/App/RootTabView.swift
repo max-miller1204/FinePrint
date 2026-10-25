@@ -37,6 +37,7 @@ struct RootTabView: View {
         .sheet(item: $navigation.roomPicker) { request in
             RoomPickerSheet(title: request.title, confirmTitle: request.confirmTitle, existingNames: request.existingNames, onConfirm: request.onConfirm)
         }
+        .systemPickers(navigation)
         .environment(navigation)
     }
 

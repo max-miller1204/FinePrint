@@ -45,7 +45,8 @@ Then `npx e2e run ... --target ios` does the rest:
 - Every fresh launch gets the arguments in `e2e/ios-launch.ts`:
   `-FinePrintServerURL http://127.0.0.1:18080`, `-FinePrintInMemoryStore`,
   `-FinePrintDeveloperMenu`, `-FinePrintSkipOnboarding`, and
-  `-FinePrintFixtureCamera <abs path to e2e/fixtures/photos/move-in>`.
+  `-FinePrintFixtureCamera <abs path to e2e/fixtures/photos/move-in>`, and
+  `-FinePrintFixtureLease <abs path to e2e/fixtures/lease/fixture-lease.pdf>`.
   Nothing persists between launches, so each launch signs up a new anonymous
   account (the app reads the emulator host from the server's
   `/.well-known/fineprint-client.json`), starts at the tabs with a default
@@ -106,7 +107,7 @@ handles are stable:
   `deposit.inspection`, `deposit.moveOutCard`, `deposit.addMoveOutDate`,
   `dayEntry.save`, `dayEntry.cancel`. Walkthrough: `walkthrough.*` and
   `camera.markNoDamage`, `camera.progress` (see [walkthrough](features/walkthrough.md)). Rentals: `rentalSwitcher`,
-  `rentalSwitcher.add`, `addRental.cancel` (see [rentals](features/rentals.md)). iOS 26 lists a toolbar button twice
+  `rentalSwitcher.add`, `addRental.cancel` (see [rentals](features/rentals.md)). Lease: `lease.*` (see [lease scan](features/lease-scan.md)). iOS 26 lists a toolbar button twice
   (its container and the button), so drive toolbar buttons such as
   `dayEntry.save` by role and name: `getByRole('button', { name: 'Start Clock' })`.
 - Empty-state titles: "No lease yet", "No move-in photos yet".
