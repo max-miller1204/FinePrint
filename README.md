@@ -15,6 +15,14 @@ Scope: residential tenancies under the Virginia Residential Landlord and Tenant 
 
 FinePrint is not a lawyer and gives no legal advice. When the stakes are high (eviction, lockout, retaliation, discrimination), it sends the tenant to legal aid.
 
+### Why it matters
+
+The impact numbers below need sources before submission. This README does not invent figures.
+
+- Renter households in Blacksburg and Montgomery County, Virginia. TODO: source (e.g. U.S. Census Bureau ACS 5-year, table B25003).
+- Virginia Tech students living off campus. TODO: source (Virginia Tech institutional research).
+- Virginia security deposit disputes. TODO: source.
+
 ### Status
 
 This is a hackathon build. The README describes the code on `main`. Planned work is marked **planned** and links to its issue.
@@ -173,7 +181,7 @@ Each external service FinePrint uses. `deploy.sh` creates these resources and gr
 | **Firebase Auth / Identity Platform** (`identitytoolkit`, `securetoken`) | Anonymous sign-in on the app. The server verifies ID tokens with `firebase-admin`. | API key `fineprint-client`, limited to Identity Toolkit and Secure Token. It identifies the project and grants nothing on its own, so the server publishes it. Token checks need no role. | Identity Platform per-user pricing. Anonymous sign-in is within its free tier at hackathon scale ([pricing](https://cloud.google.com/identity-platform/pricing)). | New users cannot sign in, and tokens cannot refresh. When a token expires, `/v1` calls return 401. Photos stay queued on the phone. |
 | **Cloud Run** (`run`) | The single `fineprint` service: the API, and later the web report. `--max-instances=3`, 512 MiB, unauthenticated ingress (the app authenticates per request). | The service runs as `fineprint-api`. `fineprint-build` has `roles/run.builder`. | Per request and per vCPU-second. Scales to zero. | Everything server-side. The app keeps working offline: captures queue and upload on reconnect. |
 | **Firestore** (Native mode, `(default)`) | Rentals, evidence records, manifests, the ledger, and model usage records (`usage/{date}/calls`). Client access is denied by rules. Only the server reads and writes. | `fineprint-api`: `roles/datastore.user` on the project | Per document read, write, and delete, plus storage. The free daily quota covers small deployments. | The rental, evidence, and seal routes return 503 `DEPENDENCY_UNAVAILABLE`, which the app retries. Nothing is sealed. |
-| **Cloud Storage** (bucket `<project>-fineprint-evidence`) | Evidence originals and the 1536 px copies for the model. Uniform access, public access prevention enforced, reached only through 5-minute V4 signed URLs. | `fineprint-api`: `roles/storage.objectAdmin` on the bucket | Per GB-month of standard storage in `us-east4`, plus operations | Uploads and the hash check fail. Photos stay in the phone's queue and retry. |
+| **Cloud Storage** (bucket `<project>-fineprint-evidence`) | Evidence originals and the 1536 px copies for the model. Uniform access, public access prevention enforced, reached only through 5-minute V4 signed URLs. | `fineprint-api`: `roles/storage.objectAdmin` on the bucket. On Cloud Run, signing the URLs also needs IAM `signBlob`: `roles/iam.serviceAccountTokenCreator` for `fineprint-api` on itself, and the `iamcredentials` API. `deploy.sh` on `main` grants neither. #83 adds both. | Per GB-month of standard storage in `us-east4`, plus operations | Uploads and the hash check fail. Photos stay in the phone's queue and retry. Without the `signBlob` grant, `POST /v1/rentals/:id/evidence` returns 503 on Cloud Run. |
 | **Cloud KMS** (key ring `fineprint`, key `report-signing`, `EC_SIGN_P256_SHA256`, software protection) | Signs manifests and ledger entries, and serves the public keys | `fineprint-api`: `roles/cloudkms.signerVerifier` on the key | Per active key version per month, plus per signing operation ([pricing](https://cloud.google.com/kms/pricing)) | Sealing and `/.well-known/fineprint-keys.json` return 503. Uploads and hash checks still work, and the server can seal those items later. |
 | **Secret Manager** (`GEMINI_API_KEY`, user-managed replication in the region) | Holds the Gemini API key. Cloud Run mounts it as an env var. | `fineprint-api`: `roles/secretmanager.secretAccessor` on the secret | Per active secret version per month, plus per access operation | A new revision cannot start without its secret. Running instances keep the value they already have. |
 | **Cloud Build** and **Artifact Registry** (repo `fineprint`) | `gcloud run deploy --source .` builds the root `Dockerfile` and stores the image | `fineprint-build`: `roles/run.builder` | Per build-minute, and per GB-month of stored images | Deploys fail. The running service is not affected. |
@@ -201,21 +209,16 @@ TODO: see [PRIVACY.md](PRIVACY.md) (#49)
 
 ### Gemini API data use
 
-The [Gemini API Additional Terms](https://ai.google.dev/gemini-api/terms) (last updated 2026-04-28) treat API access as a **Paid Service** when it goes through a Cloud project with an active billing account. For Paid Services, Google does not use prompts or responses to improve its products. It logs them for a limited time only to detect policy violations. For **Unpaid Services**, Google may use content to improve its products, and human reviewers may read it. The terms say not to send sensitive or personal information there.
+**Google may use what FinePrint sends to Gemma 4 to improve its products, and human reviewers may read it.** Gemma 4 on the Gemini API has only a free tier: the [pricing page](https://ai.google.dev/gemini-api/docs/pricing) (updated 2026-10-22) lists its paid tier as "Not available" and marks the free tier "Used to improve our products: Yes".
 
-`deploy.sh` refuses to run on a project without linked billing, so a FinePrint deployment calls the API from a billed project. The key must come from that same project in AI Studio. A key from a project without billing falls under the unpaid terms.
+The [Gemini API Additional Terms](https://ai.google.dev/gemini-api/terms) (updated 2026-04-28) say access is a Paid Service "only when accessing the API through a Cloud Project associated with an active billing account", and that "unpaid quota in Gemini API" is an unpaid Service. A billed project is required for the paid terms but is not enough on its own. `deploy.sh` requires billing, but Gemma has no paid quota to use, so Gemma calls fall under the unpaid terms. Those terms also say: "Do not submit sensitive, confidential, or personal information to the Unpaid Services."
 
-One point is not confirmed. Gemma 4 is free of charge and has no paid tier on the [pricing page](https://ai.google.dev/gemini-api/docs/pricing). Confirm with Google that free Gemma calls from a billed project get the Paid Services terms. TODO: confirm (#49).
+What FinePrint does about it:
 
-In the planned lease pipeline, only text that the device has redacted goes to the model. Original scans never leave the phone.
-
-### Impact
-
-The impact numbers below need sources before submission. This README does not invent figures.
-
-- Renter households in Blacksburg and Montgomery County, Virginia. TODO: source (e.g. U.S. Census Bureau ACS 5-year, table B25003).
-- Virginia Tech students living off campus. TODO: source (Virginia Tech institutional research).
-- Virginia security deposit disputes. TODO: source.
+- **Planned:** only lease text that the device has already redacted goes to the model. Original scans never leave the phone.
+- **Planned:** evidence photos go to the model only as 1536 px copies with GPS removed.
+- **Not built:** to keep content off Google's unpaid terms entirely, run Gemma 4 open weights on your own server (`GEMMA_PROVIDER=openai_compatible`).
+- The Gemini Flash fallback is billed, so it falls under the Paid Service terms when the key's project has billing.
 
 ## Limitations
 
@@ -230,6 +233,7 @@ What the evidence model proves, and what it does not (spec §8.4):
 Other limits:
 
 - **Virginia only.** The rules cover the VRLTA, and the rule pack for it is not written yet.
+- **Data use.** Gemma calls fall under Google's unpaid terms: Google may use the content to improve its products (see [Gemini API data use](#gemini-api-data-use)).
 - **Not legal advice.** Verdicts say "likely", with reasons, citations, and confidence. High-stakes situations go to legal aid.
 - **The AI can be wrong.** Code checks quotes, citations, numbers, and dates literally, and a second model checks legal findings. Interpretation can still be wrong. A finding checked by a fallback model carries a label.
 - **Throughput.** Gemma 4 on Tier 1 allows 16K input tokens per minute per model, so one 12-page lease takes about two minutes of quota. Each project can analyze about one lease at a time.
