@@ -24,19 +24,19 @@ FinePrint is not a lawyer and gives no legal advice. When the stakes are high (e
 
 ### Status
 
-This is a hackathon build. The README describes the code on `main`. Planned work is marked **planned** and links to its issue.
+This is a hackathon build. The README describes the code on `dev`, the integration branch that merges into `main`. Planned work is marked **planned** and links to its issue.
 
 | Area | On `main` | Planned |
 | --- | --- | --- |
-| iOS app shell | Tab bar (Lease, Evidence, Repairs, Letters, Ask), the next-deadline accessory, onboarding, settings, Delete Everything with a receipt, the developer menu, multiple rentals with a switcher, TestFlight builds | The Letters and Ask screens (#41) |
+| iOS app shell | Tab bar (Lease, Evidence, Repairs, Letters, Ask), the next-deadline accessory, onboarding, settings, Delete Everything with a receipt, the developer menu, multiple rentals with a switcher, the grounded Ask tab, report share links in Settings, the opt-in impact count, TestFlight builds | The Letters screens |
 | Lease | Scan or import a PDF, on-device OCR (Apple Vision), on-device PII redaction, a redaction review, and "What Gets Sent" | Upload from the app and the findings screens (#18) |
 | Repairs | New issue (description, room, item, photos), the Gemma responsibility check with its result card, and emergency guidance | Repair notices and the rent escrow path (#32) |
 | Deadlines | The move-in report, objection, and deposit itemization clocks, with local reminders and a deposit tracker | |
 | Evidence capture | In-app camera, SHA-256 at the shutter, GPS removed, on-device quality checks, an encrypted upload queue, direct upload to Cloud Storage, the room-by-room move-in walkthrough and seal | Damage analysis with Gemma (#26), the move-out overlay and diff (#27) |
 | Evidence integrity | Server hash check, Cloud KMS-signed manifests (RFC 8785 JCS), a hash-chained signed ledger, logged deletion, published public keys | |
-| Web Evidence Report | Server-rendered report at `/r/:token` that checks hashes and manifest signatures in the browser ([docs/web-evidence-report.md](docs/web-evidence-report.md)) | Share links that open it (#35) |
+| Web Evidence Report | Server-rendered report at `/r/:token` that checks hashes and manifest signatures in the browser, opened by expiring, revocable share links with an optional PIN and an access log, and gated in CI by axe WCAG 2.2 AA checks ([docs/web-evidence-report.md](docs/web-evidence-report.md)) | |
 | Sign-in | Firebase anonymous auth (Identity Platform) | Sign in with Apple |
-| AI | The Gemma 4 client, the VRLTA rule pack (31 rules), triage, the lease pipeline (S1 to S9) streamed over SSE, the responsibility check, and a self-hosted provider ([docs/ai-pipeline.md](docs/ai-pipeline.md)) | Vision (#26), landlord report diff, Ask (#41), the AI trace overlay (#39) |
+| AI | The Gemma 4 client, the VRLTA rule pack (31 rules), triage, the lease pipeline (S1 to S9) streamed over SSE, the responsibility check, grounded Ask with function calling, and a self-hosted provider ([docs/ai-pipeline.md](docs/ai-pipeline.md)) | Vision (#26), landlord report diff (#28), the AI trace overlay (#39) |
 | Deploy | Idempotent `deploy.sh` and `--destroy`, secrets in Secret Manager, a scheduled purge job | |
 
 ## Models and licenses
@@ -66,7 +66,7 @@ Design rule: **Gemma interprets, code verifies.** Each call returns structured J
 | Vision | 26B | `minimal` | Finds damage in evidence photos, proposes an approximate box for the tenant to adjust, and compares move-out photos with move-in photos | Planned (#26, #27) |
 | Landlord report diff | 26B | not set | Compares the landlord's move-in report with the tenant's sealed evidence, then drafts the five-day objection | Planned (#28) |
 | Responsibility check | 26B, then 31B | `high` | "Likely the landlord's / likely yours" with reasons, citations, confidence, and what would change the answer. 31B checks the High-confidence verdicts. | Built (#31): `POST /v1/rentals/:id/issues` and the Repairs tab |
-| Ask | 26B | `minimal` | Answers questions grounded in the tenant's lease and the rule pack, with function calling | Planned (#41) |
+| Ask | 26B | `minimal` | Answers questions grounded in the tenant's lease and the rule pack, with function calling | Built (#41): `POST /v1/rentals/:id/ask` and the Ask tab ([docs/grounded-ask.md](docs/grounded-ask.md)) |
 | Explanation, translation | 26B | `minimal` | Plain-language explanations, checked in code at grade 7 or lower (5 for Simpler). Translation is a separate, last step over text that is already verified. Legal quotes stay verbatim. | Built (#15): lease S8 and S9 |
 
 Every stage calls one client: `generate(stage, schema, docs, options)` in [`server/src/ai/gemma.ts`](server/src/ai/gemma.ts). The lease pipeline is in [`server/src/ai/pipeline/lease.ts`](server/src/ai/pipeline/lease.ts), and `GET /v1/rentals/:id/leases/:leaseId/stream` streams its stages, key terms, and findings over Server-Sent Events as each one is verified. The stage table, retry policy, fallback chains, and measured model behavior are in [docs/ai-pipeline.md](docs/ai-pipeline.md).
@@ -104,12 +104,12 @@ flowchart LR
   RUN -- "signed URLs, re-hash" --> GCS
   RUN -- "asymmetricSign" --> KMS
   SM -. "env var at deploy" .-> RUN
-  RUN -- "lease, triage, responsibility" --> GEM
+  RUN -- "lease, triage, responsibility, Ask" --> GEM
   RUN --> LOG
   CB -- "deploy.sh builds" --> RUN
 ```
 
-Also on `main`: on-device OCR and PII redaction before any lease text leaves the phone, Server-Sent Events for streamed lease findings, and the web Evidence Report at `/r/:token`. Still planned (spec §5.1): the app's lease upload and findings screens (#18), share links that open the report (#35), and on-device PDF letters.
+Also built: on-device OCR and PII redaction before any lease text leaves the phone, Server-Sent Events for streamed lease findings, and the web Evidence Report at `/r/:token` with share links. Still planned (spec §5.1): the app's lease upload and findings screens (#18) and on-device PDF letters.
 
 ### How a photo becomes evidence
 
@@ -138,9 +138,14 @@ Also on `main`: on-device OCR and PII redaction before any lease text leaves the
 | `GET /v1/rentals/:id/leases/:leaseId/stream` | ID token | Run the lease pipeline and stream stages, key terms, and findings (SSE) |
 | `GET /v1/rentals/:id/leases/:leaseId` | ID token | The stored lease, clauses, and findings |
 | `POST /v1/rentals/:id/issues` | ID token | The responsibility check for a repair issue |
+| `POST /v1/rentals/:id/ask` | ID token | Grounded Ask: Gemma answers with read-only tools over this rental, and every sentence must cite a source |
+| `POST /v1/rentals/:id/shares`, `GET /v1/rentals/:id/shares` | ID token | Create and list report share links |
+| `DELETE /v1/shares/:id`, `GET /v1/shares/:id/access` | ID token | Revoke a share link and read its access log |
+| `PATCH /v1/me/impact` | ID token | Opt in to or out of the impact count |
 | `POST /v1/triage` | ID token | Check text for a high-stakes situation |
 | `DELETE /v1/me` | ID token | Delete Everything: the user's rentals, evidence, and account |
-| `GET /r/:token`, `GET /r/verify.js` | Link token | The web Evidence Report and its in-browser verifier. Links stay closed until #35. |
+| `GET /r/:token`, `GET /r/verify.js` | Share link token (and PIN if set) | The web Evidence Report and its in-browser verifier |
+| `GET /impact` | Public | Anonymous aggregate impact totals |
 | `POST /internal/purge` | Cloud Scheduler OIDC token | Auto-purge of old tenancies |
 
 Errors use one envelope: `{ "error": { "code": "...", "message": "..." } }`. Each response carries an `X-Request-Id`, and each log line carries the same ID.
@@ -187,7 +192,7 @@ Each external service FinePrint uses. `deploy.sh` creates these resources and gr
 
 | Service | Used for | IAM / permissions | Cost | What breaks if it is down |
 | --- | --- | --- | --- | --- |
-| **Gemini API** (`generativelanguage.googleapis.com`) | Gemma 4 calls (26B and 31B), with Gemini Flash as the last fallback | API key from AI Studio, stored in the Secret Manager secret `GEMINI_API_KEY`. No IAM role. | Gemma 4: free of charge, and the paid tier is "Not available" ([pricing](https://ai.google.dev/gemini-api/docs/pricing), read 2026-10-22). Flash fallback: billed per token, so set a spend cap in AI Studio. Tier 1 quota: 30 RPM, 16K input TPM, 14.4K RPD per model. | Lease analysis, triage, and the responsibility check. On 429 or 5xx the client retries with backoff, then falls back from 31B to 26B to Flash. If every model fails, legal findings show as "unverified". The triage keyword backstop still runs. Capture and sealing do not depend on it. |
+| **Gemini API** (`generativelanguage.googleapis.com`) | Gemma 4 calls (26B and 31B), with Gemini Flash as the last fallback | API key from AI Studio, stored in the Secret Manager secret `GEMINI_API_KEY`. No IAM role. | Gemma 4: free of charge, and the paid tier is "Not available" ([pricing](https://ai.google.dev/gemini-api/docs/pricing), read 2026-10-22). Flash fallback: billed per token, so set a spend cap in AI Studio. Tier 1 quota: 30 RPM, 16K input TPM, 14.4K RPD per model. | Lease analysis, triage, the responsibility check, and Ask. On 429 or 5xx the client retries with backoff, then falls back from 31B to 26B to Flash. If every model fails, legal findings show as "unverified". The triage keyword backstop still runs. Capture and sealing do not depend on it. |
 | **Firebase Auth / Identity Platform** (`identitytoolkit`, `securetoken`) | Anonymous sign-in on the app. The server verifies ID tokens with `firebase-admin`. | API key `fineprint-client`, limited to Identity Toolkit and Secure Token. It identifies the project and grants nothing on its own, so the server publishes it. Token checks need no role. `fineprint-api` has `roles/firebaseauth.admin` on the project so Delete Everything can remove the caller's user. | Identity Platform per-user pricing. Anonymous sign-in is within its free tier at hackathon scale ([pricing](https://cloud.google.com/identity-platform/pricing)). | New users cannot sign in, and tokens cannot refresh. When a token expires, `/v1` calls return 401. Photos stay queued on the phone. |
 | **Cloud Run** (`run`) | The single `fineprint` service: the API, and later the web report. `--max-instances=3`, 512 MiB, unauthenticated ingress (the app authenticates per request). | The service runs as `fineprint-api`. `fineprint-build` has `roles/run.builder`. | Per request and per vCPU-second. Scales to zero. | Everything server-side. The app keeps working offline: captures queue and upload on reconnect. |
 | **Firestore** (Native mode, `(default)`) | Rentals, evidence records, manifests, the ledger, and model usage records (`usage/{date}/calls`). Client access is denied by rules. Only the server reads and writes. | `fineprint-api`: `roles/datastore.user` on the project | Per document read, write, and delete, plus storage. The free daily quota covers small deployments. | The rental, evidence, and seal routes return 503 `DEPENDENCY_UNAVAILABLE`, which the app retries. Nothing is sealed. |
@@ -220,7 +225,9 @@ Full tables: [docs/eval-results.md](docs/eval-results.md). The synthetic leases 
 
 ## Accessibility
 
-TODO (#49)
+The web Evidence Report is checked against WCAG 2.2 AA with axe-core in CI (#36). It reads and prints without JavaScript.
+
+TODO: the iOS VoiceOver and Dynamic Type audit (#49)
 
 ## Privacy
 
