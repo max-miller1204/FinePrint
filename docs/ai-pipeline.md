@@ -148,7 +148,7 @@ const { escalate, category, model, keywords } = await triage.check({ source: 'le
 | `server/src/routes/triage.ts` | `POST /v1/triage`, for the app to call before a model-backed flow. The lease, Ask, repair, and landlord report routes call `triage.check` themselves when they land |
 
 - **Failure:** if Gemma throws (every model down, invalid output twice, a 400), the decision reports `model: { status: "unavailable" }` and the backstop decides alone. With no model configured (no `GEMINI_API_KEY`, and `GEMMA_PROVIDER` is not `openai_compatible`) it reports `off`.
-- **Gate:** `server/test/triage.test.ts` (CI) requires the backstop alone to catch all 40 high-stakes cases in `eval/datasets/escalation.jsonl`, so the combined recall holds when Gemma misses or is down. `eval/runners/escalation.ts` scores Gemma, the backstop, and the combined decision live, and fails on any combined miss or any case Gemma could not answer. `--heldout` scores the held-out set instead and only reports (see below).
+- **Gate:** `server/test/triage.test.ts` (CI) requires the backstop alone to catch all 65 high-stakes cases in `eval/datasets/escalation.jsonl`, so the combined recall holds when Gemma misses or is down. `eval/runners/escalation.ts` scores Gemma, the backstop, and the combined decision live, and fails on any combined miss or any case Gemma could not answer. `--heldout` scores the held-out set instead and only reports (see below).
 - **Alternatives:** other `TriageProvider`s (OpenAI Decisions, TypeSafe Jev) and their trade-offs are in [triage-providers.md](triage-providers.md).
 
 ### Escalation eval, 2026-10-24
@@ -163,18 +163,22 @@ const { escalate, category, model, keywords } = await triage.check({ source: 'le
 
 The backstop's 100% precision is on a set its terms were written alongside; expect false alarms on real input.
 
+After #90 moved held-out round 1 into the set (129 cases: 65 high-stakes, 64 benign; 78 EN, 51 ES) and closed its misses, the same command, all answered by `gemma-4-26b-a4b-it` in 246 s: Gemma recall 100%, precision 98.5% (false alarm `benign-13-es`); backstop recall 100%, precision 100%; combined recall **100%**, precision 98.5%.
+
 ### Held-out escalation set, 2026-10-24
 
-`eval/datasets/escalation-heldout.jsonl` (#90) checks how the backstop does on phrasings it has not seen. It was written and committed before anyone read `keywords.ts` for this issue, in tenant voice: typos, slang, indirect wording ("i dont see the point anymore"), and mixed EN/ES ("me llego una carta del court"). It is report only, with no CI gate. Never tune keywords against it: a miss here that should be caught goes into `escalation.jsonl` as a new phrasing first, and the held-out set gets fresh cases written blind.
+`eval/datasets/escalation-heldout.jsonl` (#90) checks how the backstop does on phrasings its terms were not built from. Each round is written and committed before anyone reads `keywords.ts` for that round, in tenant voice: typos, slang, indirect wording ("i dont see the point anymore"), and mixed EN/ES ("me llego una carta del court"). It is report only, with no CI gate. Never add terms for held-out cases: a round's misses move into `escalation.jsonl`, the terms are fixed there, and a fresh held-out round is written blind.
 
-`cd eval && op run --env-file ~/.config/fineprint/.env -- pnpm escalation --heldout`, 49 cases (25 high-stakes across 8 categories, 24 benign including look-alikes such as "we're dying to repaint" and "me muero de ganas"; 30 EN, 19 ES, 2 of them mixed), all answered by `gemma-4-26b-a4b-it` in 129 s:
+Run it with `cd eval && op run --env-file ~/.config/fineprint/.env -- pnpm escalation --heldout`. Both rounds have 25 high-stakes cases across 8 categories and 24 benign ones, including look-alikes ("we're dying to repaint", "this rent killing me lol", a neighborhood power outage). Gemma is `gemma-4-26b-a4b-it` and answered every case.
 
-| Provider | Recall | Precision | EN recall | ES recall |
+| Round | Backstop recall | Backstop precision | Gemma recall | Combined recall |
 | --- | --- | --- | --- | --- |
-| Gemma 26B | 100% (25/25) | 100% | 100% (16/16) | 100% (9/9) |
-| Keyword backstop | **52.0% (13/25)** | 100% | 37.5% (6/16) | 77.8% (7/9) |
-| Combined (either) | 100% (25/25) | 100% | 100% | 100% |
+| 1, on the #37 terms | **52.0% (13/25)**; EN 6/16, ES 7/9 | 100% | 100% | 100% |
+| 2 (current file), on the #37 terms | **48.0% (12/25)**; EN 9/17, ES 3/8 | 92.3% | 100% (precision 96.2%) | 100% |
+| 2, after closing the round 1 misses | **48.0% (12/25)**, the same 13 misses | 92.3% | 100% (precision 96.2%) | 100% |
 
-Backstop misses, by case id (prefix `heldout-`): `eviction-or-court-02-en` (got served, hearing about possession), `eviction-or-court-03-es` (desocupar o me manda al juez), `eviction-or-court-04-mix` (carta del court), `lockout-02-en` (keypad code changed), `utility-shutoff-01-en` (cut the water off), `utility-shutoff-02-en` (no heat after owner stopped paying gas), `discrimination-01-en` (unit "just rented" after seeing a hijab), `domestic-violence-01-en` (ex hit me), `immediate-danger-01-en` (rotten egg smell, gas not named), `immediate-danger-02-en` (sagging ceiling, water through the fixture), `self-harm-01-en` and `self-harm-02-en` (indirect: "better off without me", "how many pills").
+Round 1's 12 misses (now `escalation.jsonl` cases `eviction-or-court-07` to `-09`, `lockout-07`, `utility-shutoff-06` and `-07`, `discrimination-06`, `domestic-violence-06`, `immediate-danger-06` and `-07`, `self-harm-06` and `-07`) were: served papers and a possession hearing, "me manda al juez", "carta del court", a changed keypad code, "cut the water off", no heat after the owner stopped paying the gas bill, a unit "just rented" after the agent saw a hijab, "showed up drunk and hit me", a rotten egg smell, a sagging ceiling with water through the light fixture, "better off without me", and "how many pills". The new terms generalize each of those (any utility with the particle after it, any access code, the Spanish mirror, and so on), and the backstop now catches all 65 high-stakes cases in `escalation.jsonl` with no false alarm on its 64 benign ones.
 
-So the 100% backstop recall on `escalation.jsonl` does not carry over: on unseen wording the backstop catches about half, and the combined 100% here rests on Gemma. When Gemma is unavailable or off, expect the backstop alone to miss indirect and slang phrasings, including two of three self-harm cases. The set is small (25 positives), so read these numbers as a range, not a point. It was written by an AI agent, not by a person independent of the project.
+On round 2 they caught nothing new. Its 13 misses: a padlock on the door, power cut at the breaker, "sin gas para cocinar", a 30-day notice after a code complaint, "como castigo por pedir", a wheelchair user turned away, "people like you" after learning the tenant is gay, "no le rentan a mexicanos", rotted stairs that are the only way out, "huele mucho a gas", "im going to end it", "not waking up", and "no vale la pena seguir viviendo". The false alarm is `benign-13-en` (an emotional support animal pet fee question; `service-animal` fires). Gemma flagged the same case.
+
+What this means: phrase lists patched after each miss catch about half of unseen crisis wording, and patching does not move that number. The combined 100% rests on Gemma. When Gemma is off or unavailable, expect the backstop alone to miss about half of high-stakes inputs, including indirect self-harm. Round 2 was written before the term changes, but by the same agent that then wrote them, so its "after" score is not fully independent; each round is small, so read the numbers as a range. A round written by a person outside the project would be stronger evidence.

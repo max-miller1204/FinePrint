@@ -57,7 +57,7 @@ npx e2e run tests/web/triage.e2e.ts --target web                                
 op run --env-file ~/.config/fineprint/.env -- npx e2e run tests/web/triage.e2e.ts --target web   # Gemma too
 ```
 
-The escalation eval (40 high-stakes, 40 benign, EN and ES) is
+The escalation eval (65 high-stakes, 64 benign, EN and ES) is
 `eval/datasets/escalation.jsonl`:
 
 ```bash
@@ -70,8 +70,8 @@ cd eval && op run --env-file ~/.config/fineprint/.env -- pnpm escalation --heldo
 `--heldout` runs `eval/datasets/escalation-heldout.jsonl` (#90): 25
 high-stakes and 24 benign phrasings written without reading the keyword
 lists. It prints the same table, ends with `REPORT: combined recall ...`,
-and always exits 0. Results are in `docs/ai-pipeline.md` (2026-10-24:
-backstop 52.0%, Gemma 100%, combined 100%).
+and always exits 0. Results are in `docs/ai-pipeline.md` (2026-10-24,
+round 2: backstop 48.0%, Gemma 100%, combined 100%).
 
 ## Proof
 
@@ -93,7 +93,9 @@ triage-handoff|web|skeptic|POST /v1/triage with inputs a frightened tenant might
 - Each check is one 26B call (free, 30 RPM, 16K input tokens per minute
   shared with the other 26B stages).
 - The backstop passing 100% of the set is the CI floor, not proof it
-  generalizes: the terms were written alongside the set. On the held-out
-  set it catches 52% (13/25). Add a missed real phrasing to
-  `escalation.jsonl` first, then to `server/src/ai/triage/keywords.ts`.
-  Never add held-out cases to the term lists; that makes the set useless.
+  generalizes: the terms were written alongside the set. On held-out
+  phrasings it catches about half (52% in round 1, 48% in round 2), and
+  closing round 1's misses did not move round 2 at all. Add a missed real
+  phrasing to `escalation.jsonl` first, then to
+  `server/src/ai/triage/keywords.ts`. Never add held-out cases to the term
+  lists: move a round into `escalation.jsonl` and write a fresh one blind.
