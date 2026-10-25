@@ -6,6 +6,7 @@ F10) get a file each as their routes land.
 
 | Feature | Route | Test | Status |
 | --- | --- | --- | --- |
+| [Share links](share-links.md) | `POST/GET /v1/rentals/:id/shares`, `DELETE /v1/shares/:id`, `GET /v1/shares/:id/access`, `GET/POST /r/:token`, photos | `tests/web/shares.e2e.ts` | API and browser tested on Linux; iOS runtime pending |
 | [Web Evidence Report](web-report.md) | `GET /r/:token` | `tests/web/report.e2e.ts`, `server/test/report.test.ts` | tested (SSR, phone, print/PDF) |
 | [Health check](healthz.md) | `GET /healthz`, `GET /health` | `tests/web/smoke.e2e.ts`, `tests/web/healthz.e2e.ts` | tested |
 | [Error envelope and request IDs](errors.md) | every route | `tests/web/errors.e2e.ts` | tested |

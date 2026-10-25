@@ -1,0 +1,19 @@
+Issue #35 Linux verification
+
+e2e run: 01a172c6-7060-76dd-8207-70d62a1d3ab6
+Started: 2026-10-25T11:16:10.367Z
+Finished: 2026-10-25T11:16:30.504Z
+Exit: 0
+Command (e2e/):
+E2E_WEB_FIREBASE_CONFIG="$PWD/.e2e/firebase-isolated.json" E2E_WEB_FIRESTORE_HOST=127.0.0.1:18090 E2E_WEB_AUTH_HOST=127.0.0.1:19099 pnpm exec e2e run tests/web --target web --output .e2e/proof/issue-35-final --retries 0 --trace on --no-cache
+
+12 files passed; 46 tests passed, 2 live-model tests skipped (no model configured).
+Smoke, all 7 sharing tests, report, photo/upload, seal/ledger, auth, rentals, errors, leases, triage and health included in this one run.
+pnpm test: 444 passed, exit 0.
+pnpm typecheck: exit 0.
+pnpm lint: exit 0 (330 warnings).
+pnpm check:jurisdictions: 33 JSON files, 32 rules valid, exit 0.
+git diff --check: exit 0.
+
+Screenshots are synthetic emulator data at 320px for PIN, accepted, revoked, expired and limited pages. The live photo report is a synthetic sealed fixture JPEG. PIN and accepted screenshots use dark mode at 320x720, before and after submitting the correct PIN.
+iOS e2e did not run: Linux, no Mac or iOS simulator. The separate macOS CI job compiles without signing. TestFlight and device checks are required before claiming runtime validation.

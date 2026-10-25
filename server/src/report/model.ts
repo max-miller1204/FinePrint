@@ -4,8 +4,8 @@ import type { Manifest } from '../integrity/manifest.js';
 import type { Evidence } from '../models/evidence.js';
 
 // A public, redacted projection, never a Rental or a raw lease document.
-// #35 resolves and authorizes a token before building this value. Null is
-// deliberately indistinguishable for missing, expired and revoked links.
+// Sharing authorizes the capability before building this value. The loader
+// type remains a renderer-test injection seam.
 export type ReportLoader = (token: string) => Promise<EvidenceReport | null>;
 export type ReportFinding = Pick<
   Finding,
@@ -19,7 +19,7 @@ export type ReportFinding = Pick<
   | 'citation'
   | 'sourceUrl'
   | 'translations'
->;
+> & { leaseLocale?: string };
 export interface Annotation {
   // Normalized coordinates on the displayed original, never burned in.
   box: { x: number; y: number; width: number; height: number };

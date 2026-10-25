@@ -18,12 +18,10 @@ long quotes and labels, mixed scripts and 120 exhibits. Empty has no lease,
 evidence, timeline, ledger or manifests. One preserves the complete signed
 history instead of rewriting manifests to fit the visible exhibit subset.
 
-Production defaults to an unavailable report. #35 supplies
-`createApp({ reportLoader })`: resolve and authorize the token, enforce expiry,
-revocation, PIN and scope, then return the redacted `EvidenceReport` projection
-(or null). Never use a rental ID as a public token. No share creation or
-lifecycle API is implemented in #33. The projection is documented in
-[web-evidence-report.md](../../../../docs/web-evidence-report.md).
+Production resolves hashed share capabilities and assembles scoped public
+projections. See [share-links.md](share-links.md) for expiry, PIN, revocation,
+photo authorization and owner access-log verification. `reportLoader` remains
+an explicit injection seam for renderer tests.
 
 ## Proof
 
@@ -60,8 +58,8 @@ still need hardware checks. No iOS simulator or hardware was used.
 - #34: `#verify-report`, `[data-verify-exhibit]`, `[data-manifest]` and
   `[data-ledger-entry]`; canonical JSON remains text, unchanged signed bytes.
   Add a self-hosted verification script and update CSP deliberately.
-- #35: `ReportLoader` authorization and redacted data assembly, signed image
-  URLs, share lifecycle and access log. Return null for inaccessible tokens.
+- #35: implemented share authorization and scoped projection, protected photo
+  routes, lifecycle API and access log. See [share-links.md](share-links.md).
 - #36: accessible landmarks, labels, headings, locale blocks, alt descriptions,
   visible focus and table headers are in place. Automated axe CI is separate.
 

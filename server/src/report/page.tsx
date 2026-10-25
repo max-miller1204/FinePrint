@@ -86,7 +86,7 @@ function FindingCard({ finding, leaseLocale }: { finding: ReportFinding; leaseLo
       {finding.leaseQuote === null ? (
         <p>No matching lease clause was found.</p>
       ) : (
-        <blockquote lang={leaseLocale}>{finding.leaseQuote}</blockquote>
+        <blockquote lang={finding.leaseLocale ?? leaseLocale}>{finding.leaseQuote}</blockquote>
       )}
       {finding.statuteQuote && (
         <>
@@ -343,10 +343,10 @@ export function ReportPage({ report, variant = 'demo' }: { report: EvidenceRepor
                             ? exhibitNumber
                               ? `Photo ${exhibitNumber} deleted by tenant`
                               : 'Photo deleted by tenant (not included in this report)'
-                            : 'Manifest sealed'}
+                            : entry.type === 'share_created' ? 'Share link created' : entry.type === 'share_revoked' ? 'Share link revoked' : 'Manifest sealed'}
                           <br />
                           <code>
-                            {entry.type === 'evidence_deleted' ? entry.payload.itemId : entry.payload.manifestId}
+                            {entry.type === 'evidence_deleted' ? entry.payload.itemId : entry.payload.manifestId ?? entry.payload.shareId}
                           </code>
                         </td>
                       </tr>
