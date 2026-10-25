@@ -34,8 +34,6 @@ jobs:
       APPLE_TEAM_ID: ${{ vars.APPLE_TEAM_ID }}
       # Unique for every upload, and increasing: run 41 is 41.1, its re-run 41.2.
       BUILD_NUMBER: ${{ github.run_number }}.${{ github.run_attempt }}
-      ARCHIVE: ${{ runner.temp }}/FinePrint.xcarchive
-      EXPORT_DIR: ${{ runner.temp }}/export
     steps:
       - uses: actions/checkout@v7
 
@@ -65,7 +63,11 @@ jobs:
           key="$RUNNER_TEMP/AuthKey_$ASC_KEY_ID.p8"
           printf '%s\n' "$ASC_KEY_P8" > "$key"
           chmod 600 "$key"
-          echo "ASC_KEY_PATH=$key" >> "$GITHUB_ENV"
+          {
+            echo "ASC_KEY_PATH=$key"
+            echo "ARCHIVE=$RUNNER_TEMP/FinePrint.xcarchive"
+            echo "EXPORT_DIR=$RUNNER_TEMP/export"
+          } >> "$GITHUB_ENV"
 
       - name: Archive
         run: |
