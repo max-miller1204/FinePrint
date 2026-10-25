@@ -17,12 +17,14 @@ export interface VerifyContext {
   inForce: ReadonlyMap<string, ResolvedRule>;
   // S4's answers: a check that ran is authoritative for its rule.
   checks: readonly CheckResultForLease[];
+  // Rules whose required wording code found missing (checks.ts), decided the same way.
+  absent?: readonly string[];
   model: string;
   fallback: boolean;
 }
 
 export function verifyMappings(mappings: readonly Mapping[], ctx: VerifyContext, drops: Drop[]): VerifiedMapping[] {
-  const decided = new Set(ctx.checks.filter((c) => c.outcome !== 'insufficient_input').map((c) => c.ruleId));
+  const decided = new Set([...ctx.checks.filter((c) => c.outcome !== 'insufficient_input').map((c) => c.ruleId), ...(ctx.absent ?? [])]);
   const verified: VerifiedMapping[] = [];
   const seen = new Set<string>();
 

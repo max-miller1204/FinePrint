@@ -64,8 +64,9 @@ through `server/src/rules/`. How to add a state:
   `verifiedThrough` is 2026-10-24.
 - Golden cases: `eval/datasets/clauses-golden.jsonl` holds 45 clause
   excerpts for the 15 rules added in #43 and #93: two that break each rule
-  (`match`) and one benign look-alike (`no_match`). The runner and cases
-  for the first 16 rules come with #20.
+  (`match`) and one benign look-alike (`no_match`). `pnpm verifier` in
+  `eval/` runs them through the S7 verifier ([lease-pipeline](lease-pipeline.md));
+  the S5 runner and cases for the first 16 rules come with #20.
 
 ## How to get to it (user POV)
 
