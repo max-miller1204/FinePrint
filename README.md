@@ -28,13 +28,16 @@ This is a hackathon build. The README describes the code on `main`. Planned work
 
 | Area | On `main` | Planned |
 | --- | --- | --- |
-| iOS app shell | Tab bar (Lease, Evidence, Repairs, Letters, Ask), the next-deadline accessory, onboarding, settings, the developer menu | The screens for the Lease, Repairs, Letters, and Ask tabs |
-| Deadlines | The move-in report, objection, and deposit itemization clocks, with local reminders | |
-| Evidence capture | In-app camera, SHA-256 at the shutter, GPS removed, on-device quality checks, an encrypted upload queue, direct upload to Cloud Storage | Damage analysis with Gemma, the move-out overlay and diff |
-| Evidence integrity | Server hash check, Cloud KMS-signed manifests (RFC 8785 JCS), a hash-chained signed ledger, logged deletion, published public keys | The web report's in-browser verification |
+| iOS app shell | Tab bar (Lease, Evidence, Repairs, Letters, Ask), the next-deadline accessory, onboarding, settings, Delete Everything with a receipt, the developer menu, multiple rentals with a switcher, TestFlight builds | The Letters and Ask screens (#41) |
+| Lease | Scan or import a PDF, on-device OCR (Apple Vision), on-device PII redaction, a redaction review, and "What Gets Sent" | Upload from the app and the findings screens (#18) |
+| Repairs | New issue (description, room, item, photos), the Gemma responsibility check with its result card, and emergency guidance | Repair notices and the rent escrow path (#32) |
+| Deadlines | The move-in report, objection, and deposit itemization clocks, with local reminders and a deposit tracker | |
+| Evidence capture | In-app camera, SHA-256 at the shutter, GPS removed, on-device quality checks, an encrypted upload queue, direct upload to Cloud Storage, the room-by-room move-in walkthrough and seal | Damage analysis with Gemma (#26), the move-out overlay and diff (#27) |
+| Evidence integrity | Server hash check, Cloud KMS-signed manifests (RFC 8785 JCS), a hash-chained signed ledger, logged deletion, published public keys | |
+| Web Evidence Report | Server-rendered report at `/r/:token` that checks hashes and manifest signatures in the browser ([docs/web-evidence-report.md](docs/web-evidence-report.md)) | Share links that open it (#35) |
 | Sign-in | Firebase anonymous auth (Identity Platform) | Sign in with Apple |
-| AI | The Gemma 4 client: routing, rate limits, retries, fallback, Zod validation, usage records ([docs/ai-pipeline.md](docs/ai-pipeline.md)) | Every AI stage below, and the rule pack |
-| Deploy | Idempotent `deploy.sh` and `--destroy` | |
+| AI | The Gemma 4 client, the VRLTA rule pack (31 rules), triage, the lease pipeline (S1 to S9) streamed over SSE, the responsibility check, and a self-hosted provider ([docs/ai-pipeline.md](docs/ai-pipeline.md)) | Vision (#26), landlord report diff, Ask (#41), the AI trace overlay (#39) |
+| Deploy | Idempotent `deploy.sh` and `--destroy`, secrets in Secret Manager, a scheduled purge job | |
 
 ## Models and licenses
 
@@ -46,7 +49,7 @@ This is a hackathon build. The README describes the code on `main`. Planned work
 
 The server calls both Gemma models through the [Gemini API](https://ai.google.dev/gemini-api/docs) with the `@google/genai` SDK. The model IDs live in [`server/src/ai/models.ts`](server/src/ai/models.ts). The env vars `GEMMA_PRIMARY`, `GEMMA_VERIFIER`, and `GEMMA_FALLBACK` change them. FinePrint has no on-device language model. On the phone it uses only Apple frameworks (Vision, NaturalLanguage, CryptoKit).
 
-`GEMMA_PROVIDER=openai_compatible` with `GEMMA_BASE_URL` is reserved for a self-hosted Gemma 4 server (Ollama or vLLM). The setting exists, but that provider is **not built yet**.
+`GEMMA_PROVIDER=openai_compatible` with `GEMMA_BASE_URL` points the server at a self-hosted Gemma 4 server (Ollama or vLLM) instead, so tenant text stays on your network. See [docs/self-hosting.md](docs/self-hosting.md).
 
 FinePrint itself is licensed under [Apache-2.0](LICENSE), the same license as Gemma 4.
 
@@ -56,17 +59,17 @@ Design rule: **Gemma interprets, code verifies.** Each call returns structured J
 
 | Stage | Model | Thinking | What it does | Status |
 | --- | --- | --- | --- | --- |
-| Triage | 26B | `minimal` | Finds high-stakes situations (eviction, lockout, retaliation). A keyword backstop in code also triggers, so either one can route the tenant to legal aid. | Planned (#37) |
-| Lease extraction | 26B | `high` | Pulls clauses and key terms (rent, deposit, dates, fees) from the redacted lease text | Planned (#14) |
-| Rule mapping | 26B | `high` | Maps clauses to VRLTA rules from the rule pack, such as the prohibited provisions in § 55.1-1208 and the late-fee cap in § 55.1-1204 | Planned (#14) |
-| Legal verifier | 31B | `high` | A second, independent opinion on each legal finding: it sees only the clause and the statute's exact words. If 31B is down, the finding is marked "unverified" and reads as "worth asking about". | Built (#15), no route yet |
-| Vision | 26B | `minimal` | Finds damage in evidence photos, proposes an approximate box for the tenant to adjust, and compares move-out photos with move-in photos | Planned |
-| Landlord report diff | 26B | not set | Compares the landlord's move-in report with the tenant's sealed evidence, then drafts the five-day objection | Planned |
-| Responsibility check | 26B, then 31B | `high` | "Likely the landlord's / likely yours" with reasons, citations, confidence, and what would change the answer. 31B checks the High-confidence verdicts. | Planned |
-| Ask | 26B | `minimal` | Answers questions grounded in the tenant's lease and the rule pack, with function calling | Planned |
-| Explanation, translation | 26B | `minimal` | Plain-language explanations, checked in code at grade 7 or lower (5 for Simpler). Translation is a separate, last step over text that is already verified. Legal quotes stay verbatim. | Built (#15), no route yet |
+| Triage | 26B | `minimal` | Finds high-stakes situations (eviction, lockout, retaliation). A keyword backstop in code also triggers, so either one can route the tenant to legal aid. | Built (#37): `POST /v1/triage`, lease S1, and the responsibility check |
+| Lease extraction | 26B | `high` | Pulls clauses and key terms (rent, deposit, dates, fees) from the redacted lease text | Built (#14, #16): lease S2 |
+| Rule mapping | 26B | `high` | Maps clauses to VRLTA rules from the rule pack, such as the prohibited provisions in § 55.1-1208 and the late-fee cap in § 55.1-1204 | Built (#14, #16): lease S5 |
+| Legal verifier | 31B | `high` | A second, independent opinion on each legal finding: it sees only the clause and the statute's exact words. If 31B is down, the finding is marked "unverified" and reads as "worth asking about". | Built (#15): lease S7 |
+| Vision | 26B | `minimal` | Finds damage in evidence photos, proposes an approximate box for the tenant to adjust, and compares move-out photos with move-in photos | Planned (#26, #27) |
+| Landlord report diff | 26B | not set | Compares the landlord's move-in report with the tenant's sealed evidence, then drafts the five-day objection | Planned (#28) |
+| Responsibility check | 26B, then 31B | `high` | "Likely the landlord's / likely yours" with reasons, citations, confidence, and what would change the answer. 31B checks the High-confidence verdicts. | Built (#31): `POST /v1/rentals/:id/issues` and the Repairs tab |
+| Ask | 26B | `minimal` | Answers questions grounded in the tenant's lease and the rule pack, with function calling | Planned (#41) |
+| Explanation, translation | 26B | `minimal` | Plain-language explanations, checked in code at grade 7 or lower (5 for Simpler). Translation is a separate, last step over text that is already verified. Legal quotes stay verbatim. | Built (#15): lease S8 and S9 |
 
-What is built today is the client that every stage calls: `generate(stage, schema, docs, options)` in [`server/src/ai/gemma.ts`](server/src/ai/gemma.ts). Its stage table, retry policy, fallback chains, and measured model behavior are in [docs/ai-pipeline.md](docs/ai-pipeline.md). No route calls a model yet.
+Every stage calls one client: `generate(stage, schema, docs, options)` in [`server/src/ai/gemma.ts`](server/src/ai/gemma.ts). The lease pipeline is in [`server/src/ai/pipeline/lease.ts`](server/src/ai/pipeline/lease.ts), and `GET /v1/rentals/:id/leases/:leaseId/stream` streams its stages, key terms, and findings over Server-Sent Events as each one is verified. The stage table, retry policy, fallback chains, and measured model behavior are in [docs/ai-pipeline.md](docs/ai-pipeline.md).
 
 ## Architecture
 
@@ -101,12 +104,12 @@ flowchart LR
   RUN -- "signed URLs, re-hash" --> GCS
   RUN -- "asymmetricSign" --> KMS
   SM -. "env var at deploy" .-> RUN
-  RUN -. "client built, no route yet" .-> GEM
+  RUN -- "lease, triage, responsibility" --> GEM
   RUN --> LOG
   CB -- "deploy.sh builds" --> RUN
 ```
 
-The planned design (spec §5.1) adds on-device OCR (`RecognizeDocumentsRequest`) and PII redaction before any lease text leaves the phone, on-device PDF letters, Server-Sent Events for streamed findings, and the web Evidence Report at `/r/:token`. None of these are on `main` yet.
+Also on `main`: on-device OCR and PII redaction before any lease text leaves the phone, Server-Sent Events for streamed lease findings, and the web Evidence Report at `/r/:token`. Still planned (spec §5.1): the app's lease upload and findings screens (#18), share links that open the report (#35), and on-device PDF letters.
 
 ### How a photo becomes evidence
 
@@ -131,6 +134,14 @@ The planned design (spec §5.1) adds on-device OCR (`RecognizeDocumentsRequest`)
 | `DELETE /v1/rentals/:id/evidence/:itemId` | ID token | Delete the photo and log `evidence_deleted` in the ledger |
 | `POST /v1/rentals/:id/seal` | ID token | Sign a manifest and append it to the ledger |
 | `GET /v1/rentals/:id/ledger`, `GET /v1/rentals/:id/manifests/:manifestId` | ID token | Read the ledger and the manifests |
+| `POST /v1/rentals/:id/leases` | ID token | Store redacted lease text (up to 1 MB) |
+| `GET /v1/rentals/:id/leases/:leaseId/stream` | ID token | Run the lease pipeline and stream stages, key terms, and findings (SSE) |
+| `GET /v1/rentals/:id/leases/:leaseId` | ID token | The stored lease, clauses, and findings |
+| `POST /v1/rentals/:id/issues` | ID token | The responsibility check for a repair issue |
+| `POST /v1/triage` | ID token | Check text for a high-stakes situation |
+| `DELETE /v1/me` | ID token | Delete Everything: the user's rentals, evidence, and account |
+| `GET /r/:token`, `GET /r/verify.js` | Link token | The web Evidence Report and its in-browser verifier. Links stay closed until #35. |
+| `POST /internal/purge` | Cloud Scheduler OIDC token | Auto-purge of old tenancies |
 
 Errors use one envelope: `{ "error": { "code": "...", "message": "..." } }`. Each response carries an `X-Request-Id`, and each log line carries the same ID.
 
@@ -176,7 +187,7 @@ Each external service FinePrint uses. `deploy.sh` creates these resources and gr
 
 | Service | Used for | IAM / permissions | Cost | What breaks if it is down |
 | --- | --- | --- | --- | --- |
-| **Gemini API** (`generativelanguage.googleapis.com`) | Gemma 4 calls (26B and 31B), with Gemini Flash as the last fallback | API key from AI Studio, stored in the Secret Manager secret `GEMINI_API_KEY`. No IAM role. | Gemma 4: free of charge, and the paid tier is "Not available" ([pricing](https://ai.google.dev/gemini-api/docs/pricing), read 2026-10-22). Flash fallback: billed per token, so set a spend cap in AI Studio. Tier 1 quota: 30 RPM, 16K input TPM, 14.4K RPD per model. | Nothing today, because no route calls a model yet. When the AI stages land: on 429 or 5xx the client retries with backoff, then falls back from 31B to 26B to Flash. If every model fails, legal findings show as "unverified". Capture and sealing do not depend on it. |
+| **Gemini API** (`generativelanguage.googleapis.com`) | Gemma 4 calls (26B and 31B), with Gemini Flash as the last fallback | API key from AI Studio, stored in the Secret Manager secret `GEMINI_API_KEY`. No IAM role. | Gemma 4: free of charge, and the paid tier is "Not available" ([pricing](https://ai.google.dev/gemini-api/docs/pricing), read 2026-10-22). Flash fallback: billed per token, so set a spend cap in AI Studio. Tier 1 quota: 30 RPM, 16K input TPM, 14.4K RPD per model. | Lease analysis, triage, and the responsibility check. On 429 or 5xx the client retries with backoff, then falls back from 31B to 26B to Flash. If every model fails, legal findings show as "unverified". The triage keyword backstop still runs. Capture and sealing do not depend on it. |
 | **Firebase Auth / Identity Platform** (`identitytoolkit`, `securetoken`) | Anonymous sign-in on the app. The server verifies ID tokens with `firebase-admin`. | API key `fineprint-client`, limited to Identity Toolkit and Secure Token. It identifies the project and grants nothing on its own, so the server publishes it. Token checks need no role. `fineprint-api` has `roles/firebaseauth.admin` on the project so Delete Everything can remove the caller's user. | Identity Platform per-user pricing. Anonymous sign-in is within its free tier at hackathon scale ([pricing](https://cloud.google.com/identity-platform/pricing)). | New users cannot sign in, and tokens cannot refresh. When a token expires, `/v1` calls return 401. Photos stay queued on the phone. |
 | **Cloud Run** (`run`) | The single `fineprint` service: the API, and later the web report. `--max-instances=3`, 512 MiB, unauthenticated ingress (the app authenticates per request). | The service runs as `fineprint-api`. `fineprint-build` has `roles/run.builder`. | Per request and per vCPU-second. Scales to zero. | Everything server-side. The app keeps working offline: captures queue and upload on reconnect. |
 | **Firestore** (Native mode, `(default)`) | Rentals, evidence records, manifests, the ledger, and model usage records (`usage/{date}/calls`). Client access is denied by rules. Only the server reads and writes. | `fineprint-api`: `roles/datastore.user` on the project | Per document read, write, and delete, plus storage. The free daily quota covers small deployments. | The rental, evidence, and seal routes return 503 `DEPENDENCY_UNAVAILABLE`, which the app retries. Nothing is sealed. |
@@ -188,7 +199,7 @@ Each external service FinePrint uses. `deploy.sh` creates these resources and gr
 | **Cloud Billing and Billing Budgets** | The billing check before deploy, and a $20 budget that alerts at $10 and $20 | The person who deploys needs to see the billing account and create budgets on it | Free | Only the alerts stop. A budget alert does not cap spend. |
 | **law.lis.virginia.gov** | Source of the statute text for the rule pack snapshots in `jurisdictions/va/snapshots/`. `scripts/refresh-snapshots.ts` re-fetches and diffs them. | None (public) | Free | Nothing at runtime. A snapshot refresh would wait. |
 
-`deploy.sh` also enables `iam`, `iamcredentials`, `apikeys`, `logging`, `cloudbilling`, and `billingbudgets`, which it needs to set up the resources above.
+`deploy.sh` also enables `iam`, `iamcredentials`, `apikeys`, `logging`, `cloudbilling`, and `billingbudgets`, which it needs to set up the resources above, and `cloudscheduler` for the job that calls `POST /internal/purge`.
 
 ## Cost
 
@@ -196,7 +207,16 @@ TODO: measured cost table (#51)
 
 ## Eval results
 
-TODO: summary of `docs/eval-results.md` (#20, #50)
+The lease eval sets run the full pipeline against the real models (`pnpm eval`). Latest run, 2026-10-25, on `gemma-4-26b-a4b-it` and `gemma-4-31b-it`: **PASS**.
+
+| Set | Metric | Result | Gate |
+| --- | --- | --- | --- |
+| `lease-synthetic` | Recall | 100% (8/8) | >= 90% |
+| `lease-synthetic` | Precision | 100% (8/8) | >= 85% |
+| `clauses-golden` | Verifier agrees on violations | 40/40 | report |
+| `citations` | Findings that resolve to a rule in the pack | 100% (136/136) | 100% |
+
+Full tables: [docs/eval-results.md](docs/eval-results.md). The synthetic leases are small (three leases, eight planted violations), so treat these as regression gates, not accuracy claims.
 
 ## Accessibility
 
@@ -214,9 +234,9 @@ The [Gemini API Additional Terms](https://ai.google.dev/gemini-api/terms) (updat
 
 What FinePrint does about it:
 
-- **Planned:** only lease text that the device has already redacted goes to the model. Original scans never leave the phone.
-- **Planned:** evidence photos go to the model only as 1536 px copies with GPS removed.
-- **Not built:** to keep content off Google's unpaid terms entirely, run Gemma 4 open weights on your own server (`GEMMA_PROVIDER=openai_compatible`).
+- Only lease text that the device has already redacted goes to the model. The app runs OCR and redaction on the phone, and original scans never leave it.
+- **Planned:** evidence photos go to the model only as 1536 px copies with GPS removed (#26).
+- To keep content off Google's unpaid terms entirely, run Gemma 4 open weights on your own server (`GEMMA_PROVIDER=openai_compatible`, [docs/self-hosting.md](docs/self-hosting.md)).
 - The Gemini Flash fallback is billed, so it falls under the Paid Service terms when the key's project has billing.
 
 ## Limitations
@@ -236,7 +256,7 @@ Other limits:
 - **Not legal advice.** Verdicts say "likely", with reasons, citations, and confidence. High-stakes situations go to legal aid.
 - **The AI can be wrong.** Code checks quotes, citations, numbers, and dates literally, and a second model checks legal findings. Interpretation can still be wrong. A finding checked by a fallback model carries a label.
 - **Throughput.** Gemma 4 on Tier 1 allows 16K input tokens per minute per model, so one 12-page lease takes about two minutes of quota. Each project can analyze about one lease at a time.
-- **Languages (planned).** Analysis will run in English. Translation into other languages comes last, and only English and Spanish will be reviewed by people.
+- **Languages.** Analysis runs in English. Translation into another language is the last step (S9). No language other than English has been reviewed by people, and the multilingual parity eval has not been run live ([docs/language-parity.md](docs/language-parity.md)).
 - **Health checks are stubbed.** `/healthz` does not yet check Firestore, Cloud Storage, or KMS.
 
 ## Contributing
