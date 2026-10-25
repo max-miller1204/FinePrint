@@ -28,6 +28,9 @@ export function memoryObjects() {
     async remove(path) {
       objects.delete(path);
     },
+    async removeRental(rentalId) {
+      for (const path of [...objects.keys()]) if (path.startsWith(`rentals/${rentalId}/`)) objects.delete(path);
+    },
   };
   const put = (path: string, body: Buffer, contentType = 'image/heic') => objects.set(path, { body, contentType });
   return { store, objects, issued, put };

@@ -166,6 +166,14 @@ final class UploadQueue {
         if isStarted { resume() }
     }
 
+    /// Forgets every item and stops retrying. "Delete everything" calls it before the photos' files
+    /// are removed, so a pass in flight finds nothing to save.
+    func removeAll() {
+        wake?.cancel()
+        wake = nil
+        items = [:]
+    }
+
     /// Reconnect or return to the foreground: whatever is waiting is due now, backoff or not.
     func resume() {
         for (id, item) in items where item.state == .waiting && item.nextAttemptAt != nil {

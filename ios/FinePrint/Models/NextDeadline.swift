@@ -213,6 +213,18 @@ final class DeadlineStore {
         await enableReminders(now: now)
     }
 
+    /// "Delete everything": cancels every reminder and deletes every rental with its deadlines.
+    /// Returns how many rentals went.
+    @discardableResult
+    func eraseAll() -> Int {
+        scheduler.cancel(identifiers: deadlines.flatMap(\.reminderIdentifiers))
+        guard let context else { return 0 }
+        let all = (try? context.fetch(FetchDescriptor<Rental>())) ?? []
+        for rental in all { context.delete(rental) }
+        save()
+        return all.count
+    }
+
     func remove(_ deadline: Deadline, now: Date = .now) {
         scheduler.cancel(identifiers: deadline.reminderIdentifiers)
         context?.delete(deadline)

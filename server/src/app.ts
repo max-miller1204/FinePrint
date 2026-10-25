@@ -2,11 +2,13 @@ import { Hono } from 'hono';
 import { requestId } from 'hono/request-id';
 import { triageFromEnv } from './ai/triage/from-env.js';
 import type { Triage } from './ai/triage/index.js';
+import { firebaseAccounts, type Accounts } from './accounts.js';
 import { firebaseIdTokenVerifier, type VerifyIdToken } from './auth.js';
 import { ApiError } from './errors.js';
 import { runChecks, stubbedChecks, type HealthChecks } from './health.js';
 import { signerFromEnv, type Signer } from './integrity/kms.js';
 import { createLogger, type LogSink, type Logger } from './log.js';
+import { createInternal, googleSchedulerVerifier, type VerifyScheduler } from './routes/internal.js';
 import { createV1 } from './routes/v1.js';
 import { firestoreStore, type Store } from './storage/firestore.js';
 import { gcsObjects, type EvidenceObjects } from './storage/gcs.js';
@@ -27,6 +29,11 @@ export interface AppDeps {
   signer?: Signer | null;
   // Gemma plus the keyword backstop, or the backstop alone without a key.
   triage?: Triage;
+  accounts?: Accounts;
+  // Null: /internal/purge answers 404.
+  verifyScheduler?: VerifyScheduler | null;
+  // The URL the purge job's token is minted for; default PURGE_AUDIENCE, else the Host header.
+  purgeAudience?: string;
 }
 
 export function createApp({
@@ -38,6 +45,9 @@ export function createApp({
   objects = gcsObjects(),
   signer = signerFromEnv(),
   triage = triageFromEnv(createLogger(null, logSink)),
+  accounts = firebaseAccounts(),
+  verifyScheduler = googleSchedulerVerifier(),
+  purgeAudience,
 }: AppDeps = {}) {
   const app = new Hono<AppEnv>();
 
@@ -73,7 +83,9 @@ export function createApp({
 
   // Public: /healthz and /health above, /.well-known/*, and later /r/* and /impact.
   app.route('/.well-known', createWellKnown(clientConfig, signer));
-  app.route('/v1', createV1(verifyIdToken, store, objects, signer, triage));
+  app.route('/v1', createV1(verifyIdToken, store, objects, signer, triage, accounts));
+  // Cloud Scheduler only; it checks its own Google token, not a Firebase one.
+  app.route('/internal', createInternal(store, objects, verifyScheduler, undefined, purgeAudience ?? process.env.PURGE_AUDIENCE));
 
   // Returned, not thrown: a throw here skips the access line above.
   app.notFound((c) => c.json(new ApiError(404, 'NOT_FOUND', 'No route matches this request').toEnvelope(), 404));

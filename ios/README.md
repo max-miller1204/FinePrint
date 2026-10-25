@@ -36,13 +36,30 @@ Pass these with `xcrun simctl launch booted org.fineprint.FinePrint <args>`, or 
 Open Settings with the gear in any tab, then tap the **Version** row 5 times within 3 seconds. A **Developer** section appears (it stays until you choose **Hide Developer Options**). There you can:
 
 - see the server URL in use and where it came from (default, saved here, or launch argument)
-- set a new server URL, which is validated before it is saved, or reset to the default (`http://localhost:8080`)
+- set a new server URL, which is validated before it is saved, or reset to the default (see Default server URL below)
 - see the anonymous sign-in (status, user ID, when the ID token expires) and check that the server accepts it
 - in DEBUG builds, turn the sample deadline on or off
 - open the camera, see the last kept photo's hash and seal status, and how many photos wait to upload
 - in DEBUG builds, Simulate Offline holds the upload queue as if offline; turning it off counts as a reconnect
 
 Server URL precedence: launch argument, then the developer-menu value, then the default.
+
+## Default server URL
+
+The built-in default is the `FinePrintServerURL` key in Info.plist, filled from `FINEPRINT_SERVER_URL` in `Config/Shared.xcconfig`:
+
+- Debug builds use `http://localhost:8080`.
+- Release builds (TestFlight, App Store) use your deployed server. Copy `Config/Server.example.xcconfig` to `Config/Server.xcconfig` (git-ignored) and paste the line `./deploy.sh` prints when it finishes:
+
+  ```
+  FINEPRINT_SERVER_URL[config=Release] = https:/$()/fineprint-abc123-uk.a.run.app
+  ```
+
+  `//` starts a comment in a xcconfig, so write it as `/$()/`. With no `Server.xcconfig`, a Release build falls back to `http://localhost:8080`, which a TestFlight tester cannot reach.
+
+## Settings
+
+The gear opens Settings: language, reading level, the impact-count opt-in (all saved on the device), and **Delete Everything**. Delete Everything calls `DELETE /v1/me`, and only after the server answers erases the rentals, deadlines, reminders, photos, upload queue, saved settings, and sign-in on the device, then shows a receipt. Share links and the AI trace have no rows yet (#35, #39).
 
 ## Sign-in
 

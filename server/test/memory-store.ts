@@ -65,6 +65,30 @@ export function memoryStore() {
       for (const { itemId, fields } of append.items ?? []) Object.assign(evidence.get(`${rentalId}/${itemId}`)!, fields);
       return structuredClone(append);
     },
+    async rentalIdsOwnedBy(uid) {
+      return [...rentals.values()].filter((rental) => rental.ownerUid === uid).map((rental) => rental.id);
+    },
+    async expiredRentalIds(now, limit) {
+      return [...rentals.values()]
+        .filter((rental) => rental.purgeAfter !== null && rental.purgeAfter <= now)
+        .slice(0, limit)
+        .map((rental) => rental.id);
+    },
+    async deleteRental(rentalId) {
+      let evidenceItems = 0;
+      for (const key of [...evidence.keys()]) {
+        if (!key.startsWith(`${rentalId}/`)) continue;
+        evidence.delete(key);
+        evidenceItems += 1;
+      }
+      for (const key of [...manifests.keys()]) if (key.startsWith(`${rentalId}/`)) manifests.delete(key);
+      ledgers.delete(rentalId);
+      rentals.delete(rentalId);
+      return { evidenceItems };
+    },
+    async deleteUser(uid) {
+      users.delete(uid);
+    },
   };
   return { store, rentals, users, evidence, ledgers, manifests };
 }

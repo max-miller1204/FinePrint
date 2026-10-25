@@ -134,6 +134,14 @@ final class AuthSession {
         }
     }
 
+    /// Forgets the saved account. The server has just deleted it ("Delete everything"), so its token
+    /// is worthless. The next request signs in as a new anonymous user.
+    func forgetAccount() {
+        inFlight?.cancel()
+        inFlight = nil
+        replace(with: nil)
+    }
+
     private func replace(with fresh: AuthCredentials?) {
         credentials = fresh
         if let fresh {
