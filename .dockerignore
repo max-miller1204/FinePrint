@@ -1,5 +1,5 @@
 # Keep in sync with .gcloudignore. The server image needs the workspace
-# root files, server/, and (later) jurisdictions/.
+# root files, server/, and jurisdictions/.
 .git
 .github
 .agents

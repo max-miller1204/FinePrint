@@ -38,19 +38,18 @@ instructions. Code in `server/src/ai/pipeline/adversarial.ts`; details in
 
 ## How to get to it (user POV)
 
-The tenant uploads a lease (route in #16). An injected lease shows its
+The tenant uploads a lease ([leases](leases.md)). An injected lease shows its
 findings plus the info finding about hidden instructions; a menu, an
 invoice, or a commercial lease shows the not-a-lease message; a summons
 opens the handoff (#38).
 
 ## Driving it with e2e
 
-The pipeline has no route until #16. `tests/web/adversarial.e2e.ts`
-drives what has one: S1 through `POST /v1/triage` (the summons and the
+`tests/web/adversarial.e2e.ts` drives S1 through `POST /v1/triage` (the summons and the
 pay-or-quit notice under a lease heading escalate on the backstop; an
 invoice with injected text neither escalates nor reaches `server.log`).
-The localized info finding has no route until #16; its proof is the unit
-test. The rest:
+`tests/web/leases.e2e.ts` runs `inject-ignore-previous-es` through the
+lease stream under `op run`: `done.injection` carries the Spanish title. The rest:
 
 ```bash
 pnpm --filter @fineprint/server test                          # server/test/adversarial.test.ts, the CI gate
@@ -77,7 +76,7 @@ escalates at S1 on the backstop, and at S2 when the backstop is empty; an
 
 ## Charters
 
-None until #16 adds the route. Its charter will upload each case of the
+The lease upload charter in [leases](leases.md) uploads each case of the
 adversarial set end to end.
 
 ## Gotchas

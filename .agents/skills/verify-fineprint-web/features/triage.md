@@ -32,9 +32,9 @@ app shows on `escalate: true` is #38.
 - Log: one `triage` line per check (`source`, `escalate`, `category`,
   `modelStatus`, `modelCategory`, `keywordCategory`, `keywordMatches`,
   `textChars`), plus the Gemma client's `model call` line. No content.
-- The lease (#16), Ask (#41), responsibility/repair (#31, #32), and
-  landlord report (#28) routes will call the same `triage.check` on their
-  own input when they land.
+- The lease stream ([leases](leases.md), #16) runs the same `triage.check`
+  as S1. The Ask (#41), responsibility/repair (#31, #32), and landlord
+  report (#28) routes will too when they land.
 
 ## How to get to it (user POV)
 

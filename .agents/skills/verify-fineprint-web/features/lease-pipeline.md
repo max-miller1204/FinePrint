@@ -4,8 +4,8 @@ The lease analysis behind F1 Lease Explainer (spec §4.3 F1, §7.3; #14,
 #15): triage, clause segmentation and key terms, quote resolution,
 deterministic checks, rule mapping, mechanical verification, the 31B legal
 verifier and the severity table, plain-language explanations, and
-translation. Gemma interprets; code verifies. No route of its own yet:
-`POST /v1/rentals/:id/leases` and the SSE stream are #16. Details:
+translation. Gemma interprets; code verifies. The route is
+`GET /v1/rentals/:id/leases/:leaseId/stream` ([leases](leases.md), #16). Details:
 `docs/ai-pipeline.md`, "Lease pipeline (#14, #15)".
 
 ## Sub-features
@@ -78,13 +78,14 @@ translation. Gemma interprets; code verifies. No route of its own yet:
 
 ## How to get to it (user POV)
 
-Not reachable from a route yet. The tenant uploads a lease in the app (#16
-adds the route); this runs behind it, and the findings screen shows the
-`findings` list.
+The tenant uploads a lease in the app; the lease stream
+([leases](leases.md)) runs this and sends each finding as an event, and the
+findings screen shows the `findings` list.
 
 ## Driving it with e2e
 
-No e2e test until #16 adds the route. Unit tests cover it with a scripted
+`tests/web/leases.e2e.ts` drives it through the route ([leases](leases.md)).
+Unit tests cover it with a scripted
 model (`server/test/lease-pipeline.test.ts`): S3 matching, clause cutting,
 key term reading, S4 on the planted values, S6 drops, the full run on the
 synthetic lease with its findings and severities, escalation, a non-lease,
@@ -129,7 +130,7 @@ waits). `pnpm verifier` in `eval/` prints each mode's agreement; on
 
 ## Charters
 
-None until #16 adds the route. Its charter will cover document injection
+The lease upload charter in [leases](leases.md) covers document injection
 and non-lease uploads end to end.
 
 ## Gotchas
