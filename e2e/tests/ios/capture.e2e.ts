@@ -117,11 +117,14 @@ test('a photo kept offline uploads after reconnect and the server checks its has
   // Back online counts as a reconnect: the queue uploads and the server checks the hash.
   await screen.scrollUntilVisible(offline);
   await offline.tap();
-  await expect(offline).toBeChecked({ checked: false });
   await screen.scrollUntilVisible(status);
   await expect(status).toContainText('Uploaded, waiting to seal', { timeout: 30_000 });
   await screen.scrollUntilVisible(waiting);
   await expect(waiting).toContainText('0');
   await expect.poll(() => logLines('evidence received'), { timeout: 15_000 }).toBe(received + 1);
   expect(logLines('evidence upload urls issued')).toBe(issued + 1);
+  // Checked last: the upload starts the moment the toggle flips, and its rows shift the list
+  // under the toggle until it finishes.
+  await screen.scrollUntilVisible(offline);
+  await expect(offline).toBeChecked({ checked: false });
 });
