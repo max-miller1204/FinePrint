@@ -148,7 +148,7 @@ const { escalate, category, model, keywords } = await triage.check({ source: 'le
 | `server/src/routes/triage.ts` | `POST /v1/triage`, for the app to call before a model-backed flow. The lease, Ask, repair, and landlord report routes call `triage.check` themselves when they land |
 
 - **Failure:** if Gemma throws (every model down, invalid output twice, a 400), the decision reports `model: { status: "unavailable" }` and the backstop decides alone. With no model configured (no `GEMINI_API_KEY`, and `GEMMA_PROVIDER` is not `openai_compatible`) it reports `off`.
-- **Gate:** `server/test/triage.test.ts` (CI) requires the backstop alone to catch all 40 high-stakes cases in `eval/datasets/escalation.jsonl`, so the combined recall holds when Gemma misses or is down. `eval/runners/escalation.ts` scores Gemma, the backstop, and the combined decision live, and fails on any combined miss or any case Gemma could not answer.
+- **Gate:** `server/test/triage.test.ts` (CI) requires the backstop alone to catch all 40 high-stakes cases in `eval/datasets/escalation.jsonl`, so the combined recall holds when Gemma misses or is down. `eval/runners/escalation.ts` scores Gemma, the backstop, and the combined decision live, and fails on any combined miss or any case Gemma could not answer. `--heldout` scores the held-out set instead and only reports (see below).
 - **Alternatives:** other `TriageProvider`s (OpenAI Decisions, TypeSafe Jev) and their trade-offs are in [triage-providers.md](triage-providers.md).
 
 ### Escalation eval, 2026-10-24
@@ -162,3 +162,19 @@ const { escalate, category, model, keywords } = await triage.check({ source: 'le
 | Combined (either) | **100%** | 95.2% | the two above |
 
 The backstop's 100% precision is on a set its terms were written alongside; expect false alarms on real input.
+
+### Held-out escalation set, 2026-10-24
+
+`eval/datasets/escalation-heldout.jsonl` (#90) checks how the backstop does on phrasings it has not seen. It was written and committed before anyone read `keywords.ts` for this issue, in tenant voice: typos, slang, indirect wording ("i dont see the point anymore"), and mixed EN/ES ("me llego una carta del court"). It is report only, with no CI gate. Never tune keywords against it: a miss here that should be caught goes into `escalation.jsonl` as a new phrasing first, and the held-out set gets fresh cases written blind.
+
+`cd eval && op run --env-file ~/.config/fineprint/.env -- pnpm escalation --heldout`, 49 cases (25 high-stakes across 8 categories, 24 benign including look-alikes such as "we're dying to repaint" and "me muero de ganas"; 30 EN, 19 ES, 2 of them mixed), all answered by `gemma-4-26b-a4b-it` in 129 s:
+
+| Provider | Recall | Precision | EN recall | ES recall |
+| --- | --- | --- | --- | --- |
+| Gemma 26B | 100% (25/25) | 100% | 100% (16/16) | 100% (9/9) |
+| Keyword backstop | **52.0% (13/25)** | 100% | 37.5% (6/16) | 77.8% (7/9) |
+| Combined (either) | 100% (25/25) | 100% | 100% | 100% |
+
+Backstop misses, by case id (prefix `heldout-`): `eviction-or-court-02-en` (got served, hearing about possession), `eviction-or-court-03-es` (desocupar o me manda al juez), `eviction-or-court-04-mix` (carta del court), `lockout-02-en` (keypad code changed), `utility-shutoff-01-en` (cut the water off), `utility-shutoff-02-en` (no heat after owner stopped paying gas), `discrimination-01-en` (unit "just rented" after seeing a hijab), `domestic-violence-01-en` (ex hit me), `immediate-danger-01-en` (rotten egg smell, gas not named), `immediate-danger-02-en` (sagging ceiling, water through the fixture), `self-harm-01-en` and `self-harm-02-en` (indirect: "better off without me", "how many pills").
+
+So the 100% backstop recall on `escalation.jsonl` does not carry over: on unseen wording the backstop catches about half, and the combined 100% here rests on Gemma. When Gemma is unavailable or off, expect the backstop alone to miss indirect and slang phrasings, including two of three self-harm cases. The set is small (25 positives), so read these numbers as a range, not a point. It was written by an AI agent, not by a person independent of the project.

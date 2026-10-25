@@ -4,12 +4,18 @@
 //
 //   cd eval && op run --env-file ~/.config/fineprint/.env -- pnpm escalation
 //   pnpm escalation --keywords-only      # no key, no model calls
+//   pnpm escalation --heldout            # datasets/escalation-heldout.jsonl
 //
 // Prints recall and precision for Gemma alone, the backstop alone, and the
 // combined decision, per language, and every miss and false alarm by id.
 // Writes the full result to out/escalation.json (gitignored). Exits 1 when
 // the combined decision misses a high-stakes case, or when Gemma could not
 // answer one (a model outage is not a pass).
+//
+// --heldout (#90) scores datasets/escalation-heldout.jsonl instead: phrasings
+// written without reading the keyword lists (typos, slang, indirect wording,
+// mixed EN/ES). It reports only, with no gate, and writes
+// out/escalation-heldout.json. Never tune keywords against it.
 
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { createLogger } from '../../server/src/log.js';
@@ -36,7 +42,9 @@ interface Row {
 }
 
 const keywordsOnly = process.argv.includes('--keywords-only');
-const cases: Case[] = readFileSync(new URL('../datasets/escalation.jsonl', import.meta.url), 'utf8')
+const heldout = process.argv.includes('--heldout');
+const dataset = heldout ? 'escalation-heldout' : 'escalation';
+const cases: Case[] = readFileSync(new URL(`../datasets/${dataset}.jsonl`, import.meta.url), 'utf8')
   .trim()
   .split('\n')
   .map((line) => JSON.parse(line));
@@ -101,7 +109,7 @@ const slices: [string, Row[]][] = [
 ];
 
 const report: Record<string, Record<string, ReturnType<typeof score>>> = {};
-console.log(`escalation: ${cases.length} cases (${rows.filter((r) => r.expected !== 'none').length} high-stakes), ${((Date.now() - started) / 1000).toFixed(0)} s`);
+console.log(`${dataset}: ${cases.length} cases (${rows.filter((r) => r.expected !== 'none').length} high-stakes), ${((Date.now() - started) / 1000).toFixed(0)} s`);
 console.log('provider   slice  recall  precision  tp  fn  fp  tn  unanswered');
 for (const [name, judge] of Object.entries(judges)) {
   if (name === 'gemma' && keywordsOnly) continue;
@@ -135,11 +143,15 @@ if (!keywordsOnly) {
 
 mkdirSync(new URL('../out/', import.meta.url), { recursive: true });
 writeFileSync(
-  new URL('../out/escalation.json', import.meta.url),
+  new URL(`../out/${dataset}.json`, import.meta.url),
   `${JSON.stringify({ at: new Date().toISOString(), keywordsOnly, report, rows: rows.map(({ id, expected, decision }) => ({ id, expected, decision })) }, null, 2)}\n`,
 );
 
 const recall = report.combined?.all?.recall;
+if (heldout) {
+  console.log(`REPORT: combined recall ${pct(recall ?? null).trim()} (held-out, no gate)`);
+  process.exit(0);
+}
 const pass = recall === 1 && (keywordsOnly || unanswered.length === 0);
 console.log(`${pass ? 'PASS' : 'FAIL'}: combined recall ${pct(recall ?? null).trim()} (gate 100%)${!keywordsOnly && unanswered.length > 0 ? `, Gemma unavailable on ${unanswered.length}` : ''}`);
 process.exit(pass ? 0 : 1);
