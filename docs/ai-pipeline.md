@@ -187,7 +187,7 @@ What this means: phrase lists patched after each miss catch about half of unseen
 
 ## Lease pipeline (#14, #15)
 
-Spec §7.3, S1 to S9. Gemma interprets; code verifies. The route and SSE stream are #16.
+Spec §7.3, S1 to S9. Gemma interprets; code verifies. `GET /v1/rentals/:id/leases/:leaseId/stream` runs it and streams its events (#16; `.agents/skills/verify-fineprint-web/features/leases.md`).
 
 ```ts
 const pack = loadRulePack(join(JURISDICTIONS_ROOT, 'va'), { requireVerified: true });

@@ -74,7 +74,10 @@ Not reachable from a route yet. The lease pipeline
 ([lease-pipeline](lease-pipeline.md), #14) reads it: S4 runs the registry,
 S5 puts every rule's `summaryForModel` and `paraphraseExamples` in the
 prompt, and S6 checks each cited rule against the lease dates with
-`resolveRules`. The route, `POST /v1/rentals/:id/leases`, is #16.
+`resolveRules`. The lease routes ([leases](leases.md), #16) load every
+verified pack on first use; a rental outside a pack's state is 422
+`UNSUPPORTED_JURISDICTION`. The Cloud Run image copies `jurisdictions/` to
+`/jurisdictions`.
 
 ## Driving it with e2e
 
@@ -100,4 +103,4 @@ for all 19 VA snapshots and exits 0 while the site's text is unchanged.
 
 ## Charters
 
-None until a route reads the pack. The lease route's charter (#16) covers it.
+The lease upload charter in [leases](leases.md) covers it.

@@ -1,7 +1,9 @@
 import type { AuthUser } from '../src/auth.js';
 import { LedgerEntry } from '../src/integrity/ledger.js';
 import { Manifest } from '../src/integrity/manifest.js';
+import type { Clause, Finding } from '../src/ai/pipeline/types.js';
 import { Evidence } from '../src/models/evidence.js';
+import { Lease } from '../src/models/lease.js';
 import { Rental } from '../src/models/rental.js';
 import type { Store } from '../src/storage/firestore.js';
 
@@ -15,6 +17,9 @@ export function memoryStore() {
   const ledgers = new Map<string, LedgerEntry[]>();
   // Keyed `rentalId/manifestId`.
   const manifests = new Map<string, Manifest>();
+  // Keyed `rentalId/leaseId`.
+  const leases = new Map<string, Lease>();
+  const leaseResults = new Map<string, { clauses: Clause[]; findings: Finding[] }>();
   let nextId = 1;
   const store: Store = {
     async createRental(owner, build) {
@@ -82,6 +87,11 @@ export function memoryStore() {
         evidenceItems += 1;
       }
       for (const key of [...manifests.keys()]) if (key.startsWith(`${rentalId}/`)) manifests.delete(key);
+      for (const key of [...leases.keys()]) {
+        if (!key.startsWith(`${rentalId}/`)) continue;
+        leases.delete(key);
+        leaseResults.delete(key);
+      }
       ledgers.delete(rentalId);
       rentals.delete(rentalId);
       return { evidenceItems };
@@ -89,6 +99,29 @@ export function memoryStore() {
     async deleteUser(uid) {
       users.delete(uid);
     },
+    async createLease(rentalId, build) {
+      const lease = Lease.parse(build(`lease-${nextId++}`));
+      leases.set(`${rentalId}/${lease.id}`, lease);
+      return structuredClone(lease);
+    },
+    async getLease(rentalId, leaseId) {
+      return structuredClone(leases.get(`${rentalId}/${leaseId}`) ?? null);
+    },
+    async updateLease(rentalId, leaseId, change) {
+      const current = leases.get(`${rentalId}/${leaseId}`);
+      if (!current) return null;
+      const next = Lease.parse(change(structuredClone(current)));
+      leases.set(`${rentalId}/${leaseId}`, next);
+      return structuredClone(next);
+    },
+    async saveLeaseAnalysis(rentalId, lease, clauses, findings) {
+      // A JSON round trip, as Firestore stores it.
+      leases.set(`${rentalId}/${lease.id}`, Lease.parse(structuredClone(lease)));
+      leaseResults.set(`${rentalId}/${lease.id}`, JSON.parse(JSON.stringify({ clauses, findings })));
+    },
+    async getLeaseResults(rentalId, leaseId) {
+      return structuredClone(leaseResults.get(`${rentalId}/${leaseId}`) ?? { clauses: [], findings: [] });
+    },
   };
-  return { store, rentals, users, evidence, ledgers, manifests };
+  return { store, rentals, users, evidence, ledgers, manifests, leases, leaseResults };
 }

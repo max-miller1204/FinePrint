@@ -386,10 +386,11 @@ deploy_service() {
   local env="FIREBASE_PROJECT_ID=$PROJECT,FIREBASE_API_KEY=$FIREBASE_API_KEY"
   env+=",GCS_EVIDENCE_BUCKET=$BUCKET,KMS_SIGNING_KEY=$KEY_NAME,PURGE_CALLER_EMAIL=$PURGE_SA"
   # Plain gcloud, not gc, so the build log streams instead of arriving at the end.
+  # --timeout: a lease stream runs the whole analysis in one request, rate limit waits included.
   gcloud --project="$PROJECT" --quiet run deploy "$SERVICE" --source="$ROOT" --image="$IMAGE" --region="$REGION" \
     --service-account="$RUNTIME_SA" --build-service-account="projects/$PROJECT/serviceAccounts/$BUILD_SA" \
     --allow-unauthenticated --set-env-vars="$env" --set-secrets="GEMINI_API_KEY=$SECRET:latest" \
-    --max-instances=3 --memory=512Mi
+    --max-instances=3 --memory=512Mi --timeout=900
   SERVICE_URL=$(gc run services describe "$SERVICE" --region="$REGION" --format='value(status.url)')
 }
 
