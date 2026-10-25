@@ -99,9 +99,9 @@ The live checks run the real model:
 
 ```bash
 pnpm --filter @fineprint/server test
-cd server && op run --env-file ../.env -- pnpm smoke:lease
-cd eval && op run --env-file ../.env -- pnpm verifier     # S7 on clauses-golden, both output modes
-op run --env-file ~/.config/fineprint/.env -- pnpm eval  # the lease eval sets (#20), about 30 minutes
+cd server && ../scripts/with-secrets.sh pnpm smoke:lease
+cd eval && ../scripts/with-secrets.sh pnpm verifier     # S7 on clauses-golden, both output modes
+scripts/with-secrets.sh pnpm eval  # the lease eval sets (#20), about 30 minutes
 ```
 
 The eval sets (#20, `docs/ai-pipeline.md`, "Lease eval sets"):

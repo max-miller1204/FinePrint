@@ -9,7 +9,7 @@
 // precision and recall gate is the lease eval set's (#20).
 //
 // Usage (from server/):
-//   op run --env-file ../.env -- pnpm smoke:lease
+//   ../scripts/with-secrets.sh pnpm smoke:lease
 //
 // Exit codes: 0 pass, 1 a check failed, 2 setup error.
 

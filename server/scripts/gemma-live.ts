@@ -6,7 +6,7 @@
 // real model.
 //
 // Usage (from server/):
-//   op run --env-file ../.env -- pnpm smoke:gemma
+//   ../scripts/with-secrets.sh pnpm smoke:gemma
 //   GEMMA_PROVIDER=openai_compatible GEMMA_BASE_URL=http://127.0.0.1:11434/v1 \
 //     GEMMA_PRIMARY=gemma4:26b GEMMA_VERIFIER=gemma4:31b pnpm smoke:gemma   # self-hosted (docs/self-hosting.md)
 //
