@@ -1,7 +1,9 @@
 # Health check
 
 `GET /healthz` tells Cloud Run and an operator whether the server and its
-dependencies answer. No auth.
+dependencies answer. No auth. `GET /health` is the same route: Cloud Run reserves
+paths ending in `z` on its `*.run.app` URLs, so `/healthz` never reaches
+the server there.
 
 ## Sub-features
 
@@ -12,7 +14,8 @@ dependencies answer. No auth.
 
 ## How to get to it (user POV)
 
-`GET /healthz` on the server's base URL. No account.
+`GET /healthz` (or `/health`) on the server's base URL. No account. On a
+`*.run.app` URL only `/health` works.
 
 ## Driving it with e2e
 

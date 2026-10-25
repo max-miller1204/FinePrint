@@ -30,6 +30,16 @@ describe('/healthz', () => {
       error: { code: 'DEPENDENCY_UNAVAILABLE', message: 'Unreachable: kms' },
     });
   });
+
+  it('answers the same on /health, for Cloud Run URLs', async () => {
+    const { app } = setup({
+      checks: { ...stubbedChecks, kms: async () => Promise.reject(new Error('down')) },
+    });
+    expect((await setup().app.request('/health')).status).toBe(200);
+    const res = await app.request('/health');
+    expect(res.status).toBe(503);
+    expect(await res.json()).toMatchObject({ error: { code: 'DEPENDENCY_UNAVAILABLE' } });
+  });
 });
 
 describe('error envelope', () => {

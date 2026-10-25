@@ -48,7 +48,9 @@ export function createApp({
     });
   });
 
-  app.get('/healthz', async (c) => {
+  // /health is the same check: Cloud Run reserves paths ending in `z` on its
+  // *.run.app URLs, so /healthz never reaches the server there.
+  app.on('GET', ['/healthz', '/health'], async (c) => {
     const results = await runChecks(checks);
     const down = Object.entries(results).filter(([, status]) => status === 'unreachable').map(([name]) => name);
     if (down.length > 0) {
@@ -57,7 +59,7 @@ export function createApp({
     return c.json({ status: 'ok', checks: results });
   });
 
-  // Public: /healthz above, /.well-known/*, and later /r/* and /impact.
+  // Public: /healthz and /health above, /.well-known/*, and later /r/* and /impact.
   app.route('/.well-known', createWellKnown(clientConfig));
   app.route('/v1', createV1(verifyIdToken, store));
 

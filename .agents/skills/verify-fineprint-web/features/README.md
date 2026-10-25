@@ -6,11 +6,12 @@ F10) get a file each as their routes land.
 
 | Feature | Route | Test | Status |
 | --- | --- | --- | --- |
-| [Health check](healthz.md) | `GET /healthz` | `tests/web/smoke.e2e.ts`, `tests/web/healthz.e2e.ts` | tested |
+| [Health check](healthz.md) | `GET /healthz`, `GET /health` | `tests/web/smoke.e2e.ts`, `tests/web/healthz.e2e.ts` | tested |
 | [Error envelope and request IDs](errors.md) | every route | `tests/web/errors.e2e.ts` | tested |
 | [Firebase anonymous auth](auth.md) | `/v1/*`, `GET /v1/me`, `GET /.well-known/fineprint-client.json` | `tests/web/auth.e2e.ts` | tested |
 | [Rentals](rentals.md) | `POST /v1/rentals`, `PATCH /v1/rentals/:id` | `tests/web/rentals.e2e.ts` | tested |
 | [Gemma client](gemma-client.md) | none (internal; first caller #14) | `server/test/gemma.test.ts`, `pnpm smoke:gemma` (live) | unit and live tested |
+| [Deploy to Cloud Run](deploy.md) | `./deploy.sh`, the Cloud Run URL | `tests/deployed/deploy.e2e.ts` (`e2e.deployed.config.ts`) | tested |
 
 ## Planned features (spec §4.3)
 
