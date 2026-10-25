@@ -38,6 +38,9 @@ const serverCommand = (port: string, log: string, firebaseConfig: string, emulat
   ],
   cwd: server,
   env: { PORT: port },
+  // Only set under `op run`: then triage asks Gemma as well as the keyword
+  // backstop. Without a key the server runs the backstop alone.
+  inheritEnv: ['GEMINI_API_KEY', 'GEMMA_*'],
   log,
   // The Firestore and Storage emulators are JVMs; on an 8 GB Mac they can
   // take over a minute to start, past the 60 s default.

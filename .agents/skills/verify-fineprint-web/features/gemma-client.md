@@ -39,12 +39,14 @@ AI features reach it through `generate(stage, schema, docs, { task })` in
 
 ## How to get to it (user POV)
 
-Not yet reachable from a route. The first caller is `POST
-/v1/rentals/:id/leases` (#14).
+Through `POST /v1/triage` (the `triage` stage, [triage](triage.md)) when
+the server has `GEMINI_API_KEY` or `GEMMA_PROVIDER=openai_compatible`. The
+lease pipeline (#14) is next.
 
 ## Driving it with e2e
 
-No e2e test until a route calls it. `pnpm --filter @fineprint/server test`
+`tests/web/triage.e2e.ts` reaches it when the run is wrapped in `op run`
+(the `triage` log line says `modelStatus: "ok"`). `pnpm --filter @fineprint/server test`
 covers it with the SDK mocked (`test/gemma.test.ts`,
 `test/ratelimit.test.ts`, `test/response-schema.test.ts`) and `fetch`
 mocked for the self-hosted provider (`test/openai-compatible.test.ts`).

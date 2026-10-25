@@ -12,16 +12,17 @@ F10) get a file each as their routes land.
 | [Rentals](rentals.md) | `POST /v1/rentals`, `PATCH /v1/rentals/:id` | `tests/web/rentals.e2e.ts` | tested |
 | [Evidence uploads](evidence.md) | `POST /v1/rentals/:id/evidence`, `POST /v1/rentals/:id/evidence/:itemId/complete` | `tests/web/evidence.e2e.ts` | tested |
 | [Evidence sealing and ledger](integrity.md) | `POST /v1/rentals/:id/seal`, `GET /v1/rentals/:id/ledger`, `GET /v1/rentals/:id/manifests/:manifestId`, `DELETE /v1/rentals/:id/evidence/:itemId`, `GET /.well-known/fineprint-keys.json` | `tests/web/integrity.e2e.ts` | tested |
+| [Triage and escalation](triage.md) | `POST /v1/triage` | `tests/web/triage.e2e.ts`, `server/test/triage.test.ts`, `pnpm escalation` in `eval/` (live) | tested |
 | [Rule pack](rule-pack.md) | none (internal; first caller #14) | `server/test/rules.test.ts`, `pnpm check:jurisdictions`, `node scripts/refresh-snapshots.ts` (live) | unit and CI tested |
-| [Gemma client](gemma-client.md) | none (internal; first caller #14) | `server/test/gemma.test.ts`, `server/test/openai-compatible.test.ts`, `pnpm smoke:gemma` (live: Gemini API or self-hosted) | unit and live tested; self-hosted live on Ollama with `gemma4:e2b` |
+| [Gemma client](gemma-client.md) | none (internal; first caller: triage) | `server/test/gemma.test.ts`, `server/test/openai-compatible.test.ts`, `pnpm smoke:gemma` (live: Gemini API or self-hosted) | unit and live tested; self-hosted live on Ollama with `gemma4:e2b` |
 | [Deploy to Cloud Run](deploy.md) | `./deploy.sh`, the Cloud Run URL | `tests/deployed/deploy.e2e.ts`, `tests/deployed/evidence.e2e.ts` (`e2e.deployed.config.ts`) | tested |
 
 ## Planned features (spec §4.3)
 
-Each one gets a file in this folder as its routes land. So far only F2's
-evidence uploads and sealing have them ([evidence](evidence.md),
-[integrity](integrity.md)), plus F1's [rule pack](rule-pack.md), which
-has no route.
+Each one gets a file in this folder as its routes land. So far F2's
+evidence uploads and sealing ([evidence](evidence.md),
+[integrity](integrity.md)) and F10's triage ([triage](triage.md)) have them,
+plus F1's [rule pack](rule-pack.md), which has no route.
 
 | Feature | Route | Board issues | Status |
 | --- | --- | --- | --- |
@@ -34,7 +35,7 @@ has no route.
 | F7 Grounded Ask | `/v1` ask route with function calling | #41 | not built |
 | F8 Legal-Aid Web Evidence Report | `GET /r/:token`, `/.well-known/fineprint-keys.json`, share link routes | #33, #34, #35, #36 | `/.well-known/fineprint-keys.json` built (#24); report, verify, shares not built |
 | F9 Insurance Claim Packet | none (the PDF is built on the device) | #55 | not built |
-| F10 High-Stakes Handoff | triage step inside the model-backed `/v1` routes; no route of its own | #37, #38 | not built |
+| F10 High-Stakes Handoff | `POST /v1/triage`; the model-backed `/v1` routes call the same check | #37, #38 | triage built (#37, [triage](triage.md)); handoff sheet and resources not built (#38) |
 
 ## CI gate
 
@@ -50,3 +51,7 @@ tests in this map do not run in CI yet; run them locally before a PR.
 | unit tests | `pnpm test` | a failing vitest test in any workspace with a `test` script (emulator tests excluded) |
 | jurisdictions schema | `pnpm check:jurisdictions` | invalid JSON under `jurisdictions/`, a rule that fails `jurisdictions/schema/rule.schema.json`, or a `statuteQuote` not verbatim in its snapshot |
 | gitleaks | gitleaks 8.30.1, `gitleaks git` | a secret in any commit reachable from HEAD |
+
+The escalation recall gate runs inside `unit tests`: `server/test/triage.test.ts`
+fails when the keyword backstop misses any high-stakes case in
+`eval/datasets/escalation.jsonl`. The live Gemma eval is not in CI yet (#50).

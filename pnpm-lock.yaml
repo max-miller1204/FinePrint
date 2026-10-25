@@ -191,7 +191,17 @@ importers:
         specifier: ^0.21.3
         version: 0.21.3(@ai-sdk/google@4.0.104(zod@4.6.7))(ai@7.0.151(zod@4.6.7))
 
-  eval: {}
+  eval:
+    devDependencies:
+      '@types/node':
+        specifier: ^22.20.5
+        version: 22.20.5
+      tsx:
+        specifier: ^4.23.15
+        version: 4.23.15
+      typescript:
+        specifier: ^7.0.2
+        version: 7.0.2
 
   scripts:
     devDependencies:

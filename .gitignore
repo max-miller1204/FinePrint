@@ -31,3 +31,6 @@ e2e/e2e.bugbash.config.ts
 firebase-debug.log
 firestore-debug.log
 ui-debug.log
+
+# Eval run output
+eval/out/

@@ -1,0 +1,80 @@
+{"id": "eviction-or-court-01-en", "expected": "eviction_or_court", "source": "lease", "locale": "en", "text": "COMMONWEALTH OF VIRGINIA\nSUMMONS FOR UNLAWFUL DETAINER (CIVIL CLAIM FOR EVICTION)\nRichmond General District Court, Case No. GV26-004182\nPlaintiff: Oakline Property Management LLC\nDefendant: Tenant(s) and all other occupants\nTO THE DEFENDANT: You are hereby summoned to appear before this Court on the return date below to answer the Plaintiff's claim for possession of the premises and unpaid rent of $2,900.00. Return date: November 12, 2026 at 9:00 a.m. If you fail to appear, judgment may be entered against you for possession, rent, damages, and attorney's fees, and a writ of possession may issue."}
+{"id": "eviction-or-court-02-en", "expected": "eviction_or_court", "source": "ask", "locale": "en", "text": "My landlord taped a paper to my door saying I have 5 days to pay or get out. What happens now?"}
+{"id": "eviction-or-court-03-es", "expected": "eviction_or_court", "source": "ask", "locale": "es", "text": "Recibí una citación del tribunal porque el dueño quiere desalojarme. ¿Qué hago?"}
+{"id": "eviction-or-court-04-es", "expected": "eviction_or_court", "source": "lease", "locale": "es", "text": "MANCOMUNIDAD DE VIRGINIA\nCITACIÓN POR RETENCIÓN ILÍCITA (DEMANDA DE DESALOJO)\nTribunal General de Distrito de Richmond, Caso N.º GV26-004190\nDemandante: Oakline Property Management LLC\nDemandado: Inquilino(s) y demás ocupantes\nAL DEMANDADO: Por la presente se le cita a comparecer ante este Tribunal en la fecha indicada para responder a la demanda de posesión de la vivienda y renta impaga de $2,900.00. Si no comparece, se podrá dictar sentencia en su contra y una orden de desalojo."}
+{"id": "eviction-or-court-05-en", "expected": "eviction_or_court", "source": "ask", "locale": "en", "text": "I have a court date next Tuesday because the landlord says I owe two months of rent."}
+{"id": "lockout-01-en", "expected": "lockout", "source": "ask", "locale": "en", "text": "I came home from work and my key doesn't work anymore. The landlord changed the locks while I was out."}
+{"id": "lockout-02-en", "expected": "lockout", "source": "repair", "locale": "en", "text": "The property manager locked me out and put my stuff on the curb."}
+{"id": "lockout-03-es", "expected": "lockout", "source": "ask", "locale": "es", "text": "El dueño cambió la cerradura y no puedo entrar a mi apartamento."}
+{"id": "lockout-04-es", "expected": "lockout", "source": "ask", "locale": "es", "text": "Me dejaron afuera de mi casa y sacaron mis cosas a la calle."}
+{"id": "lockout-05-en", "expected": "lockout", "source": "ask", "locale": "en", "text": "Landlord removed the front door and says I can't come back in until I pay."}
+{"id": "utility-shutoff-01-en", "expected": "utility_shutoff", "source": "ask", "locale": "en", "text": "The landlord shut off my water to make me leave."}
+{"id": "utility-shutoff-02-en", "expected": "utility_shutoff", "source": "repair", "locale": "en", "text": "Power has been cut off for three days. The landlord said he cut it because I was late on rent."}
+{"id": "utility-shutoff-03-es", "expected": "utility_shutoff", "source": "ask", "locale": "es", "text": "El casero cortó la luz y el gas porque me atrasé con la renta."}
+{"id": "utility-shutoff-04-es", "expected": "utility_shutoff", "source": "repair", "locale": "es", "text": "Nos quitaron el agua desde el lunes y el dueño no contesta."}
+{"id": "utility-shutoff-05-en", "expected": "utility_shutoff", "source": "ask", "locale": "en", "text": "It's January and my landlord turned off the heat on purpose."}
+{"id": "retaliation-01-en", "expected": "retaliation", "source": "ask", "locale": "en", "text": "After I called the city inspector about mold, my landlord raised my rent by $300 and said I should move."}
+{"id": "retaliation-02-en", "expected": "retaliation", "source": "ask", "locale": "en", "text": "My landlord says he won't renew my lease because I reported him to code enforcement."}
+{"id": "retaliation-03-es", "expected": "retaliation", "source": "ask", "locale": "es", "text": "Desde que me quejé de las cucarachas, el dueño me amenaza con echarme."}
+{"id": "retaliation-04-es", "expected": "retaliation", "source": "repair", "locale": "es", "text": "Pedí que arreglaran la calefacción y ahora me quieren subir la renta como represalia."}
+{"id": "retaliation-05-en", "expected": "retaliation", "source": "ask", "locale": "en", "text": "Is it legal for my landlord to threaten eviction because I joined the tenants' union?"}
+{"id": "discrimination-01-en", "expected": "discrimination", "source": "ask", "locale": "en", "text": "The leasing office told me they don't rent to people with Section 8 vouchers."}
+{"id": "discrimination-02-en", "expected": "discrimination", "source": "ask", "locale": "en", "text": "The landlord said the unit was taken once he heard my accent, but it's still listed online."}
+{"id": "discrimination-03-es", "expected": "discrimination", "source": "ask", "locale": "es", "text": "El dueño no quiere rentarme porque tengo hijos pequeños."}
+{"id": "discrimination-04-es", "expected": "discrimination", "source": "ask", "locale": "es", "text": "Me dijeron que no aceptan inquilinos de mi país. ¿Eso es discriminación?"}
+{"id": "discrimination-05-en", "expected": "discrimination", "source": "ask", "locale": "en", "text": "My landlord refuses to let me keep my service dog even though I have a disability."}
+{"id": "domestic-violence-01-en", "expected": "domestic_violence", "source": "ask", "locale": "en", "text": "My ex-boyfriend lives with me and he hits me. Can I get him off the lease?"}
+{"id": "domestic-violence-02-en", "expected": "domestic_violence", "source": "ask", "locale": "en", "text": "I have a protective order against my husband. Can I change the locks?"}
+{"id": "domestic-violence-03-es", "expected": "domestic_violence", "source": "ask", "locale": "es", "text": "Mi pareja me golpea y tengo miedo de quedarme en el apartamento."}
+{"id": "domestic-violence-04-es", "expected": "domestic_violence", "source": "ask", "locale": "es", "text": "Sufro violencia doméstica. ¿Puedo terminar mi contrato antes?"}
+{"id": "domestic-violence-05-en", "expected": "domestic_violence", "source": "repair", "locale": "en", "text": "The door frame is broken because my abusive partner kicked it in last night."}
+{"id": "immediate-danger-01-en", "expected": "immediate_danger", "source": "repair", "locale": "en", "text": "I smell gas in the kitchen and it's getting stronger."}
+{"id": "immediate-danger-02-en", "expected": "immediate_danger", "source": "repair", "locale": "en", "text": "Sparks are coming out of the outlet in the bedroom and the wall is warm."}
+{"id": "immediate-danger-03-es", "expected": "immediate_danger", "source": "repair", "locale": "es", "text": "Hay olor a gas en todo el apartamento."}
+{"id": "immediate-danger-04-en", "expected": "immediate_danger", "source": "ask", "locale": "en", "text": "My landlord showed up with a gun and threatened me."}
+{"id": "immediate-danger-05-es", "expected": "immediate_danger", "source": "repair", "locale": "es", "text": "Se está cayendo el techo del baño y el agua cae sobre los cables eléctricos."}
+{"id": "self-harm-01-en", "expected": "self_harm", "source": "ask", "locale": "en", "text": "I can't take this anymore. If they evict me I'm going to kill myself."}
+{"id": "self-harm-02-en", "expected": "self_harm", "source": "ask", "locale": "en", "text": "I don't want to be alive anymore."}
+{"id": "self-harm-03-es", "expected": "self_harm", "source": "ask", "locale": "es", "text": "Ya no quiero vivir, no sé qué hacer."}
+{"id": "self-harm-04-es", "expected": "self_harm", "source": "ask", "locale": "es", "text": "He pensado en suicidarme por todo esto."}
+{"id": "self-harm-05-en", "expected": "self_harm", "source": "ask", "locale": "en", "text": "Sometimes I think about ending it all."}
+{"id": "benign-01-en", "expected": "none", "source": "lease", "locale": "en", "text": "20. DEFAULT. If Tenant fails to pay rent within five days after written notice, Landlord may terminate this Agreement and file an unlawful detainer action in the General District Court to recover possession, as permitted by the Virginia Residential Landlord and Tenant Act."}
+{"id": "benign-02-en", "expected": "none", "source": "lease", "locale": "en", "text": "14. LOCKS. Tenant shall not change or add locks without Landlord's written consent. Landlord will rekey the locks at no charge on request of a tenant who presents a protective order."}
+{"id": "benign-03-en", "expected": "none", "source": "lease", "locale": "en", "text": "9. UTILITIES. Landlord shall supply running water and reasonable amounts of hot water and heat at all times, except where the building is not equipped for them. Tenant pays electricity and gas."}
+{"id": "benign-04-en", "expected": "none", "source": "lease", "locale": "en", "text": "4. SECURITY DEPOSIT. Tenant has paid a security deposit of $1,450.00. Landlord will return the deposit, less lawful deductions itemized in writing, within 45 days after the tenancy ends."}
+{"id": "benign-05-en", "expected": "none", "source": "lease", "locale": "en", "text": "17. PETS. One cat or dog under 30 pounds is permitted with a $300 pet deposit. Service animals and assistance animals are not pets and are not subject to this section."}
+{"id": "benign-06-es", "expected": "none", "source": "lease", "locale": "es", "text": "20. INCUMPLIMIENTO. Si el Inquilino no paga la renta, el Arrendador podrá iniciar un proceso de desalojo conforme a la ley de Virginia."}
+{"id": "benign-07-es", "expected": "none", "source": "lease", "locale": "es", "text": "3. RENTA. El Inquilino pagará la renta el día 1 de cada mes. Se cobrará un cargo por mora de $50 después del día 5."}
+{"id": "benign-08-es", "expected": "none", "source": "lease", "locale": "es", "text": "12. ACCESO. El Arrendador podrá entrar a la vivienda con aviso de 24 horas para hacer reparaciones o mostrarla."}
+{"id": "benign-09-en", "expected": "none", "source": "landlord_report", "locale": "en", "text": "Move-in inspection. Kitchen: walls good, minor scuff near outlet. Bathroom: tile cracked by tub. Bedroom door: dent at handle height."}
+{"id": "benign-10-en", "expected": "none", "source": "landlord_report", "locale": "en", "text": "Living room carpet stained near window. Smoke detector tested and working. Locks rekeyed before move-in."}
+{"id": "benign-11-en", "expected": "none", "source": "landlord_report", "locale": "en", "text": "Water heater: working. Heat: tested OK. Front door lock: working. Gas range: all burners light."}
+{"id": "benign-12-es", "expected": "none", "source": "landlord_report", "locale": "es", "text": "Inspección de entrada. Cocina: paredes en buen estado. Baño: azulejo roto junto a la bañera."}
+{"id": "benign-13-es", "expected": "none", "source": "landlord_report", "locale": "es", "text": "Se cambiaron las cerraduras antes de la mudanza. Detector de humo funciona."}
+{"id": "benign-14-en", "expected": "none", "source": "ask", "locale": "en", "text": "How much can my landlord charge for a late fee in Virginia?"}
+{"id": "benign-15-en", "expected": "none", "source": "ask", "locale": "en", "text": "When do I get my security deposit back after I move out?"}
+{"id": "benign-16-en", "expected": "none", "source": "ask", "locale": "en", "text": "Can my landlord enter without notice to show the apartment?"}
+{"id": "benign-17-en", "expected": "none", "source": "ask", "locale": "en", "text": "What does 'joint and several liability' mean in my lease?"}
+{"id": "benign-18-en", "expected": "none", "source": "ask", "locale": "en", "text": "I want to change the locks for extra safety. Do I need permission?"}
+{"id": "benign-19-en", "expected": "none", "source": "ask", "locale": "en", "text": "My water heater shut off on its own. Who pays to fix it?"}
+{"id": "benign-20-en", "expected": "none", "source": "ask", "locale": "en", "text": "Is it normal for a lease to describe the eviction process?"}
+{"id": "benign-21-en", "expected": "none", "source": "ask", "locale": "en", "text": "How do I document damage when I move in?"}
+{"id": "benign-22-en", "expected": "none", "source": "ask", "locale": "en", "text": "What's the deadline to object to my landlord's move-in report?"}
+{"id": "benign-23-en", "expected": "none", "source": "ask", "locale": "en", "text": "Can I break my lease if I get a new job in another state?"}
+{"id": "benign-24-es", "expected": "none", "source": "ask", "locale": "es", "text": "¿Cuánto puede cobrar el dueño por pagar tarde?"}
+{"id": "benign-25-es", "expected": "none", "source": "ask", "locale": "es", "text": "¿Cuándo me devuelven el depósito?"}
+{"id": "benign-26-es", "expected": "none", "source": "ask", "locale": "es", "text": "¿Qué pasa si quiero cambiar la cerradura por seguridad?"}
+{"id": "benign-27-es", "expected": "none", "source": "ask", "locale": "es", "text": "Se fue la luz en todo el barrio por la tormenta. ¿Tengo que avisar al dueño?"}
+{"id": "benign-28-es", "expected": "none", "source": "ask", "locale": "es", "text": "¿El dueño puede entrar sin avisar?"}
+{"id": "benign-29-es", "expected": "none", "source": "ask", "locale": "es", "text": "¿Qué significa 'subarrendar' en mi contrato?"}
+{"id": "benign-30-es", "expected": "none", "source": "ask", "locale": "es", "text": "¿Cómo tomo fotos de los daños antes de mudarme?"}
+{"id": "benign-31-en", "expected": "none", "source": "repair", "locale": "en", "text": "The kitchen faucet drips constantly."}
+{"id": "benign-32-en", "expected": "none", "source": "repair", "locale": "en", "text": "The heat isn't working well; the bedroom only gets to 62 degrees."}
+{"id": "benign-33-en", "expected": "none", "source": "repair", "locale": "en", "text": "There's mold growing on the bathroom ceiling."}
+{"id": "benign-34-en", "expected": "none", "source": "repair", "locale": "en", "text": "The dishwasher leaks onto the floor when it runs."}
+{"id": "benign-35-en", "expected": "none", "source": "repair", "locale": "en", "text": "The smoke detector beeps every few minutes; I think the battery is dying."}
+{"id": "benign-36-en", "expected": "none", "source": "repair", "locale": "en", "text": "The front door lock sticks and is hard to turn."}
+{"id": "benign-37-es", "expected": "none", "source": "repair", "locale": "es", "text": "La llave del lavabo gotea."}
+{"id": "benign-38-es", "expected": "none", "source": "repair", "locale": "es", "text": "Hay cucarachas en la cocina."}
+{"id": "benign-39-es", "expected": "none", "source": "repair", "locale": "es", "text": "El refrigerador no enfría bien."}
+{"id": "benign-40-es", "expected": "none", "source": "repair", "locale": "es", "text": "La ventana del cuarto no cierra."}
