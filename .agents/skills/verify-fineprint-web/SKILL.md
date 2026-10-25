@@ -68,15 +68,19 @@ engine; that is expected.
 
 ## Drive
 
-There is no UI yet, so the scripted lane is the only lane: API tests that
-take only `app`, declare `{ platforms: ['web'] }` so the ios target skips
+The [web report](features/web-report.md) now has UI at `/r/:token`.
+Use its fixture-only data toggle with `REPORT_FIXTURES=1` under emulators;
+`tests/web/report.e2e.ts` drives the page with semantic locators and checks
+phone layouts and actual print/PDF output. The live MCP lane is optional.
+
+API tests take only `app`, declare `{ platforms: ['web'] }` so the ios target skips
 them, and call `fetch(new URL(path, app.baseUrl))` with value matchers (topic `writing-tests`, "APIs live in the same suite"). The tests
 call no model themselves. The server inherits `GEMINI_API_KEY` and
 `GEMMA_*` (`inheritEnv`), so under `op run` its triage also asks Gemma;
 without them triage runs on the keyword backstop alone. Agent steps (`agent.act`, `agent.assert`) use the Gemini model
-in the config and need the key (see Bug bash). When the web report (`/r/:token`) lands, drive it with `screen`
-locators and the live MCP lane (topic `mcp`); the e2e MCP server is not
-registered in this repo yet.
+in the config and need the key (see Bug bash). Drive the web report with
+`screen` locators or the live MCP lane (topic `mcp`); the e2e MCP server is
+not registered in this repo yet.
 
 Stable handles: routes, status codes, the `error.code` field of the
 envelope, and the `X-Request-Id` header. For `/v1`, sign up against the

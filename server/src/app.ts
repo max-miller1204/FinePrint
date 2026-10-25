@@ -14,6 +14,8 @@ import { createLogger, type LogSink, type Logger } from './log.js';
 import { createInternal, googleSchedulerVerifier, type VerifyScheduler } from './routes/internal.js';
 import type { LeaseAnalyzer } from './routes/leases.js';
 import { createImpact } from './routes/impact.js';
+import { createReport } from './routes/report.js';
+import type { ReportLoader } from './report/model.js';
 import { createV1 } from './routes/v1.js';
 import { firestoreStore, type Store } from './storage/firestore.js';
 import { gcsObjects, type EvidenceObjects } from './storage/gcs.js';
@@ -27,6 +29,8 @@ export type AppEnv = {
 };
 
 export interface AppDeps {
+  // #35 supplies token authorization and a redacted report projection.
+  reportLoader?: ReportLoader;
   checks?: HealthChecks;
   logSink?: LogSink;
   verifyIdToken?: VerifyIdToken;
@@ -50,6 +54,7 @@ export interface AppDeps {
 }
 
 export function createApp({
+  reportLoader = async () => null,
   checks = stubbedChecks,
   logSink,
   verifyIdToken = firebaseIdTokenVerifier(),
@@ -96,7 +101,8 @@ export function createApp({
     return c.json({ status: 'ok', checks: results });
   });
 
-  // Public: /healthz and /health above, /.well-known/*, /impact, and later /r/*.
+  // Public: /healthz and /health above, /.well-known/*, /r/*, and /impact.
+  app.route('/r', createReport(reportLoader, signer));
   app.route('/.well-known', createWellKnown(clientConfig, signer));
   app.route('/impact', createImpact(store));
   const analyzer: LeaseAnalyzer = { gemma, triage, packs };

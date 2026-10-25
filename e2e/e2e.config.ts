@@ -37,7 +37,7 @@ const serverCommand = (port: string, log: string, firebaseConfig: string, emulat
     'node --import tsx src/index.ts',
   ],
   cwd: server,
-  env: { PORT: port },
+  env: { PORT: port, REPORT_FIXTURES: '1' },
   // Only set under `op run`: then triage asks Gemma as well as the keyword
   // backstop. Without a key the server runs the backstop alone.
   inheritEnv: ['GEMINI_API_KEY', 'GEMMA_*', 'TMPDIR'],

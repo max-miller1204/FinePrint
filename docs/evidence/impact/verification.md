@@ -28,3 +28,15 @@ On a device with that build and the updated server:
 5. With VoiceOver and large Dynamic Type, check the saving/error state and the expanded privacy copy. Open `/impact` in phone Safari and verify scrolling, safe-area padding, dark mode, and zoom. Desktop emulation does not verify physical touch behavior.
 
 Metrics for unbuilt letter, repair, and actual handoff workflows remain explicitly untracked. The occupancy-day measure is not a statutory deadline. No pending product decision blocks this change.
+
+## Main integration after PR 119
+
+Resolved the shared app-route and feature-map conflicts while retaining both
+`/impact` and `/r/:token`. On the combined tree, `pnpm test` passed 446 tests
+in 18 files, typecheck and lint exited 0, and a single full web run exited 0:
+41 passed in 12 files, two existing live-model skips. This includes smoke,
+impact, and all five Evidence Report browser/print tests.
+
+Command: `pnpm exec e2e run --target web --workers 1 --retries 0 --trace on --output .e2e/proof/impact-main-merge`
+with the same isolated emulator environment described above. Run ID:
+`01a172b9-f9f8-7048-8110-ecd3b474ac6b`.

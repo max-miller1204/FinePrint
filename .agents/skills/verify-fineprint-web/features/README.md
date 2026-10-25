@@ -7,6 +7,7 @@ F10) get a file each as their routes land.
 | Feature | Route | Test | Status |
 | --- | --- | --- | --- |
 | [Impact](impact.md) | `PATCH /v1/me/impact`, `GET /impact` | `tests/web/impact.e2e.ts`, `server/test/impact.test.ts`, `server/test/emulator/impact.test.ts` | tested |
+| [Web Evidence Report](web-report.md) | `GET /r/:token` | `tests/web/report.e2e.ts`, `server/test/report.test.ts` | tested (SSR, phone, print/PDF) |
 | [Health check](healthz.md) | `GET /healthz`, `GET /health` | `tests/web/smoke.e2e.ts`, `tests/web/healthz.e2e.ts` | tested |
 | [Error envelope and request IDs](errors.md) | every route | `tests/web/errors.e2e.ts` | tested |
 | [Firebase anonymous auth](auth.md) | `/v1/*`, `GET /v1/me`, `GET /.well-known/fineprint-client.json` | `tests/web/auth.e2e.ts` | tested |
@@ -38,7 +39,7 @@ plus F1's [lease routes](leases.md), with the [rule pack](rule-pack.md), [lease 
 | F5 Repair Request + Rent Escrow Path | `/v1` repair notice draft route | #32 | not built |
 | F6 Move-out Ghost Overlay + Diff | `/v1` move-out compare route | #27 | not built |
 | F7 Grounded Ask | `/v1` ask route with function calling | #41 | not built |
-| F8 Legal-Aid Web Evidence Report | `GET /r/:token`, `/.well-known/fineprint-keys.json`, share link routes | #33, #34, #35, #36 | `/.well-known/fineprint-keys.json` built (#24); report, verify, shares not built |
+| F8 Legal-Aid Web Evidence Report | `GET /r/:token`, `/.well-known/fineprint-keys.json`, share link routes | #33, #34, #35, #36 | `/.well-known/fineprint-keys.json` built (#24); SSR report, print/PDF, timeline, findings, exhibits and ledger built (#33, [web-report](web-report.md)); browser verify, share lifecycle and axe CI remain #34, #35, #36 |
 | F9 Insurance Claim Packet | none (the PDF is built on the device) | #55 | not built |
 | F10 High-Stakes Handoff | `POST /v1/triage`; the model-backed `/v1` routes call the same check | #37, #38 | triage built (#37, [triage](triage.md)); handoff sheet and resources not built (#38) |
 
