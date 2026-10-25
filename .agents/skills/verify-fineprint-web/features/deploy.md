@@ -33,7 +33,8 @@ in Cloud Shell, who has created a project and linked billing.
 
 ```sh
 gcloud auth login
-op run --env-file .env -- ./deploy.sh --project <id>   # or ./deploy.sh and answer the prompts
+op run --env-file ~/.config/fineprint/.env -- ./deploy.sh --project <id>   # 1Password
+scripts/with-gemini-key.sh ./deploy.sh --project <id>                     # macOS Keychain
 ./deploy.sh --destroy --project <id>
 ```
 
@@ -68,6 +69,9 @@ with the other features' charters against the Cloud Run URL.
 
 ## Gotchas
 
+- `GEMINI_API_KEY` (or `GOOGLE_API_KEY`) must be in the environment until
+  the secret has a version. With no key and no terminal, the script exits
+  with both loader commands; later runs keep the stored key.
 - Newly enabled APIs answer `SERVICE_DISABLED` for a minute or two. The
   script's `gc` wrapper retries those calls.
 - The deployed tests create a real anonymous user each run. `--destroy`

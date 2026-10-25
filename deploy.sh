@@ -9,9 +9,15 @@
 # changes nothing except the Cloud Run revision. The script never creates the
 # project or links billing; do both in the console first.
 #
-# The Gemini API key comes from GEMINI_API_KEY in the environment (for
-# example `op run --env-file .env -- ./deploy.sh`) or a hidden prompt. It goes
-# straight to Secret Manager and is never printed.
+# The Gemini API key comes from GEMINI_API_KEY in the environment
+# (GOOGLE_API_KEY also works). Load it however you keep secrets, e.g.:
+#
+#   op run --env-file ~/.config/fineprint/.env -- ./deploy.sh   (1Password)
+#   scripts/with-gemini-key.sh ./deploy.sh                      (macOS Keychain)
+#
+# In a terminal with neither (Cloud Shell), it asks with hidden input. It is
+# needed only until the secret has a version, goes straight to Secret
+# Manager, and is never printed.
 #
 # Works in Cloud Shell and with macOS's bash 3.2. Needs gcloud and curl.
 
@@ -53,7 +59,7 @@ APIS=(
 )
 
 usage() {
-  sed -n '2,16p' "$0" | sed 's/^# \{0,1\}//'
+  sed -n '2,/^$/p' "$0" | sed 's/^# \{0,1\}//'
 }
 
 while [[ $# -gt 0 ]]; do
@@ -248,7 +254,7 @@ ensure_artifact_registry() {
 
 ensure_secret() {
   step "Gemini API key (Secret Manager)"
-  local key=${GEMINI_API_KEY:-} current=''
+  local key=${GEMINI_API_KEY:-${GOOGLE_API_KEY:-}} current=''
   if gc secrets describe "$SECRET" >/dev/null 2>&1; then
     have "secret $SECRET"
   else
@@ -262,9 +268,13 @@ ensure_secret() {
       return
     fi
   elif [[ -z $key ]]; then
-    read -rsp "  Gemini API key from https://aistudio.google.com/apikey (input hidden): " key || true
-    echo
-    [[ -n $key ]] || die "A Gemini API key is required."
+    if [[ -t 0 ]]; then
+      read -rsp "  Gemini API key from https://aistudio.google.com/apikey (input hidden): " key || true
+      echo
+    fi
+    [[ -n $key ]] || die "GEMINI_API_KEY is not set. Run with it in the environment, for example:
+  op run --env-file ~/.config/fineprint/.env -- ./deploy.sh   (1Password)
+  scripts/with-gemini-key.sh ./deploy.sh                      (macOS Keychain, see CONTRIBUTING.md)"
   fi
   printf '%s' "$key" | gc secrets versions add "$SECRET" --data-file=- >/dev/null
   made "a key version"

@@ -54,17 +54,34 @@ pnpm test:e2e:ios    # simulator only
 
 The e2e CLI sends anonymous usage data by default. FinePrint turns it off: `e2e.config.ts` and the package scripts set `E2E_TELEMETRY_DISABLED=1`. Keep it set in CI and anywhere you run `npx e2e` by hand.
 
-### Gemini API key (Gemma 4 and e2e agent steps)
+### Secrets (Gemini API key)
 
-Tests without agent steps need no key. The server's Gemma 4 calls and the e2e `agent.*` steps both read `GEMINI_API_KEY`, a Google AI Studio key. Never commit it or put it in a `.env` file as plain text. Use one of these:
+Tests without agent steps need no key. The server's Gemma 4 calls, the e2e `agent.*` steps, and `deploy.sh` all read `GEMINI_API_KEY` from the environment (`GOOGLE_API_KEY` also works), a Google AI Studio key. Nothing in the repo reads a `.env` file itself: wrap the command in one of the two loaders below. Never commit the key or write its value to a file in the repo, and never print it.
 
-- 1Password: put a reference in `.env` and run `op run --env-file ../.env -- <command>`.
-- macOS Keychain: store the key once, then wrap the command:
+**1Password** (`op` CLI). `~/.config/fineprint/.env` holds a reference, not the key:
 
-  ```sh
-  security add-generic-password -U -a "$USER" -s fineprint-gemini-api-key -w   # prompts for the key
-  scripts/with-gemini-key.sh <command>
-  ```
+```sh
+# ~/.config/fineprint/.env
+GEMINI_API_KEY=op://<vault>/<item>/<field>
+```
+
+```sh
+ln -s ~/.config/fineprint/.env .env                        # optional, per checkout; .env is gitignored
+op run --env-file ~/.config/fineprint/.env -- <command>    # or --env-file .env (../.env from e2e/)
+```
+
+To add a secret: store it in 1Password, then add a `NAME=op://<vault>/<item>/<field>` line to `~/.config/fineprint/.env`.
+
+**macOS Keychain** (no 1Password). Store the key once, then wrap the command:
+
+```sh
+security add-generic-password -U -a "$USER" -s fineprint-gemini-api-key -w   # prompts for the key
+scripts/with-gemini-key.sh <command>
+```
+
+To add a secret: store it with `security add-generic-password -U -a "$USER" -s fineprint-<name> -w`, then export it in `scripts/with-gemini-key.sh` the same way it exports `GEMINI_API_KEY`.
+
+Examples: `op run --env-file ~/.config/fineprint/.env -- ./deploy.sh` or `scripts/with-gemini-key.sh ./deploy.sh`.
 
 The `verify-fineprint-web` and `verify-fineprint-ios` skills in `.agents/skills/` cover launching, driving, evidence, and bug bashes.
 
