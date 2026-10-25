@@ -58,10 +58,13 @@ Then `npx e2e run ... --target ios` does the rest:
   `device.openApp(iosBundleId, { relaunch: true, launchArguments: iosLaunchArguments({ without: [...] }) })`
   from `e2e/ios-launch.ts`; a launch's arguments replace the target's. That
   is how `onboarding.e2e.ts` reaches onboarding and `camera.e2e.ts` reaches
-  "Camera not available". Pass `permissions: { notifications: 'grant' }` (or
-  `'reset'`) so a system prompt never blocks a scripted run, and
-  `-FinePrintSeedDeadline <kind>` to start a real deadline
-  (`deadlines.e2e.ts`).
+  "Camera not available". Pass `-FinePrintSeedDeadline <kind>` to start a
+  real deadline (`deadlines.e2e.ts`).
+- The iOS 26.0 simulator runtime cannot reset or grant notification
+  permission through `permissions` (simctl privacy fails with
+  `UNSUPPORTED_CAPABILITY`). To start from "never asked", call `reinstall(device)`
+  from `tests/ios/fixtures.ts`; to allow, tap the control that asks and
+  `device.alert('accept')` (or `acceptAlertIfShown(device)`).
 
 The first time on a machine, run `npx agent-device doctor`. The warnings
 about HarmonyOS and Vega are expected.

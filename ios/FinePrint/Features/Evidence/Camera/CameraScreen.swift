@@ -290,9 +290,10 @@ private struct CaptureReview: View {
                 Text(verbatim: photo.record.sha256)
                     .font(.body.monospaced())
                     .textSelection(.enabled)
-                    .accessibilityIdentifier("camera.hash")
             }
+            // On the combined element, not the hash text, so VoiceOver and UI tests see one node.
             .accessibilityElement(children: .combine)
+            .accessibilityIdentifier("camera.hash")
 
             ViewThatFits(in: .horizontal) {
                 HStack(spacing: 12) { buttons }

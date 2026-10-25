@@ -83,14 +83,18 @@ struct DeveloperMenuView: View {
                     isCameraPresented = true
                 }
                 .accessibilityIdentifier("developer.openCamera")
-                if let lastCapture {
-                    LabeledContent("Last Photo SHA-256") {
+                // The rows are always there, so keeping a photo changes their text instead of
+                // inserting rows while the camera closes, which left the rows below unrendered.
+                LabeledContent("Last Photo SHA-256") {
+                    if let lastCapture {
                         Text(verbatim: lastCapture.sha256)
                             .font(.body.monospaced())
                             .textSelection(.enabled)
+                    } else {
+                        Text("None yet")
                     }
-                    .accessibilityIdentifier("developer.lastCaptureHash")
                 }
+                .accessibilityIdentifier("developer.lastCaptureHash")
                 if let uploads {
                     UploadQueueRows(uploads: uploads, lastCapture: lastCapture)
                 }
@@ -209,12 +213,14 @@ private struct UploadQueueRows: View {
     let lastCapture: CaptureRecord?
 
     var body: some View {
-        if let lastCapture {
-            LabeledContent("Seal Status") {
+        LabeledContent("Seal Status") {
+            if let lastCapture {
                 SealStatusPill(status: uploads.status(for: lastCapture.itemID) ?? .waiting)
+            } else {
+                Text("No photo yet")
             }
-            .accessibilityIdentifier("developer.sealStatus")
         }
+        .accessibilityIdentifier("developer.sealStatus")
         LabeledContent("Waiting to Upload") {
             Text(uploads.waitingCount, format: .number)
         }

@@ -2,15 +2,15 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { expect } from 'e2e';
 import { iosBundleId, iosLaunchArguments } from '../../ios-launch';
-import { test } from './fixtures';
+import { reinstall, test } from './fixtures';
 
 // The ios target launches with -FinePrintSkipOnboarding so every other test starts at the tabs.
 // These tests relaunch the app without it, so the first launch shows onboarding.
+// Each test reinstalls first, so notification permission has never been asked and a prompt, if the
+// app asked for one, would be shown.
 const freshLaunch = {
   relaunch: true,
   launchArguments: iosLaunchArguments({ without: ['-FinePrintSkipOnboarding'] }),
-  // Reset so a notification prompt, if the app asked for one, would be shown.
-  permissions: { notifications: 'reset' },
 } as const;
 
 const serverLog = join(import.meta.dirname, '..', '..', '.e2e', 'logs', 'server-ios.log');
@@ -25,6 +25,7 @@ const rentalsCreated = () => {
 test('onboarding finishes in under 30 seconds, creates the rental, and opens the right tab', { platforms: ['ios'] }, async ({ app, screen, device }) => {
   await app.open();
   const created = rentalsCreated();
+  await reinstall(device);
   await device.openApp(iosBundleId, freshLaunch);
 
   const started = Date.now();
@@ -64,6 +65,7 @@ test('onboarding finishes in under 30 seconds, creates the rental, and opens the
 
 test('outside Virginia shows the evidence-only message and still continues', { platforms: ['ios'] }, async ({ app, screen, device }) => {
   await app.open();
+  await reinstall(device);
   await device.openApp(iosBundleId, freshLaunch);
 
   await screen.getByTestId('onboarding.continue').tap();

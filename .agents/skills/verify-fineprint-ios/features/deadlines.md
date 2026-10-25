@@ -46,9 +46,10 @@ accessory shows the clock; tap it to land on its card in Evidence.
 ## Driving it with e2e
 
 - `tests/ios/deadlines.e2e.ts` relaunches with `-FinePrintSeedDeadline
-  <kind>` (DEBUG) to start a clock today, and sets the notifications
-  permission per test (`reset` to prove nothing asked, `grant` to avoid the
-  system prompt). It checks the accessory text, the Evidence card, the
+  <kind>` (DEBUG) to start a clock today. It reinstalls the app to start
+  from "never asked" (the simulator cannot reset notification permission),
+  then proves seeding showed no prompt, and allows reminders by tapping
+  Remind Me and accepting the system prompt. It checks the accessory text, the Evidence card, the
   Remind Me state, the report-received flow, the deposit tracker, and the
   hidden accessory with `-FinePrintDeadlineStub empty`.
 - `ios/FinePrintTests/DeadlineStoreTests.swift` covers day math in

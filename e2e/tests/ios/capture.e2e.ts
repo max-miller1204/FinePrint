@@ -3,6 +3,9 @@ import { join } from 'node:path';
 import { expect } from 'e2e';
 import { test } from './fixtures';
 
+// `camera.hash` is one accessibility element, "SHA-256 fingerprint, <hash>".
+const hashIn = (text: string | null | undefined) => /[0-9a-f]{64}/.exec(text ?? '')?.[0] ?? '';
+
 // The DEBUG fixture camera (#22) stands in for the camera hardware: the
 // config passes -FinePrintFixtureCamera <e2e/fixtures/photos/move-in>, so the
 // shutter returns the next fixture photo and everything after it (GPS removal,
@@ -26,7 +29,7 @@ test('a fixture photo is captured, hashed, and kept', { platforms: ['ios'] }, as
   // Review shows the SHA-256 of the stored file: 64 lowercase hex characters.
   const hash = screen.getByTestId('camera.hash');
   await expect(hash).toBeVisible();
-  const shown = (await hash.textContent())?.trim() ?? '';
+  const shown = hashIn(await hash.textContent());
   expect(shown).toMatch(/^[0-9a-f]{64}$/);
 
   // The quality gate may ask for a retake of a fixture; the tenant can keep it.
@@ -53,12 +56,12 @@ test('the shutter takes the fixture photos in order', { platforms: ['ios'] }, as
   await openCamera.tap();
 
   await screen.getByTestId('camera.shutter').tap();
-  const first = (await screen.getByTestId('camera.hash').textContent())?.trim() ?? '';
+  const first = hashIn(await screen.getByTestId('camera.hash').textContent());
   await screen.getByTestId('camera.retake').tap();
 
   // Retake returns to the viewfinder; the next shutter gives the next photo.
   await screen.getByTestId('camera.shutter').tap();
-  const second = (await screen.getByTestId('camera.hash').textContent())?.trim() ?? '';
+  const second = hashIn(await screen.getByTestId('camera.hash').textContent());
 
   expect(first).toMatch(/^[0-9a-f]{64}$/);
   expect(second).toMatch(/^[0-9a-f]{64}$/);
@@ -107,6 +110,7 @@ test('a photo kept offline uploads after reconnect and the server checks its has
   const waiting = screen.getByTestId('developer.uploadQueueCount');
   await screen.scrollUntilVisible(status);
   await expect(status).toContainText('Waiting to seal');
+  await screen.scrollUntilVisible(waiting);
   await expect(waiting).toContainText('1');
   expect(logLines('evidence upload urls issued')).toBe(issued);
 
@@ -116,6 +120,7 @@ test('a photo kept offline uploads after reconnect and the server checks its has
   await expect(offline).toBeChecked({ checked: false });
   await screen.scrollUntilVisible(status);
   await expect(status).toContainText('Uploaded, waiting to seal', { timeout: 30_000 });
+  await screen.scrollUntilVisible(waiting);
   await expect(waiting).toContainText('0');
   await expect.poll(() => logLines('evidence received'), { timeout: 15_000 }).toBe(received + 1);
   expect(logLines('evidence upload urls issued')).toBe(issued + 1);

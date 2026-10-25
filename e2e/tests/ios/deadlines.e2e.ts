@@ -1,6 +1,6 @@
 import { expect } from 'e2e';
 import { iosBundleId, iosLaunchArguments } from '../../ios-launch';
-import { test } from './fixtures';
+import { acceptAlertIfShown, reinstall, test } from './fixtures';
 
 // Real deadlines, seeded at launch by the DEBUG-only
 // `-FinePrintSeedDeadline move_in_report|objection|deposit_itemization`,
@@ -15,7 +15,9 @@ const baseArguments = iosLaunchArguments();
 const seeded = (kind: string) => [...baseArguments, '-FinePrintSeedDeadline', kind];
 
 test('a seeded deadline shows in the accessory without asking for permission', { platforms: ['ios'] }, async ({ device, screen }) => {
-  await device.openApp(iosBundleId, { relaunch: true, launchArguments: seeded('move_in_report'), permissions: { notifications: 'reset' } });
+  // A fresh install has never been asked, so a prompt from seeding would show here.
+  await reinstall(device);
+  await device.openApp(iosBundleId, { relaunch: true, launchArguments: seeded('move_in_report') });
 
   const accessory = screen.getByTestId('deadlineAccessory');
   await expect(accessory).toContainText("Landlord's move-in report due");
@@ -28,18 +30,23 @@ test('a seeded deadline shows in the accessory without asking for permission', {
   await expect(screen.getByTestId('deadline.remindMe')).toBeVisible();
 });
 
-test('with permission given, the card lists the 9 a.m. reminders', { platforms: ['ios'] }, async ({ device, screen }) => {
-  await device.openApp(iosBundleId, { relaunch: true, launchArguments: seeded('move_in_report'), permissions: { notifications: 'grant' } });
+test('Remind Me asks in context, and once allowed the card lists the 9 a.m. reminders', { platforms: ['ios'] }, async ({ device, screen }) => {
+  await reinstall(device);
+  await device.openApp(iosBundleId, { relaunch: true, launchArguments: seeded('move_in_report') });
   await screen.getByTestId('deadlineAccessory').tap();
+  await screen.getByTestId('deadline.remindMe').tap();
+  await device.alert('accept');
   await expect(screen.getByTestId('deadline.remindersOn')).toContainText('9 a.m.');
   await expect(screen.getByTestId('deadline.remindMe')).not.toBeVisible();
 });
 
 test("recording the landlord's report starts the 5-day objection clock", { platforms: ['ios'] }, async ({ device, screen }) => {
-  await device.openApp(iosBundleId, { relaunch: true, launchArguments: seeded('move_in_report'), permissions: { notifications: 'grant' } });
+  await device.openApp(iosBundleId, { relaunch: true, launchArguments: seeded('move_in_report') });
   await screen.getByTestId('deadlineAccessory').tap();
   await screen.getByTestId('deadline.reportReceived').tap();
   await screen.getByTestId('dayEntry.save').tap();
+  // Starting a clock from an in-app action may ask for notifications, in context.
+  await acceptAlertIfShown(device);
 
   await expect(screen.getByTestId('deadline.card.objection')).toBeVisible();
   await expect(screen.getByTestId('deadline.card.move_in_report')).not.toBeVisible();
@@ -49,7 +56,7 @@ test("recording the landlord's report starts the 5-day objection clock", { platf
 });
 
 test('the deposit tracker reminds about the forwarding address and the inspection', { platforms: ['ios'] }, async ({ device, screen }) => {
-  await device.openApp(iosBundleId, { relaunch: true, launchArguments: seeded('deposit_itemization'), permissions: { notifications: 'reset' } });
+  await device.openApp(iosBundleId, { relaunch: true, launchArguments: seeded('deposit_itemization') });
 
   const accessory = screen.getByTestId('deadlineAccessory');
   await expect(accessory).toContainText('Deposit itemization due');
