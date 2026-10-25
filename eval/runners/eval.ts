@@ -1,7 +1,7 @@
 // `pnpm eval` (spec §12, #20): the lease eval sets against the real model,
-// then the citations gate over every finding they produced.
+// plus language parity (#45), then citations over every finding produced.
 //
-//   scripts/with-secrets.sh pnpm eval                 # all three; writes docs/eval-results.md
+//   scripts/with-secrets.sh pnpm eval                 # all sets; writes docs/eval-results.md
 //   pnpm eval --only lease-synthetic                                        # one set (citations still runs on it)
 //   pnpm eval --stage-mode extraction=schema,mapping=schema                 # override output modes (models.ts)
 //
@@ -10,11 +10,14 @@
 //                    S1 to S8. Gate: recall >= 0.9 and precision >= 0.85.
 //   clauses-golden   60 excerpts through S5, S6, S7, and the severity table.
 //                    Per-rule precision and recall, verifier agreement. Report.
+//   parity           20 EN/ES/FR cases through S1 to S9; >= 95% verdict
+//                    parity and accuracy, complete analyses/translations.
 //   citations        every finding above: lease quote and statute quote
 //                    resolve (citations.ts). Gate: 100%.
 //
 // The three leases and the golden batches are about 30 minutes on the free
-// tier: Gemma's 16K input tokens a minute paces every call. A full run with
+// tier before parity; parity adds 60 analyses and can take hours. Gemma's
+// 16K input tokens a minute paces every call. A full run with
 // the default output modes rewrites docs/eval-results.md; any other run
 // writes out/eval.json only (gitignored). Exits 1 when a gate fails or a
 // lease could not be analyzed (a model outage is not a result), 2 on a
@@ -33,8 +36,9 @@ import { memoryUsageSink } from '../../server/src/usage.js';
 import { checkCitations, type CitationSource, type CitationsResult } from './citations.js';
 import { type GoldenResult, runClausesGolden } from './clauses-golden.js';
 import { type LeaseSyntheticResult, PRECISION_GATE, RECALL_GATE, runLeaseSynthetic } from './lease-synthetic.js';
+import { loadParityCases, PARITY_GATE, runParity } from './parity.js';
 
-const SETS = ['lease-synthetic', 'clauses-golden'] as const;
+const SETS = ['lease-synthetic', 'clauses-golden', 'parity'] as const;
 type SetName = (typeof SETS)[number];
 
 function arg(name: string): string | undefined {
@@ -66,8 +70,15 @@ const stages = Object.fromEntries(Object.entries(STAGES).map(([s, c]) => [s, mod
 let gemma: GemmaClient;
 let pack: ReturnType<typeof loadRulePack>;
 try {
-  gemma = gemmaFromEnv({ usage, log, stages });
   pack = loadRulePack(PACK_DIR, { requireVerified: true });
+  if (process.argv.includes('--check')) {
+    if (running.length !== 1 || running[0] !== 'parity') throw new Error('--check requires --only parity');
+    const cases = loadParityCases();
+    for (const c of cases) if (!pack.byId.has(c.ruleId)) throw new Error(`unknown rule ${c.ruleId}`);
+    console.log(`parity dataset valid: ${cases.length} cases x EN/ES/FR = 60 analyses; live model NOT run`);
+    process.exit(0);
+  }
+  gemma = gemmaFromEnv({ usage, log, stages });
 } catch (err) {
   console.error(`setup error: ${(err as Error).message}`);
   process.exit(2);
@@ -78,6 +89,7 @@ const started = Date.now();
 
 let lease: LeaseSyntheticResult | null = null;
 let golden: GoldenResult | null = null;
+let parity: Awaited<ReturnType<typeof runParity>> | null = null;
 if (running.includes('lease-synthetic')) {
   console.log('== lease-synthetic');
   lease = await runLeaseSynthetic({ gemma, pack, triage, log }, progress);
@@ -91,7 +103,13 @@ if (running.includes('clauses-golden')) {
   }
 }
 
+if (running.includes('parity')) {
+  console.log('== parity (20 cases x EN/ES/FR)');
+  parity = await runParity({ gemma, pack, triage, log }, progress);
+}
+
 const sources: CitationSource[] = [
+  ...(parity?.outputs ?? []),
   ...(lease?.outputs.map((o) => ({ set: 'lease-synthetic', ...o })) ?? []),
   ...(golden ? [{ set: 'clauses-golden', ...golden.output }] : []),
 ];
@@ -128,6 +146,12 @@ if (golden) {
   out(`| \`clauses-golden\` | Precision | ${pct(golden.precision)} | report |`);
   out(`| \`clauses-golden\` | Verifier agrees on violations | ${frac(golden.verifierAgreeOnViolations.agree, golden.verifierAgreeOnViolations.of)} | report |`);
   out(`| \`clauses-golden\` | Verifier agrees on look-alikes | ${frac(golden.verifierAgreeOnLookalikes.agree, golden.verifierAgreeOnLookalikes.of)} | report |`);
+}
+if (parity) {
+  out(`| parity | Verdict/severity parity | ${pct(parity.rate)} | >= ${PARITY_GATE} |`);
+  out(`| parity | Expected outcome accuracy (all three locales) | ${pct(parity.accuracy)} | >= ${PARITY_GATE} |`);
+  out(`| parity | Complete analyses and translations | ${parity.complete ? 'pass' : '**fail**'} | 100% |`);
+
 }
 out(`| \`citations\` | Findings that resolve | ${pct(citations.rate)} (${frac(citations.resolved, citations.findings)}) | 100% ${citations.pass ? 'pass' : '**fail**'} |`);
 
@@ -169,6 +193,16 @@ if (golden) {
   const others = golden.rows.filter((r) => r.otherRules.length > 0);
   if (others.length > 0) out(`- Flags for another rule (not scored): ${others.map((r) => `\`${r.id}\` -> ${r.otherRules.join(', ')}`).join('; ')}`);
 }
+if (parity) {
+  out();
+  out('### parity mismatches and incomplete results');
+  out();
+  out('Human Spanish and French semantic QA: pending (not measured by this eval).');
+  out();
+  const failures = parity.rows.filter((r) => !r.parity || !r.correct || r.results.some((v) => !v.translated));
+  if (failures.length === 0) out('None. Human translation QA still required.');
+  for (const row of failures) out(`- ${row.id}: ${JSON.stringify(row)}`);
+}
 if (citations.failures.length > 0) {
   out();
   out('### citations failures');
@@ -181,12 +215,13 @@ console.log(`\n${lines.join('\n')}\n`);
 mkdirSync(new URL('../out/', import.meta.url), { recursive: true });
 writeFileSync(
   new URL('../out/eval.json', import.meta.url),
-  `${JSON.stringify({ at: new Date().toISOString(), modes: Object.fromEntries(modes), lease, golden, citations: citations satisfies CitationsResult, usage: usage.records }, null, 2)}\n`,
+  `${JSON.stringify({ at: new Date().toISOString(), modes: Object.fromEntries(modes), lease, golden, parity, citations: citations satisfies CitationsResult, usage: usage.records }, null, 2)}\n`,
 );
 
 const leaseOk = !lease || lease.pass;
 const goldenOk = !running.includes('clauses-golden') || golden !== null;
-const pass = leaseOk && goldenOk && citations.pass;
+const parityOk = !running.includes('parity') || parity?.pass === true;
+const pass = leaseOk && goldenOk && parityOk && citations.pass;
 if (!only && modes.size === 0) {
   const doc = [
     '# Eval results',
@@ -203,5 +238,5 @@ if (!only && modes.size === 0) {
   writeFileSync(new URL('../../docs/eval-results.md', import.meta.url), doc);
   console.log('wrote docs/eval-results.md');
 }
-console.log(`${pass ? 'PASS' : 'FAIL'}: lease-synthetic ${lease ? (lease.pass ? 'pass' : 'fail') : 'skipped'}, clauses-golden ${golden ? 'reported' : running.includes('clauses-golden') ? 'error' : 'skipped'}, citations ${pct(citations.rate)} (gate 100%)`);
+console.log(`${pass ? 'PASS' : 'FAIL'}: lease-synthetic ${lease ? (lease.pass ? 'pass' : 'fail') : 'skipped'}, clauses-golden ${golden ? 'reported' : running.includes('clauses-golden') ? 'error' : 'skipped'}, parity ${parity ? (parity.pass ? 'pass' : 'fail') : 'skipped'}, citations ${pct(citations.rate)} (gate 100%)`);
 process.exit(pass ? 0 : 1);
