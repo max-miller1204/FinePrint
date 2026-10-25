@@ -37,6 +37,7 @@ const cases = readFileSync(join(import.meta.dirname, '..', '..', '..', 'eval', '
   .map((line) => JSON.parse(line) as { id: string; text?: string });
 const summons = cases.find((c) => c.id === 'disguised-summons-en')!.text!;
 const injectedInvoice = cases.find((c) => c.id === 'nonlease-invoice-injected-en')!.text!;
+const payOrQuit = cases.find((c) => c.id === 'court-notice-pay-or-quit-en')!.text!;
 
 describe('Adversarial input', { platforms: ['web'] }, () => {
   test('an eviction summons under a lease heading triggers the handoff', async ({ app }) => {
@@ -45,6 +46,16 @@ describe('Adversarial input', { platforms: ['web'] }, () => {
     expect(res.status).toBe(200);
     const body = await res.json();
     expect(body).toMatchObject({ escalate: true, category: 'eviction_or_court', keywords: { category: 'eviction_or_court' } });
+  });
+
+  // #104: with Gemma off, the backstop alone has to catch it.
+  test('a pay-or-quit notice under a lease heading triggers the handoff on the backstop', async ({ app }) => {
+    const { idToken } = await signUpAnonymously(app.baseUrl);
+    const res = await triage(app.baseUrl, idToken, { source: 'lease', text: payOrQuit, locale: 'en' });
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body).toMatchObject({ escalate: true, category: 'eviction_or_court', keywords: { category: 'eviction_or_court' } });
+    expect(body.keywords.matches).toContain('en.eviction_or_court.pay-or-surrender');
   });
 
   test('text aimed at AI tools is data: it neither escalates nor is logged', async ({ app }) => {
