@@ -57,6 +57,9 @@ final class AuthSession {
         if let current = credentials, !current.belongs(to: config.firebase) {
             Self.logger.notice("Server uses another Firebase project; signing in again")
             replace(with: nil)
+        } else if let current = credentials, current.apiKey != config.firebase.apiKey {
+            Self.logger.notice("Server has a new API key; keeping the account")
+            replace(with: current.rekeyed(to: config.firebase))
         }
         _ = try? await validCredentials(forceRefresh: false, config: config)
     }
@@ -92,10 +95,19 @@ final class AuthSession {
     }
 
     /// Refreshes the saved account, or creates a new anonymous one when there is none or it is gone.
+    /// When Google rejects the saved API key, asks the server for its current key and tries once more.
     private func obtain(current: AuthCredentials?, config: ClientConfig?) async throws(AuthError) -> AuthCredentials {
-        if let current {
-            do {
-                return try await FirebaseAuthAPI(config: current.firebase, transport: transport).refresh(current, now: now())
+        if var current {
+            do throws(AuthError) {
+                do throws(AuthError) {
+                    return try await FirebaseAuthAPI(config: current.firebase, transport: transport).refresh(current, now: now())
+                } catch .apiKeyRejected {
+                    let firebase = try await fetchConfig().firebase
+                    guard current.belongs(to: firebase), firebase.apiKey != current.apiKey else { throw .apiKeyRejected }
+                    Self.logger.notice("Saved API key was rejected; retrying with the server's current key")
+                    current = current.rekeyed(to: firebase)
+                    return try await FirebaseAuthAPI(config: current.firebase, transport: transport).refresh(current, now: now())
+                }
             } catch {
                 guard error == .accountGone else { throw error }
                 Self.logger.notice("Saved account is gone; signing in again")
