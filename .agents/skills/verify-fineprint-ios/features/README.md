@@ -11,6 +11,7 @@ crash report, and the gate (`scripts/ios-gate/gate.ts`) won't rerun it.
 
 | Feature | Screen | Test | Status |
 | --- | --- | --- | --- |
+| [Grounded Ask](ask.md) | Ask tab: phase suggestions, questions, inline citation chips, handoff and retry | macOS `iOS build` CI; TestFlight checks in `docs/grounded-ask.md` | implemented; iOS e2e unavailable on Linux, device check pending |
 | [App shell](app-shell.md) | Tab bar, next-deadline accessory, Settings sheet | `tests/ios/smoke.e2e.ts`, `tests/ios/app-shell.e2e.ts` | tested |
 | [Onboarding](onboarding.md) | First launch: welcome, language, city or county, rental phase | `tests/ios/onboarding.e2e.ts`, `ios/FinePrintTests/OnboardingTests.swift` | tested |
 | [Developer menu](developer-menu.md) | Settings > Version (5 taps) > Developer Options | `tests/ios/auth.e2e.ts` (opens it) | partly tested |

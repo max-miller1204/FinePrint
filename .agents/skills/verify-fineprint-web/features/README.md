@@ -6,6 +6,7 @@ F10) get a file each as their routes land.
 
 | Feature | Route | Test | Status |
 | --- | --- | --- | --- |
+| [Grounded Ask](ask.md) | `POST /v1/rentals/:id/ask` | `tests/web/ask.e2e.ts` with `e2e.ask.config.ts`, `server/test/ask.test.ts`, `pnpm --filter @fineprint/eval ask` | HTTP e2e and live eval |
 | [Impact](impact.md) | `PATCH /v1/me/impact`, `GET /impact` | `tests/web/impact.e2e.ts`, `server/test/impact.test.ts`, `server/test/emulator/impact.test.ts` | tested |
 | [Share links](share-links.md) | `POST/GET /v1/rentals/:id/shares`, `DELETE /v1/shares/:id`, `GET /v1/shares/:id/access`, `GET/POST /r/:token`, photos | `tests/web/shares.e2e.ts` | API and browser tested on Linux; iOS runtime pending |
 | [Web Evidence Report](web-report.md) | `GET /r/:token` | `tests/web/report.e2e.ts`, `tests/web/report-verify.e2e.ts`, `tests/web/report-accessibility.e2e.ts`, `server/test/report.test.ts` | tested (SSR, phone, print/PDF, verify, axe across Chromium/Firefox/WebKit); VoiceOver/Safari pending |
@@ -45,8 +46,8 @@ and F10's triage ([triage](triage.md)) have them, plus F1's
 | F4 Responsibility Check | `POST /v1/rentals/:id/issues` | #31 | server route ([responsibility](responsibility.md)) and the iOS Repairs card built; photo vision (#26) and the move-in compare (#27) not built |
 | F5 Repair Request + Rent Escrow Path | `/v1` repair notice draft route | #32 | not built |
 | F6 Move-out Ghost Overlay + Diff | `/v1` move-out compare route | #27 | not built |
-| F7 Grounded Ask | `/v1` ask route with function calling | #41 | not built |
-| F8 Legal-Aid Web Evidence Report | `GET /r/:token`, `/.well-known/fineprint-keys.json`, share link routes | #33, #34, #35, #36 | `/.well-known/fineprint-keys.json` built (#24); SSR report, print/PDF, timeline, findings, exhibits and ledger built (#33, [web-report](web-report.md)); browser verification built (#34); axe and report e2e CI built (#36), manual VoiceOver/Safari pending; share lifecycle remains #35 |
+| F7 Grounded Ask | `POST /v1/rentals/:id/ask` | #41 | built; [Ask verification](ask.md), deterministic HTTP e2e and live eval |
+| F8 Legal-Aid Web Evidence Report | `GET /r/:token`, `/.well-known/fineprint-keys.json`, share link routes | #33, #34, #35, #36 | `/.well-known/fineprint-keys.json` built (#24); SSR report, print/PDF, timeline, findings, exhibits and ledger built (#33, [web-report](web-report.md)); browser verification built (#34); axe and report e2e CI built (#36), manual VoiceOver/Safari pending; share lifecycle built (#35) |
 | F9 Insurance Claim Packet | none (the PDF is built on the device) | #55 | not built |
 | F10 High-Stakes Handoff | `POST /v1/triage`; the model-backed `/v1` routes call the same check | #37, #38 | triage built (#37, [triage](triage.md)); handoff sheet and resources not built (#38) |
 

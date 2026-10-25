@@ -26,7 +26,7 @@ type ContentPart = { type: 'text'; text: string } | { type: 'image_url'; image_u
 
 interface ChatCompletion {
   // `reasoning` on Ollama and vLLM; `reasoning_content` on older vLLM.
-  choices?: { message?: { content?: string | null; reasoning?: string | null; reasoning_content?: string | null } }[];
+  choices?: { message?: { tool_calls?: { function: { name: string; arguments: string } }[]; content?: string | null; reasoning?: string | null; reasoning_content?: string | null } }[];
   usage?: {
     prompt_tokens?: number;
     completion_tokens?: number;
@@ -52,7 +52,7 @@ export function openAiCompatibleProvider({ baseUrl, apiKey, fetch: fetchFn = fet
           { role: 'user', content: request.parts.map(contentPart) },
         ],
         stream: false,
-        ...(request.responseSchema
+        ...(request.functions ? { tools: request.functions.map(f => ({ type: 'function', function: { name: f.name, description: f.description, parameters: f.parametersJsonSchema } })), parallel_tool_calls: false } : request.responseSchema
           ? {
               response_format: {
                 type: 'json_schema',
@@ -92,8 +92,18 @@ export function openAiCompatibleProvider({ baseUrl, apiKey, fetch: fetchFn = fet
       const message = completion.choices?.[0]?.message;
       const reasoning = message?.reasoning ?? message?.reasoning_content ?? '';
       const usage = completion.usage;
+      let text = message?.content ?? '';
+      const call = message?.tool_calls?.[0]?.function;
+      if (call) {
+        try {
+          text = JSON.stringify({ type: 'tool', call: { ...JSON.parse(call.arguments), name: call.name } });
+        } catch {
+          // Malformed arguments are invalid model output, so Gemma owns the retry.
+          text = '';
+        }
+      }
       return {
-        text: message?.content ?? '',
+        text,
         promptTokens: usage?.prompt_tokens ?? 0,
         // Includes the reasoning on both servers.
         outputTokens: usage?.completion_tokens ?? 0,

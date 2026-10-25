@@ -10,7 +10,14 @@ import type { ModelConfig, ThinkingLevel } from './models.js';
 import { openAiCompatibleProvider } from './openai-compatible.js';
 import type { ResponseSchema } from './response-schema.js';
 
+export interface FunctionDefinition {
+  name: string;
+  description: string;
+  parametersJsonSchema: Record<string, unknown>;
+}
+
 export interface ProviderRequest {
+  functions?: FunctionDefinition[];
   model: string;
   systemInstruction: string;
   parts: Part[];
@@ -74,8 +81,8 @@ export function geminiProvider(models: GenAiModels): ModelProvider {
           contents: [{ role: 'user', parts: request.parts }],
           config: {
             systemInstruction: request.systemInstruction,
-            responseMimeType: 'application/json',
-            ...(request.responseSchema ? { responseSchema: request.responseSchema, stopSequences: [JSON_FENCE] } : {}),
+            ...(request.functions ? { tools: [{ functionDeclarations: request.functions }] } : { responseMimeType: 'application/json' }),
+            ...(!request.functions && request.responseSchema ? { responseSchema: request.responseSchema, stopSequences: [JSON_FENCE] } : {}),
             thinkingConfig: { thinkingLevel: THINKING[request.thinking] },
             ...(request.maxOutputTokens ? { maxOutputTokens: request.maxOutputTokens } : {}),
             ...(request.signal ? { abortSignal: request.signal } : {}),
@@ -90,7 +97,8 @@ export function geminiProvider(models: GenAiModels): ModelProvider {
       }
       // `minimal` still returns one empty thought part; read only the answer parts.
       const parts = response.candidates?.[0]?.content?.parts ?? [];
-      const text = parts
+      const calls = response.functionCalls;
+      const text = calls?.length ? JSON.stringify({ type: 'tool', call: { ...calls[0]!.args, name: calls[0]!.name } }) : parts
         .filter((p) => !p.thought && typeof p.text === 'string')
         .map((p) => p.text)
         .join('');

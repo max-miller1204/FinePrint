@@ -9,7 +9,8 @@
     "adversarial": "tsx runners/adversarial.ts",
     "escalation": "tsx runners/escalation.ts",
     "verifier": "tsx runners/verifier.ts",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "ask": "tsx runners/ask.ts"
   },
   "devDependencies": {
     "@types/node": "^22.20.5",

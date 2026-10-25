@@ -52,7 +52,7 @@ const iphone = mobile({ platform: 'ios', device: process.env.E2E_IOS_DEVICE ?? '
 
 export default {
   // tests/deployed runs against Cloud Run through e2e.deployed.config.ts.
-  tests: ['tests/**/*.e2e.ts', '!tests/deployed/**'],
+  tests: ['tests/**/*.e2e.ts', '!tests/deployed/**', '!tests/web/ask.e2e.ts'],
   targets: [
     {
       name: 'web',
