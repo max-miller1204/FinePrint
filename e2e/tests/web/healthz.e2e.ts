@@ -10,3 +10,10 @@ test('/healthz reports Firestore, GCS, and KMS', { platforms: ['web'] }, async (
     checks: { firestore: 'stubbed', gcs: 'stubbed', kms: 'stubbed' },
   });
 });
+
+// Cloud Run reserves /healthz on *.run.app URLs, so deployments use /health.
+test('/health is the same check', { platforms: ['web'] }, async ({ app }) => {
+  const [z, plain] = await Promise.all(['/healthz', '/health'].map((path) => fetch(new URL(path, app.baseUrl))));
+  expect(plain.status).toBe(200);
+  expect(await plain.json()).toEqual(await z.json());
+});

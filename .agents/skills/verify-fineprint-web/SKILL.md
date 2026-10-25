@@ -31,6 +31,18 @@ from the repo root (port 8080, or `PORT=<n>`), or `dev` with no emulator
 (then `/v1` needs `FIREBASE_PROJECT_ID` and a real token). The port-0 target
 never collides with it, but the emulator port does: stop it before a run.
 
+### A deployed server
+
+`./deploy.sh` (feature [deploy](features/deploy.md)) puts the server on
+Cloud Run in a real project. It creates billed resources, so ask the user
+before running it or `--destroy`. To check a deployed server, attach to its
+URL with the separate config; it starts nothing and needs no emulator:
+
+```bash
+cd e2e
+E2E_DEPLOYED_URL=https://<service>.run.app npx e2e run --config e2e.deployed.config.ts
+```
+
 ## Doctor
 
 ```bash
