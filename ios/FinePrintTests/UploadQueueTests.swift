@@ -429,7 +429,7 @@ struct EvidenceAPITests {
 @Suite("Developer camera rental")
 struct DeveloperCameraRentalTests {
     @Test func `the developer camera files photos under the app's rental, and the queue finds its server id`() async throws {
-        let container = try ModelContainer(for: Rental.self, Deadline.self, configurations: ModelConfiguration(isStoredInMemoryOnly: true))
+        let container = try ModelContainer(for: Rental.self, Deadline.self, Walkthrough.self, configurations: ModelConfiguration(isStoredInMemoryOnly: true))
         let rental = OnboardingDraft.skipped()
         rental.serverID = "rental-1"
         container.mainContext.insert(rental)
