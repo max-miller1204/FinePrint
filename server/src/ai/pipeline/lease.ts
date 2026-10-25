@@ -23,7 +23,7 @@ import type { TextDocument } from '../documents.js';
 import type { GemmaClient, GemmaEvent, GenerateResult } from '../gemma.js';
 import { mappingInstruction, mappingTask, SEGMENT_INSTRUCTION, segmentTask } from '../prompts/lease.js';
 import { mappingSchema, SegmentationSchema, type DocumentType, type Mapping } from '../schemas/lease.js';
-import type { Triage, TriageDecision } from '../triage/index.js';
+import type { Triage, TriageCategory, TriageDecision } from '../triage/index.js';
 import { assessInjection, notALease, withInjectionFinding, type Injection } from './adversarial.js';
 import { runDeterministicChecks } from './checks.js';
 import { resolveClauses, resolveKeyTerms } from './resolve.js';
@@ -88,7 +88,10 @@ export interface AnalyzeOptions {
 }
 
 export type LeaseAnalysis =
-  | { status: 'escalated'; triage: TriageDecision; usage: PipelineUsage }
+  // `by: 'triage'` is S1. `by: 'document_type'` is S2 calling it a court or
+  // eviction paper that S1 did not catch; `triage` is then S1's decision
+  // (not escalated), or null when S1 was skipped.
+  | { status: 'escalated'; by: 'triage' | 'document_type'; category: TriageCategory; triage: TriageDecision | null; usage: PipelineUsage }
   | { status: 'not_a_lease'; documentType: DocumentType; message: string; injection: Injection; usage: PipelineUsage }
   | {
       status: 'analyzed';
@@ -201,11 +204,13 @@ export async function analyzeLease(input: LeaseInput, deps: LeaseDeps, { signal,
   };
 
   // S1. Triage spends one call of the budget when it asks the model.
+  let s1: TriageDecision | null = null;
   if (deps.triage) {
     stage('S1', 'Checking for urgent problems', 0.05);
     const decision = await deps.triage.check({ source: 'lease', text: input.text, locale: input.locale }, { ...(signal ? { signal } : {}), log });
     if (decision.model.status !== 'off') usage.calls++;
-    if (decision.escalate) return done({ status: 'escalated', triage: decision, usage });
+    s1 = decision;
+    if (decision.escalate) return done({ status: 'escalated', by: 'triage', category: decision.category, triage: decision, usage });
   }
 
   // S2.
@@ -228,6 +233,8 @@ export async function analyzeLease(input: LeaseInput, deps: LeaseDeps, { signal,
   let injection = assessInjection(input.text, segments.some((s) => s.aiInstructions));
   // The first part says what the document is; later parts may be addenda.
   const documentType = segments[0]!.documentType;
+  // Recall over precision (spec §7.9): a court paper S1 missed still gets the handoff.
+  if (documentType === 'court_or_eviction_notice') return done({ status: 'escalated', by: 'document_type', category: 'eviction_or_court', triage: s1, usage });
   if (documentType !== 'residential_lease') return done({ status: 'not_a_lease', ...notALease(documentType), injection, usage });
 
   // S3.

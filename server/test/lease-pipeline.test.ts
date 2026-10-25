@@ -523,7 +523,7 @@ describe('analyzeLease', () => {
   it('stops at S1 when triage escalates, before any lease call', async () => {
     const { provider, gemma, triage } = setup({ triage: { category: 'eviction_or_court', confidence: 0.95 } });
     const analysis = await analyzeLease({ leaseId: 'lease1', text: LEASE, locale: 'en' }, { gemma, pack: PACK, triage, log: quiet });
-    expect(analysis).toMatchObject({ status: 'escalated', triage: { escalate: true, category: 'eviction_or_court' }, usage: { calls: 1 } });
+    expect(analysis).toMatchObject({ status: 'escalated', by: 'triage', triage: { escalate: true, category: 'eviction_or_court' }, usage: { calls: 1 } });
     expect(provider.requests).toHaveLength(1);
   });
 

@@ -7,7 +7,9 @@
 
 import { readFileSync } from 'node:fs';
 
-export type AdversarialKind = 'injection' | 'clean' | 'non_lease' | 'disguised';
+// `disguised`: S1's keyword backstop catches it. `court_notice`: it does not,
+// so S2's documentType has to.
+export type AdversarialKind = 'injection' | 'clean' | 'non_lease' | 'disguised' | 'court_notice';
 
 export interface AdversarialCase {
   id: string;

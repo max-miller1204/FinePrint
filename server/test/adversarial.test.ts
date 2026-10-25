@@ -35,6 +35,7 @@ describe('adversarial eval set', () => {
     expect(kinds('clean').length).toBeGreaterThanOrEqual(2);
     expect(kinds('non_lease').length).toBeGreaterThanOrEqual(3);
     expect(kinds('disguised').length).toBeGreaterThanOrEqual(1);
+    expect(kinds('court_notice').length).toBeGreaterThanOrEqual(1);
     expect(new Set(CASES.map((c) => c.id)).size).toBe(CASES.length);
     // Every insert lands: caseText throws on a missing anchor.
     for (const c of CASES) expect(caseText(c).length).toBeGreaterThan(0);
@@ -215,6 +216,16 @@ describe('the pipeline on adversarial input', () => {
   });
 
   it.each(CASES.filter((c) => c.kind === 'disguised').map((c) => [c.id, c] as const))('escalates %s before any lease call', async (_id, c) => {
-    expect(await run(caseText(c))).toMatchObject({ status: 'escalated', usage: { calls: 0 } });
+    expect(await run(caseText(c))).toMatchObject({ status: 'escalated', by: 'triage', category: 'eviction_or_court', usage: { calls: 0 } });
   });
+
+  // Recall over precision: a court paper S1 missed still gets the handoff.
+  it.each(CASES.filter((c) => c.kind === 'court_notice').map((c) => [c.id, c] as const))(
+    'escalates %s at S2 when triage misses it',
+    async (_id, c) => {
+      expect((await keywordBackstop().classify({ text: caseText(c), locale: c.locale })).category).toBe('none');
+      const analysis = await run(caseText(c), { documentType: 'court_or_eviction_notice' });
+      expect(analysis).toMatchObject({ status: 'escalated', by: 'document_type', category: 'eviction_or_court', triage: { escalate: false }, usage: { calls: 1 } });
+    },
+  );
 });

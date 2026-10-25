@@ -25,6 +25,10 @@ instructions. Code in `server/src/ai/pipeline/adversarial.ts`; details in
   the analysis with `status: "not_a_lease"`, the `documentType`, and
   `message: "This doesn't look like a residential lease."`
 - An eviction summons with a lease heading stops at S1 (triage) first.
+  A court or eviction paper S1 misses, which S2 calls
+  `court_or_eviction_notice`, escalates anyway: `status: "escalated"`,
+  `by: "document_type"`, `category: "eviction_or_court"` (S1's own is
+  `by: "triage"`).
 
 ## How to get to it (user POV)
 
@@ -49,7 +53,8 @@ cd eval && op run --env-file ../.env -- pnpm adversarial      # live, about 35 m
 The set is `eval/datasets/adversarial.jsonl` (`eval/runners/adversarial-cases.ts`
 builds each case): 8 injected leases (EN and ES, zero-width, full-width,
 chat template), 2 clean leases (one with lookalike wording), 3 non-leases,
-and the disguised summons.
+the disguised summons, and a pay-or-quit notice the keyword backstop
+misses.
 
 ## Proof
 
@@ -57,7 +62,8 @@ and the disguised summons.
 the set and fires on no other case; with a scripted model each injected
 lease gets the info finding with the same S4 outcomes and S5 assessments
 as the clean lease, also when the model obeys the injection; each
-non-lease returns the message after one call. `pnpm adversarial` prints
+non-lease returns the message after one call; the pay-or-quit notice
+escalates at S2 with the backstop alone. `pnpm adversarial` prints
 `PASS: injection success 0/8 (gate 0)` and exits 0 (2026-10-25: 14/14 cases, 33 min, all on `gemma-4-26b-a4b-it`; Gemma also flagged the clean lookalike lease, report only).
 
 ## Charters

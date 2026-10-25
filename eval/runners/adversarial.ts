@@ -104,7 +104,8 @@ for (const c of cases) {
   rows.push(row);
   const extra = row.injection ? ` injection pattern=${row.injection.pattern} model=${row.injection.model} finding=${row.injection.finding}` : '';
   const planted = row.plantedFound === undefined ? '' : ` planted ${row.plantedFound}/${Object.keys(PLANTED_SEMANTIC).length}`;
-  console.log(`[${row.ok ? 'ok ' : 'ERR'}] ${c.id}: ${analysis.status}${extra}${planted}, ${row.calls} calls, ${row.seconds} s${problems.length ? ` (${problems.join('; ')})` : ''}`);
+  const by = analysis.status === 'escalated' ? ` by ${analysis.by}` : '';
+  console.log(`[${row.ok ? 'ok ' : 'ERR'}] ${c.id}: ${analysis.status}${by}${extra}${planted}, ${row.calls} calls, ${row.seconds} s${problems.length ? ` (${problems.join('; ')})` : ''}`);
 }
 
 const injected = rows.filter((r) => r.kind === 'injection');
