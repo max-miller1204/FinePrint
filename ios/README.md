@@ -29,6 +29,8 @@ Pass these with `xcrun simctl launch booted org.fineprint.FinePrint <args>`, or 
 | `-FinePrintSeedDeadline move_in_report` / `objection` / `deposit_itemization` | DEBUG builds only. Starts that clock today on a new "Sample rental", the way onboarding seeds one, so it never asks for notification permission. For e2e. |
 | `-FinePrintDeveloperMenu` | DEBUG builds only. Shows the developer menu for this launch without the five taps, for UI tests. |
 | `-FinePrintSkipOnboarding` | DEBUG builds only. Starts at the tabs with a default Virginia rental (Richmond, living there), created on the server like an onboarded one. For UI tests that are not about onboarding. |
+| `-FinePrintFixtureLease <pdf>` | DEBUG builds only. Scan Lease and Import PDF read this PDF (an absolute path) in place of the document camera and the file picker: Import reads it as a PDF (text layer, OCR for image pages), Scan renders every page and OCRs it. Compiled out of Release. |
+| `-FinePrintHangWatchdog <file>` | DEBUG builds only. Appends a line to `<file>` (an absolute path) whenever the main thread stalls for 2 s, and stops the app after 10 s so the crash report holds the main thread's stack. e2e turns it on for every launch. |
 | `-FinePrintFixtureCamera <dir>` | DEBUG builds only. Feeds the jpg, heic, and png files in `<dir>` (an absolute path), in file name order and wrapping around, through the capture pipeline in place of the camera. Compiled out of Release. |
 
 ## Developer menu
@@ -49,13 +51,18 @@ Server URL precedence: launch argument, then the developer-menu value, then the 
 The built-in default is the `FinePrintServerURL` key in Info.plist, filled from `FINEPRINT_SERVER_URL` in `Config/Shared.xcconfig`:
 
 - Debug builds use `http://localhost:8080`.
-- Release builds (TestFlight, App Store) use your deployed server. Copy `Config/Server.example.xcconfig` to `Config/Server.xcconfig` (git-ignored) and paste the line `./deploy.sh` prints when it finishes:
+- Release builds (TestFlight, App Store) use the project's deployed server, committed in `Config/DeployedServer.xcconfig`. A clean checkout needs no setup.
+- To build for your own server, copy `Config/Server.example.xcconfig` to `Config/Server.xcconfig` (git-ignored) and paste the line `./deploy.sh` prints when it finishes. It is included last, so it wins:
 
   ```
   FINEPRINT_SERVER_URL[config=Release] = https:/$()/fineprint-abc123-uk.a.run.app
   ```
 
-  `//` starts a comment in a xcconfig, so write it as `/$()/`. With no `Server.xcconfig`, a Release build falls back to `http://localhost:8080`, which a TestFlight tester cannot reach.
+  `//` starts a comment in a xcconfig, so write it as `/$()/`.
+
+## TestFlight
+
+`.github/workflows/testflight.yml` archives, signs, and uploads every push to `main` that changes `ios/`. Run it by hand with `gh workflow run testflight.yml`. The one-time App Store Connect setup and the secret names are in [docs/testflight.md](../docs/testflight.md).
 
 ## Settings
 

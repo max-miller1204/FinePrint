@@ -6,6 +6,8 @@ import { modelConfigFromEnv } from '../src/ai/models.js';
 import {
   detectInjection,
   INJECTION_FINDING_EXPLANATION,
+  INJECTION_FINDING_TITLE,
+  injectionFindingText,
   NOT_A_LEASE_MESSAGE,
   normalizeForDetection,
 } from '../src/ai/pipeline/adversarial.js';
@@ -164,10 +166,10 @@ function fakeClock(): Clock {
   };
 }
 
-async function run(text: string, script: Script = {}): Promise<LeaseAnalysis> {
+async function run(text: string, script: Script = {}, keywords = keywordBackstop(), locale = 'en'): Promise<LeaseAnalysis> {
   const gemma = createGemma({ provider: scriptedProvider(script), config: modelConfigFromEnv({}), usage: memoryUsageSink(), clock: fakeClock(), log: quiet });
-  const triage = createTriage({ model: null, keywords: keywordBackstop() });
-  return analyzeLease({ leaseId: 'lease1', text, locale: 'en', today: '2026-10-24' }, { gemma, pack: PACK, triage, log: quiet });
+  const triage = createTriage({ model: null, keywords });
+  return analyzeLease({ leaseId: 'lease1', text, locale, today: '2026-10-24' }, { gemma, pack: PACK, triage, log: quiet });
 }
 
 const violations = (a: LeaseAnalysis) => (a.status === 'analyzed' ? a.checks.filter((c) => c.outcome === 'violates').map((c) => c.ruleId).sort() : []);
@@ -203,6 +205,26 @@ describe('the pipeline on adversarial input', () => {
     expect(violations(analysis)).toEqual(['VA_DEPOSIT_CAP', 'VA_LATE_FEE_CAP', 'VA_ROUTINE_MAINTENANCE_NOTICE_72H']);
   });
 
+  // #104: the finding is outside `findings`, so S9 never sees it; its text
+  // comes from code in the lease's locale.
+  it.each(['es', 'es-MX', 'es_US'])('gives a %s lease the finding in Spanish', async (locale) => {
+    const injected = CASES.find((c) => c.id === 'inject-ignore-previous-en')!;
+    const analysis = await run(caseText(injected), {}, keywordBackstop(), locale);
+    if (analysis.status !== 'analyzed') throw new Error(analysis.status);
+    expect(analysis.injection.finding).toMatchObject({
+      id: 'injection',
+      severity: 'info',
+      title: 'Instrucciones ocultas para herramientas de IA',
+      explanation: 'Este documento contiene instrucciones ocultas dirigidas a herramientas de IA. Las ignoramos.',
+    });
+  });
+
+  it('keeps English for English and for a language without reviewed text', () => {
+    const english = { title: INJECTION_FINDING_TITLE, explanation: INJECTION_FINDING_EXPLANATION };
+    for (const locale of ['en', 'en-US', 'fr', '']) expect(injectionFindingText(locale)).toEqual(english);
+    expect(injectionFindingText(' ES ').title).toBe('Instrucciones ocultas para herramientas de IA');
+  });
+
   it('takes the model flag alone when the pattern misses', async () => {
     const analysis = await run(caseText(clean), { aiFlag: true });
     expect(analysis).toMatchObject({ status: 'analyzed', injection: { detected: true, model: true, pattern: false, finding: { clauseIds: [] } } });
@@ -219,12 +241,19 @@ describe('the pipeline on adversarial input', () => {
     expect(await run(caseText(c))).toMatchObject({ status: 'escalated', by: 'triage', category: 'eviction_or_court', usage: { calls: 0 } });
   });
 
+  // #104: the backstop alone now escalates the pay-or-quit notice at S1, so
+  // it holds with Gemma down.
+  it.each(CASES.filter((c) => c.kind === 'court_notice').map((c) => [c.id, c] as const))('escalates %s at S1 on the keyword backstop', async (_id, c) => {
+    expect((await keywordBackstop().classify({ text: caseText(c), locale: c.locale })).category).toBe('eviction_or_court');
+    expect(await run(caseText(c))).toMatchObject({ status: 'escalated', by: 'triage', category: 'eviction_or_court', usage: { calls: 0 } });
+  });
+
   // Recall over precision: a court paper S1 missed still gets the handoff.
+  // An empty backstop stands in for a notice worded past its terms.
   it.each(CASES.filter((c) => c.kind === 'court_notice').map((c) => [c.id, c] as const))(
     'escalates %s at S2 when triage misses it',
     async (_id, c) => {
-      expect((await keywordBackstop().classify({ text: caseText(c), locale: c.locale })).category).toBe('none');
-      const analysis = await run(caseText(c), { documentType: 'court_or_eviction_notice' });
+      const analysis = await run(caseText(c), { documentType: 'court_or_eviction_notice' }, keywordBackstop([]));
       expect(analysis).toMatchObject({ status: 'escalated', by: 'document_type', category: 'eviction_or_court', triage: { escalate: false }, usage: { calls: 1 } });
     },
   );

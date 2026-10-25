@@ -32,9 +32,9 @@ app shows on `escalate: true` is #38.
 - Log: one `triage` line per check (`source`, `escalate`, `category`,
   `modelStatus`, `modelCategory`, `keywordCategory`, `keywordMatches`,
   `textChars`), plus the Gemma client's `model call` line. No content.
-- The lease (#16), Ask (#41), responsibility/repair (#31, #32), and
-  landlord report (#28) routes will call the same `triage.check` on their
-  own input when they land.
+- The lease stream ([leases](leases.md), #16) runs the same `triage.check`
+  as S1. The Ask (#41), responsibility/repair (#31, #32), and landlord
+  report (#28) routes will too when they land.
 
 ## How to get to it (user POV)
 
@@ -46,7 +46,9 @@ the handoff sheet when `escalate` is true.
 
 `tests/web/triage.e2e.ts`: an eviction summons sent as `lease` escalates
 (`eviction_or_court`, `en.eviction_or_court.summons`), a lease clause about
-unlawful detainer does not, a Spanish lockout in Ask escalates, a bad
+unlawful detainer does not, a Spanish pay-or-quit notice sent as `lease`
+escalates (`es.eviction_or_court.pagar-o-entregar`, #104) and a lease
+clause about nonpayment and surrendering possession does not, a Spanish lockout in Ask escalates, a bad
 source is 400 and no token 401, and `server.log` has the `triage` line and
 none of the text. The server gets `GEMINI_API_KEY` and `GEMMA_*` through
 `inheritEnv`: a plain run has the model `off`; wrap it to ask Gemma too:
@@ -57,7 +59,7 @@ npx e2e run tests/web/triage.e2e.ts --target web                                
 op run --env-file ~/.config/fineprint/.env -- npx e2e run tests/web/triage.e2e.ts --target web   # Gemma too
 ```
 
-The escalation eval (65 high-stakes, 64 benign, EN and ES) is
+The escalation eval (67 high-stakes, 66 benign, EN and ES) is
 `eval/datasets/escalation.jsonl`:
 
 ```bash

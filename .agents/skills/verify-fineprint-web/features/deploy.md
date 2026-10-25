@@ -32,7 +32,8 @@ in Cloud Shell, who has created a project and linked billing.
   `/health` (Cloud Run reserves `/healthz` on `*.run.app`) and prints the
   service URL, the key URL, and the iOS settings: the exact
   `FINEPRINT_SERVER_URL[config=Release] = https:/$()/<host>` line for
-  `ios/Config/Server.xcconfig` (spec §15.1 step 6, #78).
+  `ios/Config/Server.xcconfig` (spec §15.1 step 6, #78). The project's own
+  server is committed in `ios/Config/DeployedServer.xcconfig` (#53).
 - A second run creates nothing and ships a new revision.
 - `--destroy` asks for the project ID typed back, then removes everything.
   KMS keys cannot be deleted: their versions are scheduled for destruction

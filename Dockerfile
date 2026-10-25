@@ -17,6 +17,8 @@ WORKDIR /app
 COPY --from=build --chown=node:node /out/package.json ./
 COPY --from=build --chown=node:node /out/node_modules ./node_modules
 COPY --from=build --chown=node:node /out/dist ./dist
+# The rule packs the lease routes load: dist/rules/loader.js reads ../../../jurisdictions.
+COPY --from=build --chown=node:node /repo/jurisdictions /jurisdictions
 USER node
 # Cloud Run sets PORT; the server defaults to 8080.
 EXPOSE 8080

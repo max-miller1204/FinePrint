@@ -15,9 +15,15 @@ struct FinePrintApp: App {
     private let skipsOnboarding: Bool
     private let modelContainer: ModelContainer
     private let evidenceStore: EvidenceStore
+    private let leaseStore: LeaseStore
 
     init() {
         let options = LaunchOptions.current
+        #if DEBUG
+        if let hangWatchdogFile = options.hangWatchdogFile {
+            HangWatchdog.start(reportingTo: hangWatchdogFile)
+        }
+        #endif
         let configuration = AppConfiguration(launchOptions: options)
         _configuration = State(initialValue: configuration)
         let auth = AuthSession(
@@ -36,6 +42,7 @@ struct FinePrintApp: App {
         _deadlines = State(initialValue: DeadlineStore(launchOptions: options, modelContext: modelContainer.mainContext))
         let evidenceStore = EvidenceStore.live(inMemory: options.usesInMemoryStore)
         self.evidenceStore = evidenceStore
+        leaseStore = LeaseStore.live(inMemory: options.usesInMemoryStore)
         _uploads = State(initialValue: .live(store: evidenceStore, auth: auth, configuration: configuration, container: modelContainer))
     }
 
@@ -46,6 +53,7 @@ struct FinePrintApp: App {
                 .environment(deadlines)
                 .environment(auth)
                 .environment(\.evidenceStore, evidenceStore)
+                .environment(\.leaseStore, leaseStore)
                 .environment(uploads)
                 .environment(deletion)
                 .environment(settings)

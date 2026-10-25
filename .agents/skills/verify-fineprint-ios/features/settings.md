@@ -31,9 +31,10 @@ one button that removes everything FinePrint holds about them.
   Sign in with Apple is not built (optional in the issue).
 - **Built-in server URL** (#78): the default server is the Info.plist key
   `FinePrintServerURL`, set from `ios/Config/Shared.xcconfig`. Debug is
-  `http://localhost:8080`. Release is the value in the git-ignored
+  `http://localhost:8080`. Release is the project's deployed server,
+  committed in `ios/Config/DeployedServer.xcconfig` (#53). The git-ignored
   `ios/Config/Server.xcconfig` (copy `Server.example.xcconfig`; `./deploy.sh`
-  prints the line). With no value, Release falls back to localhost.
+  prints the line) is included last and overrides it.
   Precedence is unchanged: launch argument, developer menu, built-in default
   (the developer menu shows "Default" as the source).
 
