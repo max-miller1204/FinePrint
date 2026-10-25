@@ -15,7 +15,11 @@ in Cloud Shell, who has created a project and linked billing.
   (runtime) and `fineprint-build` (Cloud Build), Artifact Registry repo
   `fineprint`, secret `GEMINI_API_KEY`, Identity Platform with anonymous
   sign-in, the app's API key `fineprint-client`, and a $20 budget that
-  alerts at $10 and $20.
+  alerts at $10 and $20. It also makes the account `fineprint-purge` (no
+  roles) and the Cloud Scheduler job `fineprint-purge` (daily 03:17 UTC) that
+  calls `POST /internal/purge` as that account (see
+  [delete-purge.md](delete-purge.md)); the service gets
+  `PURGE_CALLER_EMAIL` to match.
 - Least privilege for `fineprint-api`: `datastore.user` on the project,
   `storage.objectAdmin` on the bucket, `cloudkms.signerVerifier` on the key,
   `secretmanager.secretAccessor` on the secret, and
@@ -26,7 +30,9 @@ in Cloud Shell, who has created a project and linked billing.
   `FIREBASE_PROJECT_ID`, `FIREBASE_API_KEY`, `GCS_EVIDENCE_BUCKET`,
   `KMS_SIGNING_KEY` and the secret mounted as `GEMINI_API_KEY`; then checks
   `/health` (Cloud Run reserves `/healthz` on `*.run.app`) and prints the
-  service URL, the key URL, and the iOS setting.
+  service URL, the key URL, and the iOS settings: the exact
+  `FINEPRINT_SERVER_URL[config=Release] = https:/$()/<host>` line for
+  `ios/Config/Server.xcconfig` (spec §15.1 step 6, #78).
 - A second run creates nothing and ships a new revision.
 - `--destroy` asks for the project ID typed back, then removes everything.
   KMS keys cannot be deleted: their versions are scheduled for destruction

@@ -34,3 +34,6 @@ ui-debug.log
 
 # Eval run output
 eval/out/
+
+# Per-organization iOS server URL (see ios/Config/Server.example.xcconfig)
+ios/Config/Server.xcconfig

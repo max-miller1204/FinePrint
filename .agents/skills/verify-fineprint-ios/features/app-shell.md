@@ -15,7 +15,8 @@ Letters, and Ask surfaces). For now, each tab shows a placeholder screen.
   (see [deadlines.md](deadlines.md)); DEBUG builds show a sample "Object to
   move-in report" deadline when nothing real is due.
 - The gear (`settingsButton`) in every tab opens Settings as a sheet. Close
-  (`settings.close`) dismisses it.
+  (`settings.close`) dismisses it. See [settings.md](settings.md) for the
+  language, reading level, impact count, and Delete Everything.
 
 ## How to get to it (user POV)
 

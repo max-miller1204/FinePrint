@@ -1,0 +1,8 @@
+// Copy this file to Server.xcconfig (same folder) and put your server in it.
+// ./deploy.sh prints the exact line when it finishes.
+//
+// Debug builds keep http://localhost:8080 (Shared.xcconfig). Only Release
+// builds read this value, so a TestFlight tester needs no developer menu.
+//
+// Write "//" as "/$()/", or the rest of the line is a comment.
+FINEPRINT_SERVER_URL[config=Release] = https:/$()/fineprint-example-abc123-uk.a.run.app
