@@ -9,7 +9,7 @@
 // precision and recall gate is the lease eval set's (#20).
 //
 // Usage (from server/):
-//   op run --env-file ../.env -- pnpm smoke:lease
+//   ../scripts/with-secrets.sh pnpm smoke:lease
 //
 // Add --packed-single for #110: one English synthetic lease, one S5 request,
 // all plants, no limiter waits or invalid outputs. Use a fresh Gemma quota window.

@@ -51,7 +51,8 @@ nonisolated struct CapturePipeline: Sendable {
             source: .inAppCamera,
             room: context.room,
             checklistItem: context.checklistItem,
-            appVersion: appVersion
+            appVersion: appVersion,
+            session: context.session
         )
         let files = try store.save(original: original, modelCopy: modelCopy, record: record)
         return CapturedPhoto(record: record, files: files, issues: issues, modelCopy: modelCopy)

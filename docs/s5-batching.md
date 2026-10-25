@@ -113,3 +113,20 @@ mapping tests passed together on isolated emulators: six passed, two live
 skips, exit 0 (`.e2e/proof/110-live-regression-isolated/`). A separate live
 smoke-plus-stream run passed both selected tests with exit 0 as recorded
 above. Post-integration verification is recorded in the PR evidence.
+
+## Main integration (2026-10-25)
+
+Merged `origin/main` at `f8f63d0` after completing the live checks. The feature
+map conflict was resolved by preserving main's new feature entries and the
+packed mapping proof with its failed live accuracy status. The production
+lease planner, prompts, schema, and quote verification logic did not change
+during integration, so the live evidence above still describes this code.
+
+Post-integration checks: 475 unit tests passed; typecheck, lint (warnings
+only), and jurisdiction checks exited 0. From `e2e/`,
+`pnpm exec e2e run tests/web --target web --exclude-tag bugbash --no-cache --output .e2e/proof/110-post-main --reporter list,markdown`
+passed all 15 test files: 51 tests passed, two live-model tests skipped,
+exit 0 in one run. This includes smoke, all affected lease tests, the packed
+HTTP/SSE proof, and main's report, verification, and responsibility tests.
+No parity API calls were made. The PR remains draft for the live accuracy
+failures; the passing regression suite does not override that gate.

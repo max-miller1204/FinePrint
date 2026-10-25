@@ -4,8 +4,8 @@
 // its rule. A `match` case is a violation, so the verifier should agree; a
 // `no_match` case is a look-alike that complies, so it should not.
 //
-//   cd eval && op run --env-file ../.env -- pnpm verifier              # both output modes
-//   op run --env-file ../.env -- pnpm verifier --mode json              # one mode
+//   cd eval && ../scripts/with-secrets.sh pnpm verifier              # both output modes
+//   ../scripts/with-secrets.sh pnpm verifier --mode json              # one mode
 //
 // Runs each output mode of the `verification` stage (models.ts, `schema` or
 // `json`) in batches of 8 checks, the size of a lease's S7 call. Prints, per

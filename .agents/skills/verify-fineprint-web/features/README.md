@@ -6,6 +6,7 @@ F10) get a file each as their routes land.
 
 | Feature | Route | Test | Status |
 | --- | --- | --- | --- |
+| [Web Evidence Report](web-report.md) | `GET /r/:token` | `tests/web/report.e2e.ts`, `server/test/report.test.ts` | tested (SSR, phone, print/PDF) |
 | [Health check](healthz.md) | `GET /healthz`, `GET /health` | `tests/web/smoke.e2e.ts`, `tests/web/healthz.e2e.ts` | tested |
 | [Error envelope and request IDs](errors.md) | every route | `tests/web/errors.e2e.ts` | tested |
 | [Firebase anonymous auth](auth.md) | `/v1/*`, `GET /v1/me`, `GET /.well-known/fineprint-client.json` | `tests/web/auth.e2e.ts` | tested |
@@ -13,31 +14,37 @@ F10) get a file each as their routes land.
 | [Evidence uploads](evidence.md) | `POST /v1/rentals/:id/evidence`, `POST /v1/rentals/:id/evidence/:itemId/complete` | `tests/web/evidence.e2e.ts` | tested |
 | [Evidence sealing and ledger](integrity.md) | `POST /v1/rentals/:id/seal`, `GET /v1/rentals/:id/ledger`, `GET /v1/rentals/:id/manifests/:manifestId`, `DELETE /v1/rentals/:id/evidence/:itemId`, `GET /.well-known/fineprint-keys.json` | `tests/web/integrity.e2e.ts` | tested |
 | [Triage and escalation](triage.md) | `POST /v1/triage` | `tests/web/triage.e2e.ts`, `server/test/triage.test.ts`, `pnpm escalation` in `eval/` (live), `pnpm escalation --heldout` (live, report only) | tested |
+| [Responsibility check](responsibility.md) | `POST /v1/rentals/:id/issues` | `tests/web/responsibility.e2e.ts` (heater case live with a key), `server/test/responsibility.test.ts`, `server/test/emulator/issues.test.ts`, `pnpm smoke:responsibility` in `server/` (live) | tested |
 | [Delete everything and the daily purge](delete-purge.md) | `DELETE /v1/me`, `POST /internal/purge` (Cloud Scheduler) | `server/test/delete-purge.test.ts`, `server/test/emulator/delete-purge.test.ts`, `tests/ios/delete-everything.e2e.ts` | unit, emulator, and iOS tested |
-| [Lease API and SSE stream](leases.md) | `POST /v1/rentals/:id/leases`, `GET /v1/rentals/:id/leases/:leaseId/stream`, `GET /v1/rentals/:id/leases/:leaseId` | `tests/web/leases.e2e.ts` (live test under `op run`), `server/test/leases.test.ts` | tested (no model and live) |
-| [Lease pipeline S1 to S9](lease-pipeline.md) | internal; runs behind the lease stream | `tests/web/packed-mapping.e2e.ts` (scripted model, HTTP/SSE), `server/test/lease-pipeline.test.ts`, `server/test/lease-eval.test.ts`, `pnpm smoke:lease` in `server/` (live), `pnpm eval` (live: lease-synthetic and citations gates, clauses-golden report), `pnpm verifier` in `eval/` (live, report only) | unit and live tested |
+| [Lease API and SSE stream](leases.md) | `POST /v1/rentals/:id/leases`, `GET /v1/rentals/:id/leases/:leaseId/stream`, `GET /v1/rentals/:id/leases/:leaseId` | `tests/web/leases.e2e.ts` (live test under `scripts/with-secrets.sh`), `server/test/leases.test.ts` | tested (no model and live) |
+| [Lease pipeline S1 to S9](lease-pipeline.md) | internal; runs behind the lease stream | `tests/web/packed-mapping.e2e.ts` (scripted model, HTTP/SSE), `server/test/lease-pipeline.test.ts`, `server/test/lease-eval.test.ts`, `pnpm smoke:lease` in `server/` (live), `pnpm eval` (live: lease-synthetic and citations gates, clauses-golden report), `pnpm verifier` in `eval/` (live, report only) | unit/e2e tested; packed live accuracy failed (#110) |
+| [Language parity eval](language-parity.md) | operator CLI: `pnpm eval --only parity` | `tests/web/parity.e2e.ts`, `tests/web/leases.e2e.ts`, `server/test/parity-eval.test.ts` | offline/e2e tested; live parity and human QA pending |
 | [Adversarial input](adversarial-input.md) | internal; the lease pipeline's S1 and S2, behind the lease stream | `server/test/adversarial.test.ts`, `tests/web/adversarial.e2e.ts`, `tests/web/leases.e2e.ts` (Spanish injection, live), `pnpm adversarial` in `eval/` (live) | unit, e2e (S1, and the stream live), and live tested |
 | [Rule pack](rule-pack.md) | none (internal; read by the lease pipeline) | `server/test/rules.test.ts`, `pnpm check:jurisdictions`, `node scripts/refresh-snapshots.ts` (live) | unit and CI tested |
 | [Gemma client](gemma-client.md) | none (internal; callers: triage, the lease pipeline) | `server/test/gemma.test.ts`, `server/test/openai-compatible.test.ts`, `pnpm smoke:gemma` (live: Gemini API or self-hosted) | unit and live tested; self-hosted live on Ollama with `gemma4:e2b` |
+| [Shared secrets and local key overrides](secrets.md) | `scripts/with-secrets.sh` | `python3 scripts/test-with-secrets.py`, web e2e through the wrapper | tested (13 loader checks; web 40 passed, 1 expected skip) |
 | [Deploy to Cloud Run](deploy.md) | `./deploy.sh`, the Cloud Run URL | `tests/deployed/deploy.e2e.ts`, `tests/deployed/evidence.e2e.ts` (`e2e.deployed.config.ts`) | tested |
 
 ## Planned features (spec §4.3)
 
 Each one gets a file in this folder as its routes land. So far F2's
 evidence uploads and sealing ([evidence](evidence.md),
-[integrity](integrity.md)) and F10's triage ([triage](triage.md)) have them,
-plus F1's [lease routes](leases.md), with the [rule pack](rule-pack.md), [lease pipeline](lease-pipeline.md), and [adversarial input](adversarial-input.md) behind them.
+[integrity](integrity.md)), F4's [responsibility check](responsibility.md),
+and F10's triage ([triage](triage.md)) have them, plus F1's
+[lease routes](leases.md), with the [rule pack](rule-pack.md),
+[lease pipeline](lease-pipeline.md), and
+[adversarial input](adversarial-input.md) behind them.
 
 | Feature | Route | Board issues | Status |
 | --- | --- | --- | --- |
 | F1 Lease Explainer | `/v1` lease routes and the SSE stream; rule pack and pipeline behind them | #12, #13, #14, #15, #16, #19, #20 | rule pack schema, loader, check registry, and resolver built (#12, [rule-pack](rule-pack.md)); first 16 VA rules and snapshots written and verified (#13); 15 more verified, 31 in all (#43, #93); pipeline S1 to S6 built (#14, [lease-pipeline](lease-pipeline.md)); injection finding, not-a-lease stop, and court-paper escalation at S2 built (#19, [adversarial-input](adversarial-input.md)); S7 to S9 built: 31B verifier, severity table, graded explanations, translation (#15); lease eval sets and the citations gate built (#20, `pnpm eval`, [docs/eval-results.md](../../../../docs/eval-results.md)); injection finding localized by code for EN and ES (#104); routes and SSE stream built (#16, [leases](leases.md)) |
 | F2 Move-in Evidence | `/v1` evidence upload (signed URLs), seal, and ledger routes | #23, #24, #26 | upload URLs and hash check built (#23); seal, ledger, and delete built (#24); damage analysis not built |
 | F3 Landlord Report Diff + 5-Day Objection | `/v1` landlord report extract, diff, and objection draft routes | #28, #30 | not built |
-| F4 Responsibility Check | `/v1` responsibility check route | #31 | not built |
+| F4 Responsibility Check | `POST /v1/rentals/:id/issues` | #31 | server route ([responsibility](responsibility.md)) and the iOS Repairs card built; photo vision (#26) and the move-in compare (#27) not built |
 | F5 Repair Request + Rent Escrow Path | `/v1` repair notice draft route | #32 | not built |
 | F6 Move-out Ghost Overlay + Diff | `/v1` move-out compare route | #27 | not built |
 | F7 Grounded Ask | `/v1` ask route with function calling | #41 | not built |
-| F8 Legal-Aid Web Evidence Report | `GET /r/:token`, `/.well-known/fineprint-keys.json`, share link routes | #33, #34, #35, #36 | `/.well-known/fineprint-keys.json` built (#24); report, verify, shares not built |
+| F8 Legal-Aid Web Evidence Report | `GET /r/:token`, `/.well-known/fineprint-keys.json`, share link routes | #33, #34, #35, #36 | `/.well-known/fineprint-keys.json` built (#24); SSR report, print/PDF, timeline, findings, exhibits and ledger built (#33, [web-report](web-report.md)); browser verify, share lifecycle and axe CI remain #34, #35, #36 |
 | F9 Insurance Claim Packet | none (the PDF is built on the device) | #55 | not built |
 | F10 High-Stakes Handoff | `POST /v1/triage`; the model-backed `/v1` routes call the same check | #37, #38 | triage built (#37, [triage](triage.md)); handoff sheet and resources not built (#38) |
 

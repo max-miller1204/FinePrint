@@ -108,9 +108,9 @@ The live checks run the real model:
 
 ```bash
 pnpm --filter @fineprint/server test
-cd server && op run --env-file ../.env -- pnpm smoke:lease
-cd eval && op run --env-file ../.env -- pnpm verifier     # S7 on clauses-golden, both output modes
-op run --env-file ~/.config/fineprint/.env -- pnpm eval  # the lease eval sets (#20), about 30 minutes
+cd server && ../scripts/with-secrets.sh pnpm smoke:lease
+cd eval && ../scripts/with-secrets.sh pnpm verifier     # S7 on clauses-golden, both output modes
+scripts/with-secrets.sh pnpm eval  # the lease eval sets (#20), about 30 minutes
 ```
 
 The eval sets (#20, `docs/ai-pipeline.md`, "Lease eval sets"):
@@ -195,3 +195,9 @@ positive. The short-fixture smoke retained only 2/5 semantic plants. The
 HTTP timing proof passed in 89 seconds with one S5 request and no waits or
 invalid outputs. PR #118 remains draft for the failed accuracy gate. See
 [the live comparison and reproduction steps](../../../../docs/s5-batching.md).
+
+After integrating main at `f8f63d0`, the full web gate passed in one run:
+51 tests passed, two live-model skips, exit 0, including smoke and all
+lease-route/packed-mapping tests (`.e2e/proof/110-post-main/`). The baseline
+and packed live results above remain the acceptance evidence; regression
+passes do not clear the failed accuracy gate.

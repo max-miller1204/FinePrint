@@ -39,7 +39,7 @@ const SUMMONS = readFileSync(join(import.meta.dirname, '..', '..', '..', 'eval',
   .map((line) => JSON.parse(line) as { id: string; text?: string })
   .find((c) => c.id === 'disguised-summons-en')!.text!;
 
-// The server asks Gemma only when it inherits a key (`op run`, see e2e.config.ts).
+// The server asks Gemma only when it inherits a key (`scripts/with-secrets.sh`, see e2e.config.ts).
 const MODEL = Boolean(process.env.GEMINI_API_KEY);
 
 async function rentalWithLease(baseUrl: string, idToken: string, text: string, locale = 'en') {
@@ -126,7 +126,7 @@ describe('Lease API and SSE stream', { platforms: ['web'] }, () => {
   });
 
   test('live: curl receives stage, keyterms, finding, and done in order, and the findings persist', { timeout: 900_000 }, async ({ app }) => {
-    test.skip(!MODEL, 'needs GEMINI_API_KEY: run under op run');
+    test.skip(!MODEL, 'needs GEMINI_API_KEY: run through scripts/with-secrets.sh');
     const { idToken } = await signUpAnonymously(app.baseUrl);
     const { rentalId, leaseId, stream } = await rentalWithLease(app.baseUrl, idToken, LEASE);
 
@@ -186,7 +186,7 @@ describe('Lease API and SSE stream', { platforms: ['web'] }, () => {
   });
 
   test('live: a Spanish lease with hidden AI instructions streams S9 and the injection finding in Spanish', { timeout: 900_000 }, async ({ app }) => {
-    test.skip(!MODEL, 'needs GEMINI_API_KEY: run under op run');
+    test.skip(!MODEL, 'needs GEMINI_API_KEY: run through scripts/with-secrets.sh');
     const injected = caseText(loadAdversarialCases().find((c) => c.id === 'inject-ignore-previous-es')!);
     const { idToken } = await signUpAnonymously(app.baseUrl);
     const { rentalId, leaseId, stream } = await rentalWithLease(app.baseUrl, idToken, injected, 'es-US');

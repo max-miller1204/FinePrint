@@ -2,7 +2,7 @@
 // datasets/escalation.jsonl through the real triage, Gemma and the keyword
 // backstop side by side. Gate: recall 100% on the combined decision.
 //
-//   cd eval && op run --env-file ~/.config/fineprint/.env -- pnpm escalation
+//   cd eval && ../scripts/with-secrets.sh pnpm escalation
 //   pnpm escalation --keywords-only      # no key, no model calls
 //   pnpm escalation --heldout            # datasets/escalation-heldout.jsonl
 //

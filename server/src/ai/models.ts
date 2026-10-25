@@ -48,13 +48,15 @@ export interface StageConfig {
 // `json` too: in `schema` mode 26B answered "text" for a whole explanation
 // and "explicación" for a translation on the synthetic lease (2026-10-25).
 // They stay at `minimal`, so `json` adds no thinking time.
+// `responsibility` (#31) too: in `schema` mode 26B looped to the cap on one
+// of three live cases and repeated a phrase inside a string on another.
 export const STAGES: Record<Stage, StageConfig> = {
   triage: { role: 'primary', thinking: 'minimal', output: 'schema' },
   extraction: { role: 'primary', thinking: 'high', output: 'json' },
   mapping: { role: 'primary', thinking: 'high', output: 'json' },
   verification: { role: 'verifier', thinking: 'high', output: 'json' },
   vision: { role: 'primary', thinking: 'minimal', output: 'schema' },
-  responsibility: { role: 'primary', thinking: 'high', output: 'schema' },
+  responsibility: { role: 'primary', thinking: 'high', output: 'json' },
   responsibility_verify: { role: 'verifier', thinking: 'high', output: 'schema' },
   ask: { role: 'primary', thinking: 'minimal', output: 'schema' },
   explanation: { role: 'primary', thinking: 'minimal', output: 'json' },
