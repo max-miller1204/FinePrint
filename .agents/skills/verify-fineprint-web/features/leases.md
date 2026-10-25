@@ -121,9 +121,12 @@ lease-upload|web|fuzzer|POST /v1/rentals/:id/leases and open the stream with eve
 
 ## Gotchas
 
-- One lease is about 15K input tokens against Gemma's 16K a minute: a
-  second lease in the same minute streams `RATE_LIMITED` waits of up to a
-  minute. That is expected; the stream keeps going.
+- The synthetic lease (7,836 characters) sends about 28K input tokens to
+  26B against its 16K a minute, so even one lease waits: on 2026-10-25 S5's
+  four mapping batches (about 6K tokens each, most of it the rule list
+  repeated per batch) waited 16 to 22 s each plus two 429s, and the stream
+  took 3 min 7 s. 31B (S7) used 1.1K. The waits stream as `RATE_LIMITED`
+  `error` events; the stream keeps going.
 - Cloud Run's request timeout is 900 s (`deploy.sh`). A live run on a
   shared quota has taken 401 s.
 - The stream does the work: Cloud Run gives CPU only during a request, so
