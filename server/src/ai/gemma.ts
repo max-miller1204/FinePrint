@@ -25,10 +25,11 @@ import {
   type Stage,
   type StageConfig,
 } from './models.js';
-import { ProviderError, providerFromConfig, type ModelProvider, type ProviderResponse } from './provider.js';
+import { ProviderError, providerFromConfig, type ModelProvider, type ProviderResponse, type FunctionDefinition } from './provider.js';
 import { toResponseSchema, type ResponseSchema } from './response-schema.js';
 
 export interface GenerateOptions {
+  functions?: FunctionDefinition[];
   // What the stage asks of the model, sent after the documents. From ai/prompts/.
   task: string;
   // Stage rules added to the system instruction, after the document rule.
@@ -159,7 +160,7 @@ export function createGemma({
   };
 
   return {
-    async generate(stage, schema, docs, { task, instruction, maxOutputTokens, signal, onEvent, log = baseLog }) {
+    async generate(stage, schema, docs, { task, instruction, maxOutputTokens, signal, onEvent, functions, log = baseLog }) {
       const { role, thinking, output } = stages[stage];
       const chain = fallbackChain(role, config);
       const responseSchema = output === 'schema' ? responseSchemaFor(schema) : undefined;
@@ -212,6 +213,7 @@ export function createGemma({
           try {
             response = await provider.generate({
               model,
+              ...(functions ? { functions } : {}),
               systemInstruction,
               parts,
               thinking,

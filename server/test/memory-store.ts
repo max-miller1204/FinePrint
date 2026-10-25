@@ -119,6 +119,9 @@ export function memoryStore() {
       leases.set(`${rentalId}/${lease.id}`, Lease.parse(structuredClone(lease)));
       leaseResults.set(`${rentalId}/${lease.id}`, JSON.parse(JSON.stringify({ clauses, findings })));
     },
+    async listAskLeases(rentalId) {
+      return [...leases.entries()].filter(([key, l]) => key.startsWith(`${rentalId}/`) && l.status === 'analyzed').map(([, l]) => l).slice(0, 10);
+    },
     async getLeaseResults(rentalId, leaseId) {
       return structuredClone(leaseResults.get(`${rentalId}/${leaseId}`) ?? { clauses: [], findings: [] });
     },

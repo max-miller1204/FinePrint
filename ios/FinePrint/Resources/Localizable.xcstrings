@@ -1,6 +1,183 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
+    "Answers show the lease clause, law, or record they come from. Your conversation is kept only in this session.": {
+      "comment": "Grounded Ask tab.",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Answers show the lease clause, law, or record they come from. Your conversation is kept only in this session."
+          }
+        }
+      }
+    },
+    "Checking your sources…": {
+      "comment": "Grounded Ask tab.",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Checking your sources…"
+          }
+        }
+      }
+    },
+    "Checking your sources": {
+      "comment": "Grounded Ask tab.",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Checking your sources"
+          }
+        }
+      }
+    },
+    "Shows the source quote": {
+      "comment": "Grounded Ask tab.",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Shows the source quote"
+          }
+        }
+      }
+    },
+    "Read the law": {
+      "comment": "Grounded Ask tab.",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Read the law"
+          }
+        }
+      }
+    },
+    "Connect to sync this rental before asking a question.": {
+      "comment": "Grounded Ask tab.",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Connect to sync this rental before asking a question."
+          }
+        }
+      }
+    },
+    "Question about your rental": {
+      "comment": "Grounded Ask tab.",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Question about your rental"
+          }
+        }
+      }
+    },
+    "Keep your question under 2,000 characters.": {
+      "comment": "Grounded Ask tab.",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Keep your question under 2,000 characters."
+          }
+        }
+      }
+    },
+    "What does my lease say about fees?": {
+      "comment": "Grounded Ask tab.",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "What does my lease say about fees?"
+          }
+        }
+      }
+    },
+    "How much can my security deposit be?": {
+      "comment": "Grounded Ask tab.",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "How much can my security deposit be?"
+          }
+        }
+      }
+    },
+    "When is the move-in report due?": {
+      "comment": "Grounded Ask tab.",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "When is the move-in report due?"
+          }
+        }
+      }
+    },
+    "What evidence have I recorded?": {
+      "comment": "Grounded Ask tab.",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "What evidence have I recorded?"
+          }
+        }
+      }
+    },
+    "Can my landlord enter without notice?": {
+      "comment": "Grounded Ask tab.",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Can my landlord enter without notice?"
+          }
+        }
+      }
+    },
+    "What does my lease say about repairs?": {
+      "comment": "Grounded Ask tab.",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "What does my lease say about repairs?"
+          }
+        }
+      }
+    },
+    "When is my deposit itemization due?": {
+      "comment": "Grounded Ask tab.",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "When is my deposit itemization due?"
+          }
+        }
+      }
+    },
+    "What move-out evidence do I have?": {
+      "comment": "Grounded Ask tab.",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "What move-out evidence do I have?"
+          }
+        }
+      }
+    }
+,
     "%@: %@" : {
       "comment" : "Large Content Viewer text for the deadline accessory: deadline title, then countdown such as “3 days left”.",
       "localizations" : {

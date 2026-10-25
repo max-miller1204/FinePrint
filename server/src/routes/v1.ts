@@ -5,6 +5,7 @@ import type { Signer } from '../integrity/kms.js';
 import type { Store } from '../storage/firestore.js';
 import type { EvidenceObjects } from '../storage/gcs.js';
 import type { Accounts } from '../accounts.js';
+import { createAsk } from './ask.js';
 import { createEvidence } from './evidence.js';
 import { createLeases, type LeaseAnalyzer } from './leases.js';
 import { createMe } from './me.js';
@@ -28,6 +29,7 @@ export function createV1(verifyIdToken: VerifyIdToken, store: Store, objects: Ev
   v1.route('/me', createMe(store, objects, accounts));
   // First: the other /rentals routes cap bodies at 16 KB, and a lease is up
   // to 1 MB. A handler that answers ends the chain before their limits run.
+  v1.route('/rentals', createAsk(store, analyzer));
   v1.route('/rentals', createLeases(store, analyzer));
   v1.route('/rentals', createRentals(store));
   v1.route('/rentals', createEvidence(store, objects, signer));

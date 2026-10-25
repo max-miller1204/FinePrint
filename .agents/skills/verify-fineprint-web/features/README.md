@@ -6,6 +6,7 @@ F10) get a file each as their routes land.
 
 | Feature | Route | Test | Status |
 | --- | --- | --- | --- |
+| [Grounded Ask](ask.md) | `POST /v1/rentals/:id/ask` | `tests/web/ask.e2e.ts` with `e2e.ask.config.ts`, `server/test/ask.test.ts`, `pnpm --filter @fineprint/eval ask` | HTTP e2e and live eval |
 | [Health check](healthz.md) | `GET /healthz`, `GET /health` | `tests/web/smoke.e2e.ts`, `tests/web/healthz.e2e.ts` | tested |
 | [Error envelope and request IDs](errors.md) | every route | `tests/web/errors.e2e.ts` | tested |
 | [Firebase anonymous auth](auth.md) | `/v1/*`, `GET /v1/me`, `GET /.well-known/fineprint-client.json` | `tests/web/auth.e2e.ts` | tested |
@@ -36,7 +37,7 @@ plus F1's [lease routes](leases.md), with the [rule pack](rule-pack.md), [lease 
 | F4 Responsibility Check | `/v1` responsibility check route | #31 | not built |
 | F5 Repair Request + Rent Escrow Path | `/v1` repair notice draft route | #32 | not built |
 | F6 Move-out Ghost Overlay + Diff | `/v1` move-out compare route | #27 | not built |
-| F7 Grounded Ask | `/v1` ask route with function calling | #41 | not built |
+| F7 Grounded Ask | `POST /v1/rentals/:id/ask` | #41 | built; [Ask verification](ask.md), deterministic HTTP e2e and live eval |
 | F8 Legal-Aid Web Evidence Report | `GET /r/:token`, `/.well-known/fineprint-keys.json`, share link routes | #33, #34, #35, #36 | `/.well-known/fineprint-keys.json` built (#24); report, verify, shares not built |
 | F9 Insurance Claim Packet | none (the PDF is built on the device) | #55 | not built |
 | F10 High-Stakes Handoff | `POST /v1/triage`; the model-backed `/v1` routes call the same check | #37, #38 | triage built (#37, [triage](triage.md)); handoff sheet and resources not built (#38) |

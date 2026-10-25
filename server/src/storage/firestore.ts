@@ -61,6 +61,7 @@ export interface Store {
   // Writes the finished lease with its clauses and findings in one batch,
   // replacing any clauses and findings it had.
   saveLeaseAnalysis(rentalId: string, lease: Lease, clauses: Clause[], findings: Finding[]): Promise<void>;
+  listAskLeases(rentalId: string): Promise<Lease[]>;
   // In lease order and display order.
   getLeaseResults(rentalId: string, leaseId: string): Promise<{ clauses: Clause[]; findings: Finding[] }>;
 }
@@ -265,6 +266,11 @@ export function firestoreStore(connect: () => Firestore = () => getFirestore(fir
       for (const [order, { id, ...fields }] of findings.entries()) batch.set(ref.collection('findings').doc(id), plain({ ...fields, order }));
       batch.set(ref, leaseToFirestore(Lease.parse(lease)));
       await batch.commit();
+    },
+
+    async listAskLeases(rentalId) {
+      const snapshot = await leases(rentalId).where('status', '==', 'analyzed').limit(10).get();
+      return snapshot.docs.map(doc => leaseFromFirestore(doc.id, doc.data()));
     },
 
     async getLeaseResults(rentalId, leaseId) {
