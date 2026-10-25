@@ -14,7 +14,7 @@ crash report, and the gate (`scripts/ios-gate/gate.ts`) won't rerun it.
 | [App shell](app-shell.md) | Tab bar, next-deadline accessory, Settings sheet | `tests/ios/smoke.e2e.ts`, `tests/ios/app-shell.e2e.ts` | tested |
 | [Onboarding](onboarding.md) | First launch: welcome, language, city or county, rental phase | `tests/ios/onboarding.e2e.ts`, `ios/FinePrintTests/OnboardingTests.swift` | tested |
 | [Developer menu](developer-menu.md) | Settings > Version (5 taps) > Developer Options | `tests/ios/auth.e2e.ts` (opens it) | partly tested |
-| [Anonymous sign-in](sign-in.md) | No screen; shown in Developer Options > Account | `tests/ios/auth.e2e.ts` | tested |
+| [Anonymous sign-in](sign-in.md) | No screen; shown in Developer Options > Account | `tests/ios/auth.e2e.ts`, `ios/FinePrintTests/AuthTests.swift` (API key change, #115) | tested |
 | [Evidence camera](camera.md) | Developer Options > Camera > Open Camera (full-screen camera, review); DEBUG fixture camera `-FinePrintFixtureCamera <dir>` (#22) | `tests/ios/capture.e2e.ts`, `tests/ios/camera.e2e.ts` (no-camera state), `ios/FinePrintTests/CaptureTests.swift`, `ios/FinePrintTests/FixtureCameraTests.swift` | partly tested |
 | [Evidence upload queue and seal status](evidence-upload.md) | Use Photo in the camera; Developer Options > Camera > Seal Status, Waiting to Upload, Simulate Offline | `tests/ios/capture.e2e.ts` (offline, then upload), `ios/FinePrintTests/UploadQueueTests.swift` | tested |
 | [Rentals and the rental switcher](rentals.md) | Lease tab > house button: pick a rental or Add Rental; the current rental's name under every tab's title (#46) | `tests/ios/rentals.e2e.ts`, `ios/FinePrintTests/DeadlineStoreTests.swift` (scoping) | tested |

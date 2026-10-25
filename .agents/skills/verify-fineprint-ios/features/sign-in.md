@@ -17,6 +17,11 @@ screen and no input, and sends the ID token to every `/v1` route (spec
 - A `/v1` call that gets a 401 refreshes the token and retries once.
 - Pointing the app at a server on another Firebase project starts a new
   account.
+- A new API key on the same project (a `./deploy.sh --destroy` and redeploy)
+  keeps the account (#115): at launch the app switches the saved account to
+  the server's current key, and a refresh Google rejects with
+  `API_KEY_INVALID` fetches the config and retries once. Unit tests only
+  (`AuthTests.swift`): e2e runs the emulator, whose key never changes.
 - Offline at first launch: Developer Options shows "Couldn't sign in" and a
   retry; the app retries on its own when it returns to the foreground.
 - Developer Options > Account (`developer.authStatus`, `developer.userID`,
