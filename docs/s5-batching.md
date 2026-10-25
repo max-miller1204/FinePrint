@@ -130,3 +130,18 @@ exit 0 in one run. This includes smoke, all affected lease tests, the packed
 HTTP/SSE proof, and main's report, verification, and responsibility tests.
 No parity API calls were made. The PR remains draft for the live accuracy
 failures; the passing regression suite does not override that gate.
+
+## Dev retarget (2026-10-25)
+
+PR #118 now targets `dev`. After `git fetch origin`,
+`git merge origin/dev` returned `Already up to date`: dev was at
+`f8f63d0325beaf5b0f8e89ca08010728343265de`, already included by the previous
+integration. No additional conflicts or implementation changes occurred.
+
+The requested fresh combined gate passed from `e2e/`:
+`pnpm exec e2e run tests/web --target web --exclude-tag bugbash --no-cache --output .e2e/proof/110-post-dev --reporter list,markdown`.
+All 15 files passed: 51 tests passed, two live-model tests skipped, exit 0
+in one run, including smoke and all affected lease tests. The measured live
+accuracy failures above remain unresolved, so the PR stays draft. The
+separate integration thread owns any eventual merge into dev; this PR has
+not been merged.

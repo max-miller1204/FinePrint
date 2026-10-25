@@ -201,3 +201,9 @@ After integrating main at `f8f63d0`, the full web gate passed in one run:
 lease-route/packed-mapping tests (`.e2e/proof/110-post-main/`). The baseline
 and packed live results above remain the acceptance evidence; regression
 passes do not clear the failed accuracy gate.
+
+PR #118 was retargeted to `dev`. Syncing `origin/dev` at `f8f63d0` required
+no additional changes. A fresh full web run passed smoke and all affected
+lease tests together: 51 passed, two live-model skips, exit 0
+(`.e2e/proof/110-post-dev/`). The PR remains draft for the live accuracy
+failures and is left for the separate integration thread to merge.
