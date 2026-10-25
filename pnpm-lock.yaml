@@ -204,6 +204,9 @@ importers:
 
   server:
     dependencies:
+      '@google-cloud/kms':
+        specifier: ^6.3.0
+        version: 6.3.0(supports-color@7.2.0)
       '@google/genai':
         specifier: ^2.31.0
         version: 2.31.0(@modelcontextprotocol/sdk@1.32.2(supports-color@7.2.0)(zod@4.6.7))(supports-color@7.2.0)
@@ -784,6 +787,10 @@ packages:
 
   '@google-cloud/firestore@9.4.0':
     resolution: {integrity: sha512-4tVhdRFepX5w+fRfl3H6D2+gaGQjmMiA9l+OwIwInfAkCi8iacfRx4jS9SmSfpQNlXequ55DfzFopwyFnIIJ9w==}
+    engines: {node: '>=22'}
+
+  '@google-cloud/kms@6.3.0':
+    resolution: {integrity: sha512-hL0J9fZ5TqGLxGH3KE1GuAEEm9Z8+jPFoqR0R46lpS3A/NmoS0p0M4BMBaE7Zev+l5xMmZfveJkNKo4lV/KLEw==}
     engines: {node: '>=22'}
 
   '@google-cloud/paginator@6.1.0':
@@ -4647,6 +4654,12 @@ snapshots:
       - supports-color
     optional: true
 
+  '@google-cloud/kms@6.3.0(supports-color@7.2.0)':
+    dependencies:
+      google-gax: 6.13.0(supports-color@7.2.0)
+    transitivePeerDependencies:
+      - supports-color
+
   '@google-cloud/paginator@6.1.0':
     dependencies:
       extend: 3.0.2
@@ -4958,8 +4971,7 @@ snapshots:
   '@nodable/entities@3.1.0':
     optional: true
 
-  '@opentelemetry/api@1.10.0':
-    optional: true
+  '@opentelemetry/api@1.10.0': {}
 
   '@opentelemetry/api@1.9.1': {}
 
@@ -6515,7 +6527,6 @@ snapshots:
       retry-request: 9.1.0
     transitivePeerDependencies:
       - supports-color
-    optional: true
 
   google-logging-utils@0.0.2: {}
 
@@ -7306,7 +7317,6 @@ snapshots:
   proto3-json-serializer@4.1.0:
     dependencies:
       protobufjs: 7.6.6
-    optional: true
 
   protobufjs@7.6.6:
     dependencies:
@@ -7440,7 +7450,6 @@ snapshots:
   retry-request@9.1.0:
     dependencies:
       extend: 3.0.2
-    optional: true
 
   retry@0.13.1: {}
 

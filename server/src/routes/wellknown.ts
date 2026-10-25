@@ -1,6 +1,8 @@
 import { Hono } from 'hono';
 import type { AppEnv } from '../app.js';
 import { ApiError } from '../errors.js';
+import type { Signer } from '../integrity/kms.js';
+import { available } from './seal.js';
 
 // What the app needs to sign in to this deployment's Firebase project. A
 // Firebase web API key identifies the project and is safe to publish; it
@@ -20,7 +22,7 @@ export function clientConfigFromEnv(env: NodeJS.ProcessEnv = process.env): Clien
   return { firebase: { apiKey, projectId, ...(authEmulatorHost ? { authEmulatorHost } : {}) } };
 }
 
-export function createWellKnown(clientConfig: ClientConfig | null) {
+export function createWellKnown(clientConfig: ClientConfig | null, signer: Signer | null) {
   const wellKnown = new Hono<AppEnv>();
 
   wellKnown.get('/fineprint-client.json', (c) => {
@@ -29,6 +31,14 @@ export function createWellKnown(clientConfig: ClientConfig | null) {
     }
     c.header('Cache-Control', 'public, max-age=300');
     return c.json(clientConfig);
+  });
+
+  // The public keys that sign manifests and ledger entries, as a JWK Set
+  // (RFC 7517). A signature's `keyId` is a key's `kid`.
+  wellKnown.get('/fineprint-keys.json', async (c) => {
+    const keys = await available(signer, c.get('log')).publicKeys();
+    c.header('Cache-Control', 'public, max-age=300');
+    return c.json({ keys });
   });
 
   return wellKnown;

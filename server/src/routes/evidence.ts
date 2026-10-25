@@ -2,18 +2,21 @@ import { Hono, type Context } from 'hono';
 import { bodyLimit } from 'hono/body-limit';
 import type { AuthEnv } from '../auth.js';
 import { ApiError } from '../errors.js';
+import { newLedgerEntry } from '../integrity/ledger.js';
+import type { Signer } from '../integrity/kms.js';
 import type { Logger } from '../log.js';
 import { CreateEvidenceInput, evidenceJson, evidenceStatus, newEvidence, sameCapture, type Evidence } from '../models/evidence.js';
 import type { Rental } from '../models/rental.js';
-import { originalPath, type EvidenceObjects } from '../storage/gcs.js';
+import { modelCopyPath, originalPath, type EvidenceObjects } from '../storage/gcs.js';
 import { isDocumentId, type Store } from '../storage/firestore.js';
 import { guard, readBody } from './rentals.js';
+import { available } from './seal.js';
 
 // POST /v1/rentals/:id/evidence (spec §13) and its completion call (§8.2).
 // The photo bytes never pass through the API (§5.3): the app PUTs them to
 // the URL it gets here, then calls `complete`, and the server hashes what was
 // stored before it records `receivedAtServer`.
-export function createEvidence(store: Store, objects: EvidenceObjects, now: () => Date = () => new Date()) {
+export function createEvidence(store: Store, objects: EvidenceObjects, signer: Signer | null, now: () => Date = () => new Date()) {
   const evidence = new Hono<AuthEnv>();
 
   // Capture records only; the photos go straight to Cloud Storage. Mounted
@@ -75,6 +78,7 @@ export function createEvidence(store: Store, objects: EvidenceObjects, now: () =
     await ownedRental(c, store, rentalId);
     const [item] = isDocumentId(itemId) ? await guard(store.getEvidence(rentalId, [itemId])) : [null];
     if (!item) throw new ApiError(404, 'NOT_FOUND', 'No such evidence item');
+    if (item.deletedAt !== null) throw new ApiError(409, 'CONFLICT', 'This photo was deleted');
     if (item.receivedAtServer !== null) return c.json(evidenceJson(item));
 
     const log = c.get('log');
@@ -96,12 +100,42 @@ export function createEvidence(store: Store, objects: EvidenceObjects, now: () =
     return c.json(evidenceJson(received));
   });
 
+  // The tenant deletes a photo (spec §8.3): the bytes go, the record stays
+  // with `deletedAt`, and the ledger gets `evidence_deleted`. A manifest that
+  // sealed it still verifies, since it signed the hash. Deleting again
+  // changes nothing. Mounted under the rental like `complete`, so ownership
+  // is checked the same way.
+  evidence.delete('/:id/evidence/:itemId', async (c) => {
+    const rentalId = c.req.param('id');
+    const itemId = c.req.param('itemId').toLowerCase();
+    if (!isDocumentId(rentalId)) throw rentalNotFound();
+    await ownedRental(c, store, rentalId);
+    const [item] = isDocumentId(itemId) ? await guard(store.getEvidence(rentalId, [itemId])) : [null];
+    if (!item) throw new ApiError(404, 'NOT_FOUND', 'No such evidence item');
+    if (item.deletedAt !== null) return c.json(evidenceJson(item));
+
+    const log = c.get('log');
+    const sign = available(signer, log);
+    // Bytes first: if the ledger write fails, a retry finds the record
+    // undeleted and finishes the job.
+    await storageCall(log, Promise.all([objects.remove(item.gcsPath), objects.remove(modelCopyPath(rentalId, itemId))]));
+    const at = now();
+    await guard(
+      store.appendLedger(rentalId, async (head) => ({
+        entry: await newLedgerEntry(sign, head, 'evidence_deleted', { itemId, sha256: item.sha256 }, at),
+        items: [{ itemId, fields: { deletedAt: at } }],
+      })),
+    );
+    log.info('evidence deleted', { rentalId, itemId });
+    return c.json(evidenceJson({ ...item, deletedAt: at }));
+  });
+
   return evidence;
 }
 
-const rentalNotFound = () => new ApiError(404, 'NOT_FOUND', 'No such rental');
+export const rentalNotFound = () => new ApiError(404, 'NOT_FOUND', 'No such rental');
 
-async function ownedRental(c: Context<AuthEnv>, store: Store, rentalId: string): Promise<Rental> {
+export async function ownedRental(c: Context<AuthEnv>, store: Store, rentalId: string): Promise<Rental> {
   const rental = await guard(store.getRental(rentalId));
   if (rental === null) throw rentalNotFound();
   if (rental.ownerUid !== c.get('user').uid) {

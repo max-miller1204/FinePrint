@@ -1,4 +1,6 @@
 import type { AuthUser } from '../src/auth.js';
+import { LedgerEntry } from '../src/integrity/ledger.js';
+import { Manifest } from '../src/integrity/manifest.js';
 import { Evidence } from '../src/models/evidence.js';
 import { Rental } from '../src/models/rental.js';
 import type { Store } from '../src/storage/firestore.js';
@@ -9,6 +11,10 @@ export function memoryStore() {
   const users = new Map<string, AuthUser['provider']>();
   // Keyed `rentalId/itemId`.
   const evidence = new Map<string, Evidence>();
+  // Keyed by rentalId, in append order.
+  const ledgers = new Map<string, LedgerEntry[]>();
+  // Keyed `rentalId/manifestId`.
+  const manifests = new Map<string, Manifest>();
   let nextId = 1;
   const store: Store = {
     async createRental(owner, build) {
@@ -40,6 +46,25 @@ export function memoryStore() {
       if (item.receivedAtServer === null) item.receivedAtServer = at;
       return structuredClone(item);
     },
+    async listEvidence(rentalId, session) {
+      return [...evidence.entries()].filter(([key, item]) => key.startsWith(`${rentalId}/`) && item.session === session).map(([, item]) => structuredClone(item));
+    },
+    async listLedger(rentalId) {
+      return structuredClone(ledgers.get(rentalId) ?? []);
+    },
+    async getManifest(rentalId, manifestId) {
+      return structuredClone(manifests.get(`${rentalId}/${manifestId}`) ?? null);
+    },
+    async appendLedger(rentalId, build) {
+      const entries = ledgers.get(rentalId) ?? [];
+      const last = entries.at(-1);
+      const append = await build(last ? { seq: last.seq, entryHash: last.entryHash } : null);
+      entries.push(LedgerEntry.parse(append.entry));
+      ledgers.set(rentalId, entries);
+      if (append.manifest) manifests.set(`${rentalId}/${append.manifest.id}`, Manifest.parse(append.manifest));
+      for (const { itemId, fields } of append.items ?? []) Object.assign(evidence.get(`${rentalId}/${itemId}`)!, fields);
+      return structuredClone(append);
+    },
   };
-  return { store, rentals, users, evidence };
+  return { store, rentals, users, evidence, ledgers, manifests };
 }

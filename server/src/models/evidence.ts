@@ -5,6 +5,7 @@ import { z } from 'zod';
 // `receivedAtServer` once the stored object matches it (§8.2).
 
 export const EvidenceSession = z.enum(['move_in', 'move_out', 'incident']);
+export type EvidenceSession = z.infer<typeof EvidenceSession>;
 export const EvidenceSource = z.enum(['in_app_camera', 'imported']);
 // What the capture pipeline writes. GPS is removed on device, so these are
 // the exact bytes that were hashed.
@@ -37,8 +38,11 @@ export const Evidence = z.object({
   appVersion: z.string().min(1).max(50),
   // Set once the stored object's size and SHA-256 matched the record.
   receivedAtServer: z.date().nullable(),
-  // Set by sealing (#24).
+  // The first manifest that sealed this item.
   sealedManifestId: z.string().nullable(),
+  // Set when the tenant deleted the photo (§8.3). The record stays, so the
+  // report can say what was deleted and when; the bytes are gone.
+  deletedAt: z.date().nullable().default(null),
   createdAt: z.date(),
 });
 export type Evidence = z.infer<typeof Evidence>;
@@ -88,6 +92,7 @@ export function newEvidence(input: EvidenceItemInput, gcsPath: string, now: Date
     appVersion: input.appVersion,
     receivedAtServer: null,
     sealedManifestId: null,
+    deletedAt: null,
     createdAt: now,
   };
 }
@@ -97,21 +102,23 @@ export function sameCapture(stored: Evidence, input: EvidenceItemInput): boolean
   return stored.sha256 === input.sha256 && stored.bytes === input.bytes && stored.mime === input.mime;
 }
 
-// Not sealed yet (#24): received is as far as an item gets for now.
-export type EvidenceStatus = 'pending' | 'received';
+export type EvidenceStatus = 'pending' | 'received' | 'sealed' | 'deleted';
 
-export function evidenceStatus({ receivedAtServer }: Pick<Evidence, 'receivedAtServer'>): EvidenceStatus {
+export function evidenceStatus({ receivedAtServer, sealedManifestId, deletedAt }: Pick<Evidence, 'receivedAtServer' | 'sealedManifestId' | 'deletedAt'>): EvidenceStatus {
+  if (deletedAt !== null) return 'deleted';
+  if (sealedManifestId !== null) return 'sealed';
   return receivedAtServer === null ? 'pending' : 'received';
 }
 
 // What the API returns for an item. The bucket path stays on the server.
-export function evidenceJson({ id, gcsPath: _, deviceUptimeAtCapture, receivedAtServer, createdAt, ...rest }: Evidence) {
+export function evidenceJson({ id, gcsPath: _, deviceUptimeAtCapture, receivedAtServer, deletedAt, createdAt, ...rest }: Evidence) {
   return {
     itemId: id,
     ...rest,
     deviceUptimeMs: deviceUptimeAtCapture,
-    status: evidenceStatus({ receivedAtServer }),
+    status: evidenceStatus({ receivedAtServer, sealedManifestId: rest.sealedManifestId, deletedAt }),
     receivedAtServer: receivedAtServer?.toISOString() ?? null,
+    deletedAt: deletedAt?.toISOString() ?? null,
     createdAt: createdAt.toISOString(),
   };
 }

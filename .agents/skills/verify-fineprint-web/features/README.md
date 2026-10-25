@@ -11,24 +11,26 @@ F10) get a file each as their routes land.
 | [Firebase anonymous auth](auth.md) | `/v1/*`, `GET /v1/me`, `GET /.well-known/fineprint-client.json` | `tests/web/auth.e2e.ts` | tested |
 | [Rentals](rentals.md) | `POST /v1/rentals`, `PATCH /v1/rentals/:id` | `tests/web/rentals.e2e.ts` | tested |
 | [Evidence uploads](evidence.md) | `POST /v1/rentals/:id/evidence`, `POST /v1/rentals/:id/evidence/:itemId/complete` | `tests/web/evidence.e2e.ts` | tested |
+| [Evidence sealing and ledger](integrity.md) | `POST /v1/rentals/:id/seal`, `GET /v1/rentals/:id/ledger`, `GET /v1/rentals/:id/manifests/:manifestId`, `DELETE /v1/rentals/:id/evidence/:itemId`, `GET /.well-known/fineprint-keys.json` | `tests/web/integrity.e2e.ts` | tested |
 | [Gemma client](gemma-client.md) | none (internal; first caller #14) | `server/test/gemma.test.ts`, `pnpm smoke:gemma` (live) | unit and live tested |
 | [Deploy to Cloud Run](deploy.md) | `./deploy.sh`, the Cloud Run URL | `tests/deployed/deploy.e2e.ts` (`e2e.deployed.config.ts`) | tested |
 
 ## Planned features (spec §4.3)
 
 Each one gets a file in this folder as its routes land. So far only F2's
-evidence uploads have one ([evidence](evidence.md)).
+evidence uploads and sealing have them ([evidence](evidence.md),
+[integrity](integrity.md)).
 
 | Feature | Route | Board issues | Status |
 | --- | --- | --- | --- |
 | F1 Lease Explainer | `/v1` lease routes and the SSE stream; rule pack and pipeline behind them | #12, #13, #14, #15, #16, #19, #20 | not built |
-| F2 Move-in Evidence | `/v1` evidence upload (signed URLs), seal, and ledger routes | #23, #24, #26 | upload URLs and hash check built (#23); seal and ledger not built |
+| F2 Move-in Evidence | `/v1` evidence upload (signed URLs), seal, and ledger routes | #23, #24, #26 | upload URLs and hash check built (#23); seal, ledger, and delete built (#24); damage analysis not built |
 | F3 Landlord Report Diff + 5-Day Objection | `/v1` landlord report extract, diff, and objection draft routes | #28, #30 | not built |
 | F4 Responsibility Check | `/v1` responsibility check route | #31 | not built |
 | F5 Repair Request + Rent Escrow Path | `/v1` repair notice draft route | #32 | not built |
 | F6 Move-out Ghost Overlay + Diff | `/v1` move-out compare route | #27 | not built |
 | F7 Grounded Ask | `/v1` ask route with function calling | #41 | not built |
-| F8 Legal-Aid Web Evidence Report | `GET /r/:token`, `/.well-known/fineprint-keys.json`, share link routes | #33, #34, #35, #36 | not built |
+| F8 Legal-Aid Web Evidence Report | `GET /r/:token`, `/.well-known/fineprint-keys.json`, share link routes | #33, #34, #35, #36 | `/.well-known/fineprint-keys.json` built (#24); report, verify, shares not built |
 | F9 Insurance Claim Packet | none (the PDF is built on the device) | #55 | not built |
 | F10 High-Stakes Handoff | triage step inside the model-backed `/v1` routes; no route of its own | #37, #38 | not built |
 
