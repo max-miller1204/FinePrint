@@ -1,0 +1,25 @@
+{
+  "id": "VA_NO_SCRA_WAIVER",
+  "jurisdiction": "VA",
+  "citation": "Va. Code § 55.1-1208(A)(8)",
+  "sourceUrl": "https://law.lis.virginia.gov/vacode/title55.1/chapter12/section55.1-1208/",
+  "versions": [
+    {
+      "effectiveFrom": "2019-10-01",
+      "effectiveUntil": null,
+      "statuteQuote": "Agrees to waive remedies or rights under the Servicemembers Civil Relief Act, 50 U.S.C. § 3901 et seq., prior to the occurrence of a dispute between landlord and tenant. Execution of leases shall not be contingent upon the execution of a waiver of rights under the Servicemembers Civil Relief Act",
+      "snapshotFile": "snapshots/55.1-1208@2026-10-25.txt"
+    }
+  ],
+  "checkType": "semantic",
+  "summaryForModel": "A lease cannot make the tenant waive rights under the federal Servicemembers Civil Relief Act before a dispute arises, and signing a lease cannot be conditioned on such a waiver.",
+  "paraphraseExamples": [
+    "Tenant waives any right to terminate this lease under the Servicemembers Civil Relief Act.",
+    "As a condition of this lease, Resident agrees not to invoke military relief protections."
+  ],
+  "tenantExplanation": "If you serve in the military, a lease can't make you give up your federal protections in advance, and a landlord can't require that waiver to rent to you.",
+  "action": "You can ask your landlord to remove this clause. You keep your SCRA rights either way.",
+  "severityIfViolated": "unenforceable",
+  "verifiedBy": "Max Miller",
+  "verifiedAt": "2026-10-24"
+}

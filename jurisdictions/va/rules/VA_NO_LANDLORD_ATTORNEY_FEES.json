@@ -1,0 +1,25 @@
+{
+  "id": "VA_NO_LANDLORD_ATTORNEY_FEES",
+  "jurisdiction": "VA",
+  "citation": "Va. Code § 55.1-1208(A)(4)",
+  "sourceUrl": "https://law.lis.virginia.gov/vacode/title55.1/chapter12/section55.1-1208/",
+  "versions": [
+    {
+      "effectiveFrom": "2019-10-01",
+      "effectiveUntil": null,
+      "statuteQuote": "Agrees to pay the landlord's attorney fees except as provided in this chapter",
+      "snapshotFile": "snapshots/55.1-1208@2026-10-25.txt"
+    }
+  ],
+  "checkType": "semantic",
+  "summaryForModel": "A lease cannot make the tenant pay the landlord's attorney fees except where the Virginia Residential Landlord and Tenant Act itself allows it. A blanket attorney-fee clause is unenforceable.",
+  "paraphraseExamples": [
+    "Tenant shall pay all of Landlord's attorney fees and costs in any dispute arising under this lease.",
+    "In the event of any legal action, Resident will reimburse Owner for legal fees regardless of outcome."
+  ],
+  "tenantExplanation": "Virginia limits when you can be made to pay your landlord's lawyer. A clause making you pay their legal fees in any dispute goes further than the law allows.",
+  "action": "You can ask your landlord to limit this clause to what Virginia law allows, or remove it.",
+  "severityIfViolated": "unenforceable",
+  "verifiedBy": "Max Miller",
+  "verifiedAt": "2026-10-24"
+}

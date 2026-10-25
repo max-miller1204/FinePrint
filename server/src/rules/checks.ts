@@ -61,17 +61,19 @@ export const CHECKS = {
       return twoMonthsRent(cents(securityDeposit), monthlyRent);
     },
   },
-  // § 55.1-1208(A)(7): deposit plus damage insurance premiums together at
-  // most two months' rent.
+  // § 55.1-1208(A)(7): the deposit, damage insurance premiums, and renter's
+  // insurance premiums paid before the tenancy starts, together at most two
+  // months' rent. Renter's insurance counts when the lease states it.
   depositPlusInsuranceCap: {
     inputs: ['securityDeposit', 'damageInsurancePremium', 'monthlyRent'],
-    optionalInputs: [],
+    optionalInputs: ['renterInsurancePremium'],
     unit: 'usd',
-    run({ securityDeposit, damageInsurancePremium, monthlyRent }) {
+    run({ securityDeposit, damageInsurancePremium, renterInsurancePremium, monthlyRent }) {
       if (!isAmount(securityDeposit) || !isAmount(damageInsurancePremium) || !isAmount(monthlyRent) || monthlyRent === 0) {
         return { outcome: 'insufficient_input' };
       }
-      return twoMonthsRent(cents(securityDeposit) + cents(damageInsurancePremium), monthlyRent);
+      const renter = isAmount(renterInsurancePremium) ? cents(renterInsurancePremium) : 0;
+      return twoMonthsRent(cents(securityDeposit) + cents(damageInsurancePremium) + renter, monthlyRent);
     },
   },
   // § 55.1-1229(A): at least 72 hours' notice before routine maintenance.

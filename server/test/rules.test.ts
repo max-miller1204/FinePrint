@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 import { CHECKS, runCheck } from '../src/rules/checks.js';
-import { JURISDICTIONS_ROOT, loadRulePack, loadRulePacks, RulePackError } from '../src/rules/loader.js';
+import { JURISDICTIONS_ROOT, type LoadOptions, loadRulePack, loadRulePacks, RulePackError } from '../src/rules/loader.js';
 import { resolveRules, versionOn, versionsForTerm } from '../src/rules/resolve.js';
 import type { Rule } from '../src/rules/types.js';
 import { parseSectionPage } from '../../scripts/refresh-snapshots.ts';
@@ -30,12 +30,39 @@ function ruleWith(...ranges: [string, string | null, string?][]): Rule {
 describe('the real rule packs', () => {
   it('load with every quote in its snapshot', () => {
     expect([...packs.keys()]).toEqual(['VA']);
-    expect(va?.rules.map((rule) => rule.id)).toContain('VA_LATE_FEE_CAP');
+    expect(va?.rules.map((rule) => rule.id)).toEqual([
+      'VA_DEPOSIT_CAP',
+      'VA_DEPOSIT_PLUS_INSURANCE_CAP',
+      'VA_DEPOSIT_RETURN_45_DAYS',
+      'VA_DEPOSIT_WEAR_AND_TEAR',
+      'VA_LANDLORD_MAINTAIN_FIT',
+      'VA_LATE_FEE_CAP',
+      'VA_MOVE_IN_REPORT_5_DAYS',
+      'VA_MOVE_OUT_INSPECTION_PRESENCE',
+      'VA_NO_CONFESSION_OF_JUDGMENT',
+      'VA_NO_EXCULPATION_INDEMNITY',
+      'VA_NO_LANDLORD_ATTORNEY_FEES',
+      'VA_NO_RIGHTS_WAIVER',
+      'VA_NO_SCRA_WAIVER',
+      'VA_RENT_ESCROW_PROCESS',
+      'VA_ROUTINE_MAINTENANCE_NOTICE_72H',
+      'VA_TENANT_RIGHTS_STATEMENT',
+    ]);
   });
 
-  it('report no verification date while a rule is unverified', () => {
-    expect(va?.verifiedThrough).toBeNull();
-    expect(() => loadRulePacks(JURISDICTIONS_ROOT, { requireVerified: true })).toThrow(/not verified/);
+  it('give an October 2026 lease both § 55.1-1244 versions, with the changed quote', () => {
+    const escrow = va?.byId.get('VA_RENT_ESCROW_PROCESS') as Rule;
+    const [resolved] = resolveRules([escrow], { start: '2026-10-01', end: '2027-09-30' });
+    expect(resolved?.versions.map((v) => v.version.snapshotFile)).toEqual([
+      'snapshots/55.1-1244@2026-10-25.txt',
+      'snapshots/55.1-1244~2027-01-01@2026-10-25.txt',
+    ]);
+    expect(resolved?.changes).toEqual([{ on: '2027-01-01', quoteChanged: true }]);
+  });
+
+  it('are verified by a person, so they load when verification is required', () => {
+    expect(va?.verifiedThrough).toBe('2026-10-24');
+    expect(loadRulePacks(JURISDICTIONS_ROOT, { requireVerified: true }).get('VA')?.rules).toHaveLength(16);
   });
 });
 
@@ -135,6 +162,14 @@ describe('deterministic checks', () => {
       limit: 3000,
       actual: 3000.1,
     });
+    expect(runCheck('depositPlusInsuranceCap', { securityDeposit: 2800, damageInsurancePremium: 100, renterInsurancePremium: 100, monthlyRent: 1500 }).outcome).toBe(
+      'complies',
+    );
+    expect(runCheck('depositPlusInsuranceCap', { securityDeposit: 2800, damageInsurancePremium: 100, renterInsurancePremium: 100.01, monthlyRent: 1500 })).toEqual({
+      outcome: 'violates',
+      limit: 3000,
+      actual: 3000.01,
+    });
   });
 
   it('requires 72 hours of maintenance notice', () => {
@@ -168,9 +203,9 @@ describe('loadRulePack refuses a bad pack', () => {
     return join(root, 'va');
   }
 
-  const issues = (dir: string) => {
+  const issues = (dir: string, options?: LoadOptions) => {
     try {
-      loadRulePack(dir);
+      loadRulePack(dir, options);
     } catch (error) {
       expect(error).toBeInstanceOf(RulePackError);
       return (error as RulePackError).issues;
@@ -234,7 +269,7 @@ describe('loadRulePack refuses a bad pack', () => {
       'VA_LATE_FEE_CAP.json: must match "else" schema',
     ]);
     expect(issues(scratchPack((rule) => {
-      rule.verifiedBy = 'A. Person';
+      delete rule.verifiedAt;
     }))).toEqual([expect.stringMatching(/verifiedAt/)]);
     expect(issues(scratchPack((rule) => {
       rule.versions[0].effectiveFrom = '2019-13-01';
@@ -251,12 +286,20 @@ describe('loadRulePack refuses a bad pack', () => {
     }))).toEqual([expect.stringMatching(/MD in the VA pack/)]);
   });
 
-  it('reports a verification date once every rule is verified', () => {
+  it('when verification is required and a rule is unverified', () => {
     const dir = scratchPack((rule) => {
-      rule.verifiedBy = 'A. Person';
-      rule.verifiedAt = '2026-10-25';
+      delete rule.verifiedBy;
+      delete rule.verifiedAt;
     });
-    expect(loadRulePack(dir, { requireVerified: true }).verifiedThrough).toBe('2026-10-25');
+    expect(loadRulePack(dir).verifiedThrough).toBeNull();
+    expect(issues(dir, { requireVerified: true })).toEqual(['VA_LATE_FEE_CAP.json: not verified (verifiedBy, verifiedAt)']);
+  });
+
+  it('reports the oldest verification date once every rule is verified', () => {
+    const dir = scratchPack((rule) => {
+      rule.verifiedAt = '2026-10-20';
+    });
+    expect(loadRulePack(dir, { requireVerified: true }).verifiedThrough).toBe('2026-10-20');
   });
 });
 

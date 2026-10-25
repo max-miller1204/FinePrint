@@ -186,7 +186,7 @@ Each external service FinePrint uses. `deploy.sh` creates these resources and gr
 | **Cloud Build** and **Artifact Registry** (repo `fineprint`) | `gcloud run deploy --source .` builds the root `Dockerfile` and stores the image | `fineprint-build`: `roles/run.builder` | Per build-minute, and per GB-month of stored images | Deploys fail. The running service is not affected. |
 | **Cloud Logging** | Structured JSON logs from stdout: request ID, route pattern, status, latency, model, tokens. Never content. | Cloud Run writes logs by default | Free allotment for ingestion, then per GiB | You lose visibility only. The service is not affected. |
 | **Cloud Billing and Billing Budgets** | The billing check before deploy, and a $20 budget that alerts at $10 and $20 | The person who deploys needs to see the billing account and create budgets on it | Free | Only the alerts stop. A budget alert does not cap spend. |
-| **law.lis.virginia.gov** | Source of the statute text for the rule pack snapshots. Planned: no script fetches from it yet, and `jurisdictions/va/` is still empty. | None (public) | Free | Nothing at runtime. A snapshot refresh would wait. |
+| **law.lis.virginia.gov** | Source of the statute text for the rule pack snapshots in `jurisdictions/va/snapshots/`. `scripts/refresh-snapshots.ts` re-fetches and diffs them. | None (public) | Free | Nothing at runtime. A snapshot refresh would wait. |
 
 `deploy.sh` also enables `iam`, `iamcredentials`, `apikeys`, `logging`, `cloudbilling`, and `billingbudgets`, which it needs to set up the resources above.
 
@@ -231,7 +231,7 @@ What the evidence model proves, and what it does not (spec §8.4):
 
 Other limits:
 
-- **Virginia only.** The rules cover the VRLTA, and the rule pack for it is not written yet.
+- **Virginia only.** The rules cover the VRLTA. The pack (`jurisdictions/va/`) has 16 rules from §§ 55.1-1204, -1208, -1214, -1220, -1226, -1229, and -1244, with snapshots fetched 2026-10-25. Last verified: 2026-10-24, by a person checking every quote and subsection against its snapshot.
 - **Data use.** Gemma calls fall under Google's unpaid terms: Google may use the content to improve its products (see [Gemini API data use](#gemini-api-data-use)).
 - **Not legal advice.** Verdicts say "likely", with reasons, citations, and confidence. High-stakes situations go to legal aid.
 - **The AI can be wrong.** Code checks quotes, citations, numbers, and dates literally, and a second model checks legal findings. Interpretation can still be wrong. A finding checked by a fallback model carries a label.

@@ -1,0 +1,26 @@
+{
+  "id": "VA_ROUTINE_MAINTENANCE_NOTICE_72H",
+  "jurisdiction": "VA",
+  "citation": "Va. Code § 55.1-1229(A)(4)",
+  "sourceUrl": "https://law.lis.virginia.gov/vacode/title55.1/chapter12/section55.1-1229/",
+  "versions": [
+    {
+      "effectiveFrom": "2019-10-01",
+      "effectiveUntil": null,
+      "statuteQuote": "Unless impractical to do so, the landlord shall give the tenant at least 72 hours' notice of routine maintenance to be performed that has not been requested by the tenant.",
+      "snapshotFile": "snapshots/55.1-1229@2026-10-25.txt"
+    }
+  ],
+  "checkType": "deterministic",
+  "deterministic": { "fn": "maintenanceNoticeHours", "inputs": ["maintenanceNoticeHours"] },
+  "summaryForModel": "Unless impractical, the landlord must give at least 72 hours' notice before routine maintenance the tenant did not request. A lease that states a shorter notice period conflicts with this.",
+  "paraphraseExamples": [
+    "Landlord may enter for routine maintenance upon 24 hours' notice.",
+    "Management will provide 12 hours' notice before scheduled maintenance visits."
+  ],
+  "tenantExplanation": "For routine maintenance you didn't ask for, Virginia requires your landlord to give you at least 72 hours' notice.",
+  "action": "You can ask your landlord to change the notice period for routine maintenance to at least 72 hours.",
+  "severityIfViolated": "unenforceable",
+  "verifiedBy": "Max Miller",
+  "verifiedAt": "2026-10-24"
+}

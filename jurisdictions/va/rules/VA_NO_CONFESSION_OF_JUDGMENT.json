@@ -1,0 +1,25 @@
+{
+  "id": "VA_NO_CONFESSION_OF_JUDGMENT",
+  "jurisdiction": "VA",
+  "citation": "Va. Code § 55.1-1208(A)(3)",
+  "sourceUrl": "https://law.lis.virginia.gov/vacode/title55.1/chapter12/section55.1-1208/",
+  "versions": [
+    {
+      "effectiveFrom": "2019-10-01",
+      "effectiveUntil": null,
+      "statuteQuote": "Authorizes any person to confess judgment on a claim arising out of the rental agreement",
+      "snapshotFile": "snapshots/55.1-1208@2026-10-25.txt"
+    }
+  ],
+  "checkType": "semantic",
+  "summaryForModel": "A lease cannot let anyone confess judgment against the tenant (admit liability on the tenant's behalf so the landlord gets a judgment without a hearing). Such a clause is unenforceable.",
+  "paraphraseExamples": [
+    "Tenant appoints Landlord as attorney-in-fact to confess judgment against Tenant for any unpaid rent.",
+    "Tenant consents to entry of judgment without notice or hearing for any amount due under this lease."
+  ],
+  "tenantExplanation": "A lease can't let your landlord get a court judgment against you without you having a chance to respond. This clause can't be enforced.",
+  "action": "You can ask your landlord to remove this clause before you sign.",
+  "severityIfViolated": "unenforceable",
+  "verifiedBy": "Max Miller",
+  "verifiedAt": "2026-10-24"
+}

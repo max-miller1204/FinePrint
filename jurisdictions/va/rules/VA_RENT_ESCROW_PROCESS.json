@@ -1,0 +1,31 @@
+{
+  "id": "VA_RENT_ESCROW_PROCESS",
+  "jurisdiction": "VA",
+  "citation": "Va. Code § 55.1-1244",
+  "sourceUrl": "https://law.lis.virginia.gov/vacode/title55.1/chapter12/section55.1-1244/",
+  "versions": [
+    {
+      "effectiveFrom": "2019-10-01",
+      "effectiveUntil": "2027-01-01",
+      "statuteQuote": "The tenant has paid into court the amount of rent called for under the rental agreement, within five days of the date due under the rental agreement, unless or until such amount is modified by subsequent order of the court under this chapter.",
+      "snapshotFile": "snapshots/55.1-1244@2026-10-25.txt"
+    },
+    {
+      "effectiveFrom": "2027-01-01",
+      "effectiveUntil": null,
+      "statuteQuote": "During the pendency of the action, the tenant shall pay into a court escrow account the amount of rent that becomes due within five days of the date due under the rental agreement, unless or until such amount is modified by subsequent order of the court pursuant to this chapter.",
+      "snapshotFile": "snapshots/55.1-1244~2027-01-01@2026-10-25.txt"
+    }
+  ],
+  "checkType": "informational",
+  "summaryForModel": "A tenant can file a tenant's assertion in general district court over a serious condition the landlord failed to fix after written notice (over 30 days is presumed unreasonable), paying rent into a court escrow account within five days of each due date. Until January 1, 2027 the tenant must show rent was paid into court before relief (subsection B(2)). From January 1, 2027 rent is paid into escrow while the case is pending (subsection C), back rent is not required to file, and late escrow payments are not grounds for dismissal.",
+  "paraphraseExamples": [
+    "Tenant shall not withhold rent for any reason.",
+    "Tenant waives any right to pay rent into court escrow."
+  ],
+  "tenantExplanation": "If your landlord won't fix a serious problem after written notice, Virginia lets you go to court and pay your rent into a court escrow account instead of to the landlord. The rules for this change on January 1, 2027.",
+  "action": "Send your landlord written notice of the problem and keep a copy. If it isn't fixed in a reasonable time, you can file a tenant's assertion at your local general district court.",
+  "severityIfViolated": "info",
+  "verifiedBy": "Max Miller",
+  "verifiedAt": "2026-10-24"
+}

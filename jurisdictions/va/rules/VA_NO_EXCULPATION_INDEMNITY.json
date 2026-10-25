@@ -1,0 +1,26 @@
+{
+  "id": "VA_NO_EXCULPATION_INDEMNITY",
+  "jurisdiction": "VA",
+  "citation": "Va. Code § 55.1-1208(A)(5)",
+  "sourceUrl": "https://law.lis.virginia.gov/vacode/title55.1/chapter12/section55.1-1208/",
+  "versions": [
+    {
+      "effectiveFrom": "2019-10-01",
+      "effectiveUntil": null,
+      "statuteQuote": "Agrees to the exculpation or limitation of any liability of the landlord to the tenant arising under law or to indemnify the landlord for that liability or any associated costs",
+      "snapshotFile": "snapshots/55.1-1208@2026-10-25.txt"
+    }
+  ],
+  "checkType": "semantic",
+  "summaryForModel": "A lease cannot release or limit the landlord's legal liability to the tenant, or make the tenant indemnify the landlord for that liability or its costs. Such a clause is unenforceable.",
+  "paraphraseExamples": [
+    "Landlord shall not be liable for any injury or damage to Tenant or Tenant's property, however caused.",
+    "Tenant agrees to indemnify and hold harmless Landlord from all claims, including those caused by Landlord's negligence.",
+    "Owner is not responsible for losses from leaks, mold, or failure of building systems."
+  ],
+  "tenantExplanation": "A lease can't excuse your landlord from responsibility the law puts on them, or make you cover their costs for it. This clause can't be enforced.",
+  "action": "You can ask your landlord to remove this clause or limit it to damage you cause.",
+  "severityIfViolated": "unenforceable",
+  "verifiedBy": "Max Miller",
+  "verifiedAt": "2026-10-24"
+}

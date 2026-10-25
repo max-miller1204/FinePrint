@@ -26,7 +26,7 @@ plus F1's [rule pack](rule-pack.md), which has no route.
 
 | Feature | Route | Board issues | Status |
 | --- | --- | --- | --- |
-| F1 Lease Explainer | `/v1` lease routes and the SSE stream; rule pack and pipeline behind them | #12, #13, #14, #15, #16, #19, #20 | rule pack schema, loader, check registry, and resolver built (#12, [rule-pack](rule-pack.md)); rules, pipeline, and routes not built |
+| F1 Lease Explainer | `/v1` lease routes and the SSE stream; rule pack and pipeline behind them | #12, #13, #14, #15, #16, #19, #20 | rule pack schema, loader, check registry, and resolver built (#12, [rule-pack](rule-pack.md)); first 16 VA rules and snapshots written and verified (#13); pipeline and routes not built |
 | F2 Move-in Evidence | `/v1` evidence upload (signed URLs), seal, and ledger routes | #23, #24, #26 | upload URLs and hash check built (#23); seal, ledger, and delete built (#24); damage analysis not built |
 | F3 Landlord Report Diff + 5-Day Objection | `/v1` landlord report extract, diff, and objection draft routes | #28, #30 | not built |
 | F4 Responsibility Check | `/v1` responsibility check route | #31 | not built |

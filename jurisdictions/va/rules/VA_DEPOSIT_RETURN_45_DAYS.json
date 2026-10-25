@@ -1,0 +1,25 @@
+{
+  "id": "VA_DEPOSIT_RETURN_45_DAYS",
+  "jurisdiction": "VA",
+  "citation": "Va. Code § 55.1-1226(A)",
+  "sourceUrl": "https://law.lis.virginia.gov/vacode/title55.1/chapter12/section55.1-1226/",
+  "versions": [
+    {
+      "effectiveFrom": "2019-10-01",
+      "effectiveUntil": null,
+      "statuteQuote": "The security deposit and any deductions, damages, and charges shall be itemized by the landlord in a written notice given to the tenant, together with any amount due to the tenant, within 45 days after the termination date of the tenancy or the date the tenant vacates the dwelling unit, whichever occurs last.",
+      "snapshotFile": "snapshots/55.1-1226@2026-10-25.txt"
+    }
+  ],
+  "checkType": "semantic",
+  "summaryForModel": "The landlord must give the tenant a written, itemized list of deposit deductions, with any refund due, within 45 days after the tenancy ends or the tenant moves out, whichever is later. A lease that allows longer, or no itemization, conflicts with this.",
+  "paraphraseExamples": [
+    "Landlord will return the security deposit within 60 days after Tenant vacates.",
+    "Any deposit balance will be refunded at Owner's discretion; itemization is not provided."
+  ],
+  "tenantExplanation": "Your landlord has 45 days after you move out to send you an itemized list of deductions and return what's left. A lease can't give them longer.",
+  "action": "You can ask your landlord to change this to 45 days. Write down your move-out date so you can track the deadline.",
+  "severityIfViolated": "unenforceable",
+  "verifiedBy": "Max Miller",
+  "verifiedAt": "2026-10-24"
+}
