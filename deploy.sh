@@ -54,6 +54,7 @@ APIS=(
   securetoken.googleapis.com
   apikeys.googleapis.com
   iam.googleapis.com
+  iamcredentials.googleapis.com
   cloudbilling.googleapis.com
   billingbudgets.googleapis.com
 )
@@ -86,13 +87,21 @@ die() { printf '\nError: %s\n' "$*" >&2; exit 1; }
 # enabled API answers SERVICE_DISABLED for a minute or two, so those calls
 # wait and retry instead of failing (or reading as "resource missing").
 gc() {
-  local err attempt status
+  local err attempt status wait
   err=$(mktemp)
   for attempt in 1 2 3 4 5 6 7 8 9 10; do
     status=0
     gcloud --project="$PROJECT" --quiet "$@" 2>"$err" || status=$?
     if [[ $status -ne 0 && $attempt -lt 10 ]] && grep -q 'SERVICE_DISABLED' "$err"; then
       sleep 15
+      continue
+    fi
+    # Firestore keeps a deleted database's ID for a few minutes and says how
+    # long ("Please retry in 264 seconds"), e.g. a deploy right after --destroy.
+    wait=$(grep -o 'retry in [0-9]* seconds' "$err" | grep -o '[0-9]*' | head -n1 || true)
+    if [[ $status -ne 0 && $attempt -lt 10 && -n $wait ]]; then
+      printf '  wait    %ss, as Google asks, then retry\n' "$wait" >&2
+      sleep $((wait < 600 ? wait + 5 : 600))
       continue
     fi
     break
@@ -292,6 +301,12 @@ ensure_iam() {
   have "$RUNTIME_SA_ID: roles/cloudkms.signerVerifier on $KEY"
   retry gc secrets add-iam-policy-binding "$SECRET" --member="$member" --role=roles/secretmanager.secretAccessor
   have "$RUNTIME_SA_ID: roles/secretmanager.secretAccessor on $SECRET"
+  # Signed upload and read URLs (server/src/storage/gcs.ts): Cloud Run has no
+  # key file, so the server signs through IAM signBlob as itself. Granted on
+  # its own account only, so it can sign as nothing else.
+  retry gc iam service-accounts add-iam-policy-binding "$RUNTIME_SA" --member="$member" \
+    --role=roles/iam.serviceAccountTokenCreator
+  have "$RUNTIME_SA_ID: roles/iam.serviceAccountTokenCreator on itself"
   retry gc projects add-iam-policy-binding "$PROJECT" --member="serviceAccount:$BUILD_SA" \
     --role=roles/run.builder --condition=None
   have "$BUILD_SA_ID: roles/run.builder on the project"
@@ -460,7 +475,13 @@ EOF
   names=$(gc services api-keys list --filter="displayName=$API_KEY_DISPLAY_NAME" --format='value(name)' 2>/dev/null || true)
   if [[ -n $names ]]; then
     local name
-    for name in $names; do gc services api-keys delete "$name" >/dev/null 2>&1; done
+    # A key used in the last 7 days is protected; the typed confirmation
+    # above is the override. gcloud echoes the deleted key, string included,
+    # so its output is dropped.
+    for name in $names; do
+      gc services api-keys delete "$name" --no-check-existing-usage >/dev/null 2>&1 ||
+        die "Could not delete API key $name. Retry: gcloud services api-keys delete $name --no-check-existing-usage --project $PROJECT"
+    done
     gone "API key $API_KEY_DISPLAY_NAME"
   else skip "API key $API_KEY_DISPLAY_NAME"; fi
   if [[ $(idp GET "/admin/v2/projects/$PROJECT/config") == 200 ]]; then

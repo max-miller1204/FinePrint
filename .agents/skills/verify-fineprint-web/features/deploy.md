@@ -18,7 +18,10 @@ in Cloud Shell, who has created a project and linked billing.
   alerts at $10 and $20.
 - Least privilege for `fineprint-api`: `datastore.user` on the project,
   `storage.objectAdmin` on the bucket, `cloudkms.signerVerifier` on the key,
-  `secretmanager.secretAccessor` on the secret.
+  `secretmanager.secretAccessor` on the secret, and
+  `iam.serviceAccountTokenCreator` on itself only, so it can sign evidence
+  upload and read URLs through IAM `signBlob` (Cloud Run has no key file).
+  Without that grant, `POST /v1/rentals/:id/evidence` is 503.
 - `gcloud run deploy --source .` (the root `Dockerfile`) with env vars
   `FIREBASE_PROJECT_ID`, `FIREBASE_API_KEY`, `GCS_EVIDENCE_BUCKET`,
   `KMS_SIGNING_KEY` and the secret mounted as `GEMINI_API_KEY`; then checks
@@ -53,7 +56,11 @@ E2E_DEPLOYED_URL=<service URL> npx e2e run --config e2e.deployed.config.ts
 `tests/deployed/deploy.e2e.ts` checks `/health`, that the client config
 names the real project with an `AIza...` key and no emulator, that an
 anonymous sign-in with that key reaches `/v1/me`, and that `/v1` without a
-token is 401. The main config excludes `tests/deployed/**`.
+token is 401. `tests/deployed/evidence.e2e.ts` creates a rental and an
+evidence item, PUTs a photo to the signed URL on `storage.googleapis.com`,
+and completes it (200 `received`); tampered bytes are stored by Cloud
+Storage but rejected on `complete` (422 `HASH_MISMATCH`). The main config
+excludes `tests/deployed/**`.
 
 ## Proof
 
@@ -76,5 +83,8 @@ with the other features' charters against the Cloud Run URL.
   script's `gc` wrapper retries those calls.
 - The deployed tests create a real anonymous user each run. `--destroy`
   turns anonymous sign-in off but does not delete those users.
-- Firestore takes a few minutes before the `(default)` ID can be reused
-  after `--destroy`.
+- Firestore keeps a deleted `(default)` ID for about five minutes. A deploy
+  right after `--destroy` prints `wait <n>s` and retries on its own.
+- Google protects an API key used in the last 7 days from deletion.
+  `--destroy` overrides that (`--no-check-existing-usage`) and drops
+  gcloud's output, which echoes the key string.
