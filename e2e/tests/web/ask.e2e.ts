@@ -23,6 +23,13 @@ describe('Grounded Ask', { platforms: ['web'] }, () => {
     expect(answer.sentences[0].citations[0]).toMatchObject({ kind: 'deadline', ref: 'move_in_report' });
     expect(answer.sentences[0].citations[0].text).toContain('2026-11-06');
     expect(JSON.stringify(answer)).not.toContain('must never appear');
+    const recovered = await request(app.baseUrl, path, token, { message: 'Answer without tools: when is the move-in report due?' });
+    expect(recovered.status).toBe(200);
+    const recoveredAnswer = await recovered.json();
+    expect(recoveredAnswer.outOfScope).toBe(false);
+    expect(recoveredAnswer.sentences).toHaveLength(1);
+    expect(recoveredAnswer.sentences[0].citations[0]).toMatchObject({ kind: 'deadline', ref: 'move_in_report' });
+    expect(JSON.stringify(recoveredAnswer)).not.toContain('direct answer');
     const outside = await request(app.baseUrl, path, token, { message: 'Who won the football game?' });
     expect((await outside.json()).outOfScope).toBe(true);
     const urgent = await request(app.baseUrl, path, token, { message: 'My landlord changed the locks and locked me out.' });

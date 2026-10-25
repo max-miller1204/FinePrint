@@ -40,3 +40,32 @@ catalog. Smoke, Ask, auth, rentals and triage passed together: 18 passed,
 exit 0, no retries/cache; proof `e2e/.e2e/proof/dev-ask-impact/`. Server unit
 tests: 486 passed; workspace typecheck: exit 0. The impact typed-error fix
 and Share Links integration are preserved. macOS CI checks the combined app.
+
+## Timeout and source-free answer recovery
+
+Ask on iOS uses the existing 180-second model transport and keeps a labeled
+progress indicator, wait explanation, and disabled composer while awaiting JSON.
+Runtime acceptance is through TestFlight on a real device; no iOS e2e files changed.
+
+The first model prompt requires a read-only tool. A source-free answer, including
+premature outOfScope, is rejected and re-prompted once within the existing five-turn
+budget. The strict sentence/citation gate remains unchanged. Each gate evaluation
+logs request-correlated counts, fixed rejection reasons, source count, tool names,
+and the model outOfScope flag, without question text, lease text, or citation refs.
+Malformed-output handoffs retain the actual executed-tool metadata.
+
+Proof: `e2e/.e2e/proof/ask-timeout-fallback/`, 18 passed together, exit 0,
+no retries/cache: smoke, Ask (including direct-answer recovery), auth, rentals,
+and triage. Server unit tests: 491 passed, including grounded output, both values
+of premature outOfScope, bounded refusal, unrelated-question handoff, and malformed
+output diagnostics. Workspace typecheck, lint, and jurisdiction checks exited 0.
+Live Gemini/Gemma Ask through the real route and `scripts/with-secrets.sh`, using
+a synthetic rental with an analyzed lease: HTTP 200 in 3,936 ms, one kept sentence
+with the correct pet-deposit clause citation. Evidence is in
+`e2e/.e2e/proof/ask-live-check.json` and `ask-live-check.log`.
+
+Device acceptance: install the new dev TestFlight build, select a synced Virginia
+rental with an analyzed lease, ask a specific clause question, and open its citation.
+Repeat with a Virginia law question and an unrelated question. During a slow answer,
+confirm the progress text remains visible and duplicate sends stay disabled beyond
+20 seconds. Confirm the composer re-enables after completion or a network error.

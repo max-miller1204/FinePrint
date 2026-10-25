@@ -12,6 +12,16 @@
         }
       }
     },
+    "This can take a couple of minutes. Keep Ask open while we check.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This can take a couple of minutes. Keep Ask open while we check."
+          }
+        }
+      }
+    },
     "Checking your sources…": {
       "comment": "Grounded Ask tab.",
       "localizations": {
