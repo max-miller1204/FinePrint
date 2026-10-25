@@ -9,10 +9,10 @@ import {
   analyzeLease,
   chunkText,
   detectInjection,
-  MAPPING_MAX_OUTPUT_TOKENS,
+  mappingOutputCap,
   MAX_CALLS,
   MAX_REQUEST_TOKENS,
-  SEGMENT_MAX_OUTPUT_TOKENS,
+  segmentOutputCap,
   planBatches,
   SEGMENT_CHUNK_CHARS,
   type LeaseEvent,
@@ -515,8 +515,8 @@ describe('analyzeLease', () => {
     expect(mapping.flatMap(documents).map((d) => d.id)).toEqual(['c0', ...Array.from({ length: 30 }, (_, i) => `c${i + 1}`)]);
     // Both lease stages think (json mode) and cap their answers.
     expect(provider.requests.map((r) => [r.thinking, r.maxOutputTokens])).toEqual([
-      ['high', SEGMENT_MAX_OUTPUT_TOKENS],
-      ...mapping.map(() => ['high', MAPPING_MAX_OUTPUT_TOKENS]),
+      ['high', segmentOutputCap(LEASE.length)],
+      ...mapping.map((r) => ['high', mappingOutputCap(documents(r).length)]),
     ]);
   });
 
@@ -596,6 +596,15 @@ describe('budget planning', () => {
     ]);
     expect(chunks.map((c) => text.slice(c.start, c.end)).join('')).toBe(text);
     expect(chunkText('short', 100)).toEqual([{ start: 0, end: 5 }]);
+  });
+
+  it('sizes the output caps to the work, between 4,096 and 16,384 tokens', () => {
+    expect(segmentOutputCap(7_837)).toBe(4_096);
+    expect(segmentOutputCap(37_861)).toBe(16_384);
+    expect(segmentOutputCap(20_000)).toBe(10_000);
+    expect(mappingOutputCap(10)).toBe(4_096);
+    expect(mappingOutputCap(25)).toBe(10_000);
+    expect(mappingOutputCap(100)).toBe(16_384);
   });
 
   it('batches about 10 clauses a call, fewer calls when the budget is short, and never over the token cap', () => {
