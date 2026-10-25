@@ -35,7 +35,7 @@ async function newRental(baseUrl: string, idToken: string): Promise<string> {
 
 // `Bearer owner` is the emulator's admin bypass of the deny-all rules.
 async function storedIssues(rentalId: string): Promise<{ name: string; fields: Record<string, { stringValue?: string }> }[]> {
-  const res = await fetch(`http://127.0.0.1:8090/v1/projects/demo-fineprint/databases/(default)/documents/rentals/${rentalId}/issues`, {
+  const res = await fetch(`http://${process.env.E2E_WEB_FIRESTORE_HOST ?? '127.0.0.1:8090'}/v1/projects/demo-fineprint/databases/(default)/documents/rentals/${rentalId}/issues`, {
     headers: { Authorization: 'Bearer owner' },
   });
   expect(res.status).toBe(200);

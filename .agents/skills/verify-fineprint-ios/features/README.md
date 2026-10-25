@@ -11,6 +11,7 @@ crash report, and the gate (`scripts/ios-gate/gate.ts`) won't rerun it.
 
 | Feature | Screen | Test | Status |
 | --- | --- | --- | --- |
+| [Grounded Ask](ask.md) | Ask tab: phase suggestions, questions, inline citation chips, handoff and retry | macOS `iOS build` CI; TestFlight checks in `docs/grounded-ask.md` | implemented; iOS e2e unavailable on Linux, device check pending |
 | [App shell](app-shell.md) | Tab bar, next-deadline accessory, Settings sheet | `tests/ios/smoke.e2e.ts`, `tests/ios/app-shell.e2e.ts` | tested |
 | [Onboarding](onboarding.md) | First launch: welcome, language, city or county, rental phase | `tests/ios/onboarding.e2e.ts`, `ios/FinePrintTests/OnboardingTests.swift` | tested |
 | [Developer menu](developer-menu.md) | Settings > Version (5 taps) > Developer Options | `tests/ios/auth.e2e.ts` (opens it) | partly tested |
@@ -18,7 +19,7 @@ crash report, and the gate (`scripts/ios-gate/gate.ts`) won't rerun it.
 | [Evidence camera](camera.md) | Developer Options > Camera > Open Camera (full-screen camera, review); DEBUG fixture camera `-FinePrintFixtureCamera <dir>` (#22) | `tests/ios/capture.e2e.ts`, `tests/ios/camera.e2e.ts` (no-camera state), `ios/FinePrintTests/CaptureTests.swift`, `ios/FinePrintTests/FixtureCameraTests.swift` | partly tested |
 | [Evidence upload queue and seal status](evidence-upload.md) | Use Photo in the camera; Developer Options > Camera > Seal Status, Waiting to Upload, Simulate Offline | `tests/ios/capture.e2e.ts` (offline, then upload), `ios/FinePrintTests/UploadQueueTests.swift` | tested |
 | [Rentals and the rental switcher](rentals.md) | Lease tab > house button: pick a rental or Add Rental; the current rental's name under every tab's title (#46) | `tests/ios/rentals.e2e.ts`, `ios/FinePrintTests/DeadlineStoreTests.swift` (scoping) | tested |
-| [Settings, delete everything, and the built-in server URL](settings.md) | Gear > Settings: language, reading level, impact count, Delete Everything and its receipt (#44); the Release default server URL (#78) | `tests/ios/delete-everything.e2e.ts`, `ios/FinePrintTests/DataDeletionTests.swift`, `ios/FinePrintTests/ServerURLTests.swift` | existing flow tested; iOS 26 dialog anchor fix awaits TestFlight device verification (no iOS e2e on Linux); share links (#35) and AI trace (#39) rows not built |
+| [Settings, delete everything, and the built-in server URL](settings.md) | Gear > Settings: language, reading level, impact count, Delete Everything and its receipt (#44); the Release default server URL (#78) | `tests/ios/delete-everything.e2e.ts`, `ios/FinePrintTests/DataDeletionTests.swift`, `ios/FinePrintTests/ServerURLTests.swift` | existing flow tested; iOS 26 dialog anchor fix awaits TestFlight device verification (no iOS e2e on Linux); share links (#35) implemented with macOS CI compile coverage, iOS e2e not run on Linux; AI trace (#39) row not built |
 | [Move-in walkthrough](walkthrough.md) | Evidence tab: Start Move-In Walkthrough, rooms, checklist, Mark No Damage, Seal Move-In Report (#25) | `tests/ios/walkthrough.e2e.ts`, `ios/FinePrintTests/WalkthroughTests.swift` | tested |
 | [Repairs and the responsibility check](repairs.md) | Repairs tab: New Issue (description, room, item, photos), the result card, emergencies (#31) | `tests/ios/repairs.e2e.ts` (heater live with a key), `ios/FinePrintTests/RepairsTests.swift` | tested |
 | [Lease scan, OCR, and redaction review](lease-scan.md) | Lease tab: Scan Lease or Import PDF, redaction review, What Gets Sent; DEBUG fixture lease `-FinePrintFixtureLease <pdf>` (#17) | `tests/ios/lease.e2e.ts`, `ios/FinePrintTests/LeaseRedactionTests.swift` | tested |
@@ -41,6 +42,6 @@ F3 and F6 share [deadlines](deadlines.md).
 | F5 Repair Request + Rent Escrow Path | Repairs tab: repair notice, tracking, escrow explainer, emergency guidance | #32 | not built |
 | F6 Move-out Ghost Overlay + Diff | Evidence tab: start move-out, ghost overlay camera, compare, deposit tracker | #27, #29 | deposit tracker and 45-day clock built (#29); rest not built |
 | F7 Grounded Ask | Ask tab | #41 | not built |
-| F8 Legal-Aid Web Evidence Report | none in the app beyond creating and revoking share links from the Evidence tab | #35 | not built |
+| F8 Legal-Aid Web Evidence Report | Settings > Share Links: create, expiry, PIN, scope, revoke and access log | #35 | implemented; compile checked in CI; device/e2e checks pending |
 | F9 Insurance Claim Packet | Repairs tab: add to claim packet, PDF through the share sheet | #55 | not built |
 | F10 High-Stakes Handoff | Full-screen handoff sheet shown over any tab | #37, #38 | not built |

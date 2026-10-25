@@ -178,59 +178,36 @@ and non-lease uploads end to end.
   number is dropped, never guessed: the check then reports
   `insufficient_input`.
 
-## Packed batching live gate (#110)
+## Packed batching and live gate (#110)
 
-Run `pnpm smoke:lease --packed-single` in `server/` with `GEMINI_API_KEY`
-provided by the secret manager and a fresh Gemma quota window. It checks one
-successful S5 request, all planted findings, no limiter waits, and no invalid
-outputs. For the HTTP stream, run smoke plus the English live lease test with
-`E2E_PACKED_LEASE_TIMING=1`; this additionally asserts no wait/error events,
-one successful 26B mapping request, and no invalid outputs. An isolated
-emulator run can set `E2E_FIRESTORE_EMULATOR_HOST` for the lease tests' direct
-Firestore checks.
+S5 uses batch-local opaque document ids (`mapping_AA`, ...) and a clause-id
+schema enum for the batch. A trusted alias map restores public `cN` ids before
+S6. Planning reserves the alias enum and framing. The prompt separates an
+exhaustive clause/rule review from selective reporting of noteworthy terms,
+uses supported exceptions and concrete ambiguities, and compares like units.
+S6 still rejects a quote outside its assigned clause; it does not reassign
+quotes to another clause. Rejection logs contain only ids, never lease text.
 
-Measured 2026-10-25: baseline eval passed 8/8 plants; packed eval retained
-7/8, missing `VA_LANDLORD_MAINTAIN_FIT`, and added one clean-alt false
-positive. The short-fixture smoke retained only 2/5 semantic plants. The
-HTTP timing proof passed in 89 seconds with one S5 request and no waits or
-invalid outputs. PR #118 remains draft for the failed accuracy gate. See
-[the live comparison and reproduction steps](../../../../docs/s5-batching.md).
+The selected candidate (`a4b68fa`) matched the measured baseline: 8/8 planted
+findings, zero false positives on either clean variant, short smoke 5/5,
+golden recall/precision 100%, and combined citations 141/141. Three long
+leases took 612 s total versus baseline 1,184 s. The original failed packing
+and the slower first repair remain in [the complete experiment ledger](../../../../docs/s5-batching.md).
 
-After integrating main at `f8f63d0`, the full web gate passed in one run:
-51 tests passed, two live-model skips, exit 0, including smoke and all
-lease-route/packed-mapping tests (`.e2e/proof/110-post-main/`). The baseline
-and packed live results above remain the acceptance evidence; regression
-passes do not clear the failed accuracy gate.
+Run `pnpm smoke:lease --packed-single` in `server/` under the 1Password or
+secret wrapper with a fresh quota window. It asserts one successful S5
+request, all planted findings, no waits, and no invalid outputs. The selected
+candidate passed in 108 s. Run the English live lease e2e plus smoke with
+`E2E_PACKED_LEASE_TIMING=1` to require the five semantic plants on their actual
+clauses, the three deterministic plants, no wait/error events, one successful
+26B mapping request, and no invalid outputs. Integrated HTTP proof passed in
+112 s. Lease tests support `E2E_WEB_FIRESTORE_HOST`, the older
+`E2E_FIRESTORE_EMULATOR_HOST` override, or `E2E_FIRESTORE_PORT` for isolated
+Firestore verification.
 
-PR #118 was retargeted to `dev`. Syncing `origin/dev` at `f8f63d0` required
-no additional changes. A fresh full web run passed smoke and all affected
-lease tests together: 51 passed, two live-model skips, exit 0
-(`.e2e/proof/110-post-dev/`). The PR remains draft for the live accuracy
-failures and is left for the separate integration thread to merge.
-
-## Accuracy repair candidate 1 (#110)
-
-S5 now receives opaque batch-local `mapping_AA` document ids, constrained by
-an enum for that batch. Validated aliases are translated back to the public
-`cN` ids before S6; S6 still rejects every mismatched quote. Planning reserves
-both the alias schema and longer document/task ids. The mapping prompt asks
-for every clause to be considered against all rules, distinguishes explicit
-compliance from hypothetical exceptions, and compares charges in like units.
-Quote rejection logs contain only claimed ids, rule ids, and matching ids
-within the batch, never lease text. The max-40 packing guard is unchanged.
-The previous failed runs remain evidence; this candidate requires its own
-live smoke and eval before readiness can change.
-
-Candidate 1 (`7217cc8`) matched baseline: 8/8 plants, zero false positives on
-both clean variants, 158/158 citations, and short smoke 5/5. Its long leases
-took 330/348/310 seconds with 47/51/52 informational findings, so it retained
-less of the speed gain than intended. Candidate 2 keeps the same max-40
-packing and opaque IDs, but separates exhaustive review from selective
-reporting: omit routine compliant clauses while retaining every supported
-violation or concrete ambiguity. Numeric comparisons explicitly preserve
-multipliers when prorating monthly charges. Each candidate has its own
-recorded live runs; no run is discarded to seek a passing result.
-
-The strict HTTP timing mode now also requires all five semantic plants on
-their actual clauses, alongside the existing three deterministic plants.
-A fast stream with valid JSON is insufficient if S6 discarded findings.
+After syncing `origin/dev` at `e7f24d7`, all 489 unit tests, typecheck, lint,
+and jurisdiction validation passed. The full web gate passed in one run:
+67 passed, two live-model skips, exit 0, including smoke and every affected
+lease test (`.e2e/proof/110-accuracy-repair-final/`). The strict live proof is
+at `.e2e/proof/110-repaired-live-http/`. PR #118 targets dev and is ready for
+review after these acceptance checks; the integration thread owns merging.

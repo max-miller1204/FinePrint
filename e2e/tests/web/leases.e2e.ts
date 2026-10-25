@@ -77,7 +77,7 @@ async function curlStream(baseUrl: string, path: string, idToken: string, timeou
 
 // The stored lease, read from the Firestore emulator in ../firebase.json.
 async function storedDocs(path: string): Promise<{ documents?: { name: string; fields: Record<string, Record<string, unknown>> }[]; fields?: Record<string, Record<string, unknown>> }> {
-  const host = process.env.E2E_FIRESTORE_EMULATOR_HOST ?? '127.0.0.1:8090';
+  const host = process.env.E2E_WEB_FIRESTORE_HOST ?? process.env.E2E_FIRESTORE_EMULATOR_HOST ?? `127.0.0.1:${process.env.E2E_FIRESTORE_PORT ?? '8090'}`;
   const res = await fetch(`http://${host}/v1/projects/demo-fineprint/databases/(default)/documents/${path}?pageSize=300`, {
     headers: { Authorization: 'Bearer owner' },
   });
@@ -194,7 +194,6 @@ describe('Lease API and SSE stream', { platforms: ['web'] }, () => {
         })]));
       }
     }
-
 
     const stored = await storedDocs(`rentals/${rentalId}/leases/${leaseId}/findings`);
     expect(stored.documents).toHaveLength(findings.length);

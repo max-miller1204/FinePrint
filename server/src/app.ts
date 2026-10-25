@@ -1,3 +1,4 @@
+import { shareStore, type Shares } from './shares/store.js';
 import { getFirestore } from 'firebase-admin/firestore';
 import { Hono } from 'hono';
 import { requestId } from 'hono/request-id';
@@ -13,6 +14,7 @@ import { signerFromEnv, type Signer } from './integrity/kms.js';
 import { createLogger, type LogSink, type Logger } from './log.js';
 import { createInternal, googleSchedulerVerifier, type VerifyScheduler } from './routes/internal.js';
 import type { LeaseAnalyzer } from './routes/leases.js';
+import { createImpact } from './routes/impact.js';
 import { createReport } from './routes/report.js';
 import type { ReportLoader } from './report/model.js';
 import { createV1 } from './routes/v1.js';
@@ -28,8 +30,9 @@ export type AppEnv = {
 };
 
 export interface AppDeps {
-  // #35 supplies token authorization and a redacted report projection.
+  // Optional renderer-test seam; production uses the sharing authorization route.
   reportLoader?: ReportLoader;
+  shares?: Shares;
   checks?: HealthChecks;
   logSink?: LogSink;
   verifyIdToken?: VerifyIdToken;
@@ -55,7 +58,8 @@ export interface AppDeps {
 }
 
 export function createApp({
-  reportLoader = async () => null,
+  reportLoader,
+  shares = shareStore(),
   checks = stubbedChecks,
   logSink,
   verifyIdToken = firebaseIdTokenVerifier(),
@@ -102,11 +106,12 @@ export function createApp({
     return c.json({ status: 'ok', checks: results });
   });
 
-  // Public: /healthz and /health above, /.well-known/*, /r/*, and later /impact.
-  app.route('/r', createReport(reportLoader, signer));
+  // Public: /healthz and /health above, /.well-known/*, /r/*, and /impact.
+  app.route('/r', createReport(reportLoader ?? (async () => null), signer, undefined, reportLoader ? undefined : { store, shares, objects }));
   app.route('/.well-known', createWellKnown(clientConfig, signer));
+  app.route('/impact', createImpact(store));
   const analyzer: LeaseAnalyzer = { gemma, triage, packs };
-  app.route('/v1', createV1(verifyIdToken, store, objects, signer, triage, accounts, analyzer));
+  app.route('/v1', createV1(verifyIdToken, store, objects, signer, triage, accounts, analyzer, shares));
   // Cloud Scheduler only; it checks its own Google token, not a Firebase one.
   app.route('/internal', createInternal(store, objects, verifyScheduler, undefined, purgeAudience ?? process.env.PURGE_AUDIENCE));
 

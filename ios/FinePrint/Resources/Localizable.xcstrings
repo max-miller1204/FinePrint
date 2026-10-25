@@ -1,6 +1,193 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
+    "Answers show the lease clause, law, or record they come from. Your conversation is kept only in this session.": {
+      "comment": "Grounded Ask tab.",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Answers show the lease clause, law, or record they come from. Your conversation is kept only in this session."
+          }
+        }
+      }
+    },
+    "Checking your sources…": {
+      "comment": "Grounded Ask tab.",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Checking your sources…"
+          }
+        }
+      }
+    },
+    "Checking your sources": {
+      "comment": "Grounded Ask tab.",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Checking your sources"
+          }
+        }
+      }
+    },
+    "Shows the source quote": {
+      "comment": "Grounded Ask tab.",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Shows the source quote"
+          }
+        }
+      }
+    },
+    "Read the law": {
+      "comment": "Grounded Ask tab.",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Read the law"
+          }
+        }
+      }
+    },
+    "Connect to sync this rental before asking a question.": {
+      "comment": "Grounded Ask tab.",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Connect to sync this rental before asking a question."
+          }
+        }
+      }
+    },
+    "Question about your rental": {
+      "comment": "Grounded Ask tab.",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Question about your rental"
+          }
+        }
+      }
+    },
+    "Keep your question under 2,000 characters.": {
+      "comment": "Grounded Ask tab.",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Keep your question under 2,000 characters."
+          }
+        }
+      }
+    },
+    "What does my lease say about fees?": {
+      "comment": "Grounded Ask tab.",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "What does my lease say about fees?"
+          }
+        }
+      }
+    },
+    "How much can my security deposit be?": {
+      "comment": "Grounded Ask tab.",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "How much can my security deposit be?"
+          }
+        }
+      }
+    },
+    "When is the move-in report due?": {
+      "comment": "Grounded Ask tab.",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "When is the move-in report due?"
+          }
+        }
+      }
+    },
+    "What evidence have I recorded?": {
+      "comment": "Grounded Ask tab.",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "What evidence have I recorded?"
+          }
+        }
+      }
+    },
+    "Can my landlord enter without notice?": {
+      "comment": "Grounded Ask tab.",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Can my landlord enter without notice?"
+          }
+        }
+      }
+    },
+    "What does my lease say about repairs?": {
+      "comment": "Grounded Ask tab.",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "What does my lease say about repairs?"
+          }
+        }
+      }
+    },
+    "When is my deposit itemization due?": {
+      "comment": "Grounded Ask tab.",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "When is my deposit itemization due?"
+          }
+        }
+      }
+    },
+    "What move-out evidence do I have?": {
+      "comment": "Grounded Ask tab.",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "What move-out evidence do I have?"
+          }
+        }
+      }
+    }
+,
+    "Removes your rentals, photos, and anonymous account from this device and from the server. No personal data is kept. Past anonymous impact totals remain." : {
+      "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Removes your rentals, photos, and anonymous account from this device and from the server. No personal data is kept. Past anonymous impact totals remain." } } }
+    },
+    "Saving your choice…" : {
+      "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Saving your choice…" } } }
+    },
+    "Adds one to a public count of tenants helped. It never includes your name, your rental, or your documents. Off unless you turn it on. Turning it off stops future counts; past anonymous totals remain." : {
+      "comment" : "Impact consent; past aggregate contributions cannot be linked back to an account.",
+      "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Adds one to a public count of tenants helped. It never includes your name, your rental, or your documents. Off unless you turn it on. Turning it off stops future counts; past anonymous totals remain." } } }
+    },
     "%@: %@" : {
       "comment" : "Large Content Viewer text for the deadline accessory: deadline title, then countdown such as “3 days left”.",
       "localizations" : {
@@ -232,7 +419,347 @@
     },
     "When something breaks, add it here. You'll see who is likely responsible and get help writing a repair request." : {},
     "Worth asking about" : {},
-    "Your sign-in ended. FinePrint will start a new one." : {}
+    "Your sign-in ended. FinePrint will start a new one." : {},
+    "PIN protected" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "PIN protected"
+          }
+        }
+      }
+    },
+    "No share links yet." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No share links yet."
+          }
+        }
+      }
+    },
+    "Expired" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Expired"
+          }
+        }
+      }
+    },
+    "Share Links" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Share Links"
+          }
+        }
+      }
+    },
+    "7 days" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "7 days"
+          }
+        }
+      }
+    },
+    "Revoke this link?" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Revoke this link?"
+          }
+        }
+      }
+    },
+    "Loading access log…" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Loading access log…"
+          }
+        }
+      }
+    },
+    "No PIN" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No PIN"
+          }
+        }
+      }
+    },
+    "Connect to the server to sync your rental before sharing." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Connect to the server to sync your rental before sharing."
+          }
+        }
+      }
+    },
+    "Your links" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your links"
+          }
+        }
+      }
+    },
+    "No report views yet." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No report views yet."
+          }
+        }
+      }
+    },
+    "1 day" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 day"
+          }
+        }
+      }
+    },
+    "Protect with a PIN" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Protect with a PIN"
+          }
+        }
+      }
+    },
+    "Lease findings" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lease findings"
+          }
+        }
+      }
+    },
+    "Evidence photos and ledger" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Evidence photos and ledger"
+          }
+        }
+      }
+    },
+    "Only successful report opens are recorded. Times and browser families are shown. IP addresses are never stored in this log." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Only successful report opens are recorded. Times and browser families are shown. IP addresses are never stored in this log."
+          }
+        }
+      }
+    },
+    "Access Log" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Access Log"
+          }
+        }
+      }
+    },
+    "PIN (6 to 12 digits)" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "PIN (6 to 12 digits)"
+          }
+        }
+      }
+    },
+    "Revoke Link" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Revoke Link"
+          }
+        }
+      }
+    },
+    "Revoked" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Revoked"
+          }
+        }
+      }
+    },
+    "Save or share this link now. For your privacy, the server cannot show it again." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Save or share this link now. For your privacy, the server cannot show it again."
+          }
+        }
+      }
+    },
+    "New link" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "New link"
+          }
+        }
+      }
+    },
+    "Updating links…" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Updating links…"
+          }
+        }
+      }
+    },
+    "Create Link" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Create Link"
+          }
+        }
+      }
+    },
+    "Expires in" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Expires in"
+          }
+        }
+      }
+    },
+    "Rental not synced" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rental not synced"
+          }
+        }
+      }
+    },
+    "Refresh" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Refresh"
+          }
+        }
+      }
+    },
+    "30 days" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "30 days"
+          }
+        }
+      }
+    },
+    "This stops new access immediately. Downloaded copies remain with the recipient." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This stops new access immediately. Downloaded copies remain with the recipient."
+          }
+        }
+      }
+    },
+    "Anyone with the link and its PIN can view the selected report sections until it expires or you revoke it. Send the PIN separately. Downloaded copies cannot be recalled." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Anyone with the link and its PIN can view the selected report sections until it expires or you revoke it. Send the PIN separately. Downloaded copies cannot be recalled."
+          }
+        }
+      }
+    },
+    "Load Older Views" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Load Older Views"
+          }
+        }
+      }
+    },
+    "Active" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Active"
+          }
+        }
+      }
+    },
+    "Retry" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Retry"
+          }
+        }
+      }
+    },
+    "Share New Link" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Share New Link"
+          }
+        }
+      }
+    }
   },
   "version" : "1.0"
 }

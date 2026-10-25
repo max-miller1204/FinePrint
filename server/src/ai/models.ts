@@ -58,7 +58,9 @@ export const STAGES: Record<Stage, StageConfig> = {
   vision: { role: 'primary', thinking: 'minimal', output: 'schema' },
   responsibility: { role: 'primary', thinking: 'high', output: 'json' },
   responsibility_verify: { role: 'verifier', thinking: 'high', output: 'schema' },
-  ask: { role: 'primary', thinking: 'minimal', output: 'schema' },
+  // Native function calling cannot be combined with responseSchema. Ask validates
+  // JSON locally; the live Ask eval covers tool dispatch and grounded answers.
+  ask: { role: 'primary', thinking: 'minimal', output: 'json' },
   explanation: { role: 'primary', thinking: 'minimal', output: 'json' },
   translation: { role: 'primary', thinking: 'minimal', output: 'json' },
 };

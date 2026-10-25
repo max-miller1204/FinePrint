@@ -6,7 +6,10 @@ F10) get a file each as their routes land.
 
 | Feature | Route | Test | Status |
 | --- | --- | --- | --- |
-| [Web Evidence Report](web-report.md) | `GET /r/:token` | `tests/web/report.e2e.ts`, `server/test/report.test.ts` | tested (SSR, phone, print/PDF) |
+| [Grounded Ask](ask.md) | `POST /v1/rentals/:id/ask` | `tests/web/ask.e2e.ts` with `e2e.ask.config.ts`, `server/test/ask.test.ts`, `pnpm --filter @fineprint/eval ask` | HTTP e2e and live eval |
+| [Impact](impact.md) | `PATCH /v1/me/impact`, `GET /impact` | `tests/web/impact.e2e.ts`, `server/test/impact.test.ts`, `server/test/emulator/impact.test.ts` | tested |
+| [Share links](share-links.md) | `POST/GET /v1/rentals/:id/shares`, `DELETE /v1/shares/:id`, `GET /v1/shares/:id/access`, `GET/POST /r/:token`, photos | `tests/web/shares.e2e.ts` | API and browser tested on Linux; iOS runtime pending |
+| [Web Evidence Report](web-report.md) | `GET /r/:token` | `tests/web/report.e2e.ts`, `tests/web/report-verify.e2e.ts`, `tests/web/report-accessibility.e2e.ts`, `server/test/report.test.ts` | tested (SSR, phone, print/PDF, verify, axe across Chromium/Firefox/WebKit); VoiceOver/Safari pending |
 | [Health check](healthz.md) | `GET /healthz`, `GET /health` | `tests/web/smoke.e2e.ts`, `tests/web/healthz.e2e.ts` | tested |
 | [Error envelope and request IDs](errors.md) | every route | `tests/web/errors.e2e.ts` | tested |
 | [Firebase anonymous auth](auth.md) | `/v1/*`, `GET /v1/me`, `GET /.well-known/fineprint-client.json` | `tests/web/auth.e2e.ts` | tested |
@@ -17,7 +20,7 @@ F10) get a file each as their routes land.
 | [Responsibility check](responsibility.md) | `POST /v1/rentals/:id/issues` | `tests/web/responsibility.e2e.ts` (heater case live with a key), `server/test/responsibility.test.ts`, `server/test/emulator/issues.test.ts`, `pnpm smoke:responsibility` in `server/` (live) | tested |
 | [Delete everything and the daily purge](delete-purge.md) | `DELETE /v1/me`, `POST /internal/purge` (Cloud Scheduler) | `server/test/delete-purge.test.ts`, `server/test/emulator/delete-purge.test.ts`, `tests/ios/delete-everything.e2e.ts` | unit, emulator, and iOS tested |
 | [Lease API and SSE stream](leases.md) | `POST /v1/rentals/:id/leases`, `GET /v1/rentals/:id/leases/:leaseId/stream`, `GET /v1/rentals/:id/leases/:leaseId` | `tests/web/leases.e2e.ts` (live test under `scripts/with-secrets.sh`), `server/test/leases.test.ts` | tested (no model and live) |
-| [Lease pipeline S1 to S9](lease-pipeline.md) | internal; runs behind the lease stream | `tests/web/packed-mapping.e2e.ts` (scripted model, HTTP/SSE), `server/test/lease-pipeline.test.ts`, `server/test/lease-eval.test.ts`, `pnpm smoke:lease` in `server/` (live), `pnpm eval` (live: lease-synthetic and citations gates, clauses-golden report), `pnpm verifier` in `eval/` (live, report only) | unit/e2e tested; packed live accuracy failed (#110) |
+| [Lease pipeline S1 to S9](lease-pipeline.md) | internal; runs behind the lease stream | `tests/web/packed-mapping.e2e.ts` (scripted model, HTTP/SSE), `server/test/lease-pipeline.test.ts`, `server/test/lease-eval.test.ts`, `pnpm smoke:lease` in `server/` (live), `pnpm eval` (live: lease-synthetic and citations gates, clauses-golden report), `pnpm verifier` in `eval/` (live, report only) | unit/e2e and live accuracy tested (#110) |
 | [Language parity eval](language-parity.md) | operator CLI: `pnpm eval --only parity` | `tests/web/parity.e2e.ts`, `tests/web/leases.e2e.ts`, `server/test/parity-eval.test.ts` | offline/e2e tested; live parity and human QA pending |
 | [Adversarial input](adversarial-input.md) | internal; the lease pipeline's S1 and S2, behind the lease stream | `server/test/adversarial.test.ts`, `tests/web/adversarial.e2e.ts`, `tests/web/leases.e2e.ts` (Spanish injection, live), `pnpm adversarial` in `eval/` (live) | unit, e2e (S1, and the stream live), and live tested |
 | [Rule pack](rule-pack.md) | none (internal; read by the lease pipeline) | `server/test/rules.test.ts`, `pnpm check:jurisdictions`, `node scripts/refresh-snapshots.ts` (live) | unit and CI tested |
@@ -43,8 +46,8 @@ and F10's triage ([triage](triage.md)) have them, plus F1's
 | F4 Responsibility Check | `POST /v1/rentals/:id/issues` | #31 | server route ([responsibility](responsibility.md)) and the iOS Repairs card built; photo vision (#26) and the move-in compare (#27) not built |
 | F5 Repair Request + Rent Escrow Path | `/v1` repair notice draft route | #32 | not built |
 | F6 Move-out Ghost Overlay + Diff | `/v1` move-out compare route | #27 | not built |
-| F7 Grounded Ask | `/v1` ask route with function calling | #41 | not built |
-| F8 Legal-Aid Web Evidence Report | `GET /r/:token`, `/.well-known/fineprint-keys.json`, share link routes | #33, #34, #35, #36 | `/.well-known/fineprint-keys.json` built (#24); SSR report, print/PDF, timeline, findings, exhibits and ledger built (#33, [web-report](web-report.md)); browser verify, share lifecycle and axe CI remain #34, #35, #36 |
+| F7 Grounded Ask | `POST /v1/rentals/:id/ask` | #41 | built; [Ask verification](ask.md), deterministic HTTP e2e and live eval |
+| F8 Legal-Aid Web Evidence Report | `GET /r/:token`, `/.well-known/fineprint-keys.json`, share link routes | #33, #34, #35, #36 | `/.well-known/fineprint-keys.json` built (#24); SSR report, print/PDF, timeline, findings, exhibits and ledger built (#33, [web-report](web-report.md)); browser verification built (#34); axe and report e2e CI built (#36), manual VoiceOver/Safari pending; share lifecycle built (#35) |
 | F9 Insurance Claim Packet | none (the PDF is built on the device) | #55 | not built |
 | F10 High-Stakes Handoff | `POST /v1/triage`; the model-backed `/v1` routes call the same check | #37, #38 | triage built (#37, [triage](triage.md)); handoff sheet and resources not built (#38) |
 
@@ -52,8 +55,9 @@ and F10's triage ([triage](triage.md)) have them, plus F1's
 
 `.github/workflows/ci.yml` runs on every push and pull request. It runs
 the root scripts, so a feature's server unit tests gate merges once they
-are in `server/test/` (or any workspace with a `test` script). The e2e
-tests in this map do not run in CI yet; run them locally before a PR.
+are in `server/test/` (or any workspace with a `test` script). The
+report smoke, rendering, verification and accessibility tests run in the
+web report accessibility job. Other e2e tests still run locally before a PR.
 
 | Job | Command | Fails on |
 | --- | --- | --- |
@@ -61,6 +65,7 @@ tests in this map do not run in CI yet; run them locally before a PR.
 | typecheck | `pnpm typecheck` | a `tsc` error in any workspace with a `typecheck` script |
 | unit tests | `pnpm test` | a failing vitest test in any workspace with a `test` script (emulator tests excluded) |
 | jurisdictions schema | `pnpm check:jurisdictions` | invalid JSON under `jurisdictions/`, a rule that fails `jurisdictions/schema/rule.schema.json`, or a `statuteQuote` not verbatim in its snapshot |
+| web report accessibility | `e2e run` smoke + report + report-verify + report-accessibility, web target | any e2e failure or axe violation (WCAG 2.2 A/AA + best practices) in Chromium, Firefox or WebKit |
 | gitleaks | gitleaks 8.30.1, `gitleaks git` | a secret in any commit reachable from HEAD |
 
 The escalation recall gate runs inside `unit tests`: `server/test/triage.test.ts`

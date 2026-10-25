@@ -39,7 +39,7 @@ const serverCommand = (port: string, log: string, firebaseConfig: string, emulat
   env: { PORT: port, REPORT_FIXTURES: '1' },
   // With a key from `with-secrets.sh`, triage asks Gemma as well as the keyword
   // backstop. Without a key the server runs the backstop alone.
-  inheritEnv: ['GEMINI_API_KEY', 'GEMMA_*'],
+  inheritEnv: ['GEMINI_API_KEY', 'GEMMA_*', 'TMPDIR'],
   log,
   // The Firestore and Storage emulators are JVMs; on an 8 GB Mac they can
   // take over a minute to start, past the 60 s default.
@@ -52,7 +52,7 @@ const iphone = mobile({ platform: 'ios', device: process.env.E2E_IOS_DEVICE ?? '
 
 export default {
   // tests/deployed runs against Cloud Run through e2e.deployed.config.ts.
-  tests: ['tests/**/*.e2e.ts', '!tests/deployed/**'],
+  tests: ['tests/**/*.e2e.ts', '!tests/deployed/**', '!tests/web/ask.e2e.ts'],
   targets: [
     {
       name: 'web',
@@ -62,7 +62,7 @@ export default {
         // with a dev server you started by hand.
         url: 'http://127.0.0.1:0',
         readyUrl: 'http://127.0.0.1:{port}/healthz',
-        command: serverCommand('{port}', '.e2e/logs/server.log', join(import.meta.dirname, '..', 'firebase.json'), 'auth,firestore,storage'),
+        command: serverCommand('{port}', '.e2e/logs/server.log', process.env.E2E_WEB_FIREBASE_CONFIG ?? join(import.meta.dirname, '..', 'firebase.json'), 'auth,firestore,storage'),
       },
     },
     {
@@ -79,6 +79,7 @@ export default {
       },
     },
   ],
+  secrets: { sharePin: '483927', shareWrongPin: '000000' },
   agents: {
     default: {
       model: google('gemini-flash-latest'),

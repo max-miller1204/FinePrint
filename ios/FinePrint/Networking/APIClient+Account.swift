@@ -15,7 +15,15 @@ nonisolated struct AccountDeletionReply: Decodable, Equatable, Sendable {
     }
 }
 
+nonisolated struct ImpactPreference: Codable, Sendable {
+    var impactOptIn: Bool
+}
+
 extension APIClient {
+    func setImpactOptIn(_ optedIn: Bool) async throws(APIError) -> ImpactPreference {
+        try await patch("v1/me/impact", body: ImpactPreference(impactOptIn: optedIn))
+    }
+
     /// "Delete everything": removes the rentals, photos, share links, and anonymous account on the server.
     func deleteEverything() async throws(APIError) -> AccountDeletionReply {
         try await delete("v1/me")

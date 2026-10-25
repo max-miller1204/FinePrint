@@ -25,6 +25,8 @@ export function memoryStore() {
   const issues = new Map<string, Issue>();
   let nextId = 1;
   const store: Store = {
+    async setImpactOptIn() {},
+    async getImpact() { return { tenantsHelped: 0, verifiedClausesFlagged: 0, moveInReportsWithin5Days: 0, depositDollarsCovered: 0 }; },
     async createRental(owner, build) {
       const rental = Rental.parse(build(`rental-${nextId++}`));
       users.set(owner.uid, owner.provider);
@@ -136,6 +138,9 @@ export function memoryStore() {
       // A JSON round trip, as Firestore stores it.
       leases.set(`${rentalId}/${lease.id}`, Lease.parse(structuredClone(lease)));
       leaseResults.set(`${rentalId}/${lease.id}`, JSON.parse(JSON.stringify({ clauses, findings })));
+    },
+    async listAskLeases(rentalId) {
+      return [...leases.entries()].filter(([key, l]) => key.startsWith(`${rentalId}/`) && l.status === 'analyzed').map(([, l]) => l).slice(0, 10);
     },
     async getLeaseResults(rentalId, leaseId) {
       return structuredClone(leaseResults.get(`${rentalId}/${leaseId}`) ?? { clauses: [], findings: [] });

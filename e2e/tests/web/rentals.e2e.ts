@@ -28,7 +28,7 @@ function call(baseUrl: string, method: string, path: string, idToken: string, bo
 // The stored document, read from the Firestore emulator in ../firebase.json.
 // `Bearer owner` is the emulator's admin bypass of the deny-all rules.
 async function storedRental(id: string): Promise<{ fields: Record<string, Record<string, unknown>> }> {
-  const res = await fetch(`http://127.0.0.1:8090/v1/projects/demo-fineprint/databases/(default)/documents/rentals/${id}`, {
+  const res = await fetch(`http://${process.env.E2E_WEB_FIRESTORE_HOST ?? `127.0.0.1:${process.env.E2E_FIRESTORE_PORT ?? '8090'}`}/v1/projects/demo-fineprint/databases/(default)/documents/rentals/${id}`, {
     headers: { Authorization: 'Bearer owner' },
   });
   expect(res.status).toBe(200);

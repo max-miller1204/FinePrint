@@ -10,8 +10,14 @@ one button that removes everything FinePrint holds about them.
   shares onboarding's key. Nothing renders in Spanish or at the Simpler
   level yet (#45, #18), and the footer says so. Test ids
   `settings.language`, `settings.readingLevel`.
-- **Privacy**: "Add to the Impact Count", off by default, saved on the
-  device. #57 builds the counter on it. Test id `settings.impactOptIn`.
+- **Privacy**: "Add to the Impact Count", off by default. #57 sends consent
+  through authenticated `PATCH /v1/me/impact`, saves the acknowledged choice,
+  serializes foreground sync with saves, and shows progress or a retryable
+  error without changing the acknowledged value on failure. Test ids:
+  `settings.impactOptIn`, `settings.impactProgress`, `settings.impactError`.
+  The save handler uses `do throws(APIError)` to preserve the typed API failure
+  for display. The macOS build checks compilation; runtime acceptance is the
+  user-approved TestFlight device check from dev by @max-miller1204.
 - **Your Data > Delete Everything…** (`settings.deleteEverything`) opens a
   confirmation dialog ("Delete everything?", button "Delete All My Data",
   `settings.deleteEverything.confirm`). The dialog modifier belongs to the
@@ -29,8 +35,9 @@ one button that removes everything FinePrint holds about them.
   (`deletion.receipt.server`: rentals and photos) and what the device
   removed (`deletion.receipt.device`). "Start Over"
   (`deletion.receipt.done`) leaves it; the receipt is never saved.
-- **Left out**: share links and their access log (#35) and the AI trace
-  overlay (#39) have no rows, because those features do not exist yet.
+- **Share Links**: #35 provides link creation, one-time sharing, revocation and
+  access history; see the device checklist below.
+- **Left out**: the AI trace overlay (#39) has no row yet.
   Sign in with Apple is not built (optional in the issue).
 - **Built-in server URL** (#78): the default server is the Info.plist key
   `FinePrintServerURL`, set from `ios/Config/Shared.xcconfig`. Debug is
@@ -112,3 +119,41 @@ settings-a11y|ios|fuzzer|Open Settings at the largest text size and with VoiceOv
   confirmations and presentation routing used for #99; moving this
   Settings dialog's anchor does not fix the accessibility freeze tracked
   there (reserved for maddoxrjohnson).
+
+## Share links (#35): Linux handoff
+
+Settings > Share Links uses the current synced rental. It supports one,
+seven or thirty days, a 6 to 12 digit optional PIN, lease/evidence scope,
+a one-time Share New Link action, status/expiry, revoke confirmation, and a
+paged access log. New URLs stay only in view state and are not persisted.
+Expired/revoked rows remain visible. Offline errors offer Retry/Refresh;
+a rental without a server ID shows a sync explanation. The UI uses native
+forms, wrapping vertical rows, semantic text styles and system navigation.
+
+**iOS e2e did not run.** This worktree is Linux with no Mac or simulator.
+The CI `iOS build` job compiles the app unsigned with Xcode 26; it does not
+prove runtime UI behavior. TestFlight archives and uploads after merge.
+
+On-device checks for the user:
+
+1. Open Settings > Share Links for a synced rental. Create a one-day link
+   with both scopes and a six-digit PIN. Share the URL, send the PIN
+   separately, and verify a private Safari tab first rejects a wrong PIN,
+   then opens the report with the correct PIN. Reload and open a photo.
+2. Return to Access Log, refresh, and see a time and browser family without
+   an IP. Create lease-only and evidence-only links and verify scope.
+3. Revoke a link, confirm, then refresh the already-open Safari report and
+   its photo. Both must refuse access immediately. An expired link shows
+   the expired page. Previously downloaded copies remain available.
+4. Close and reopen Settings. Existing link metadata and logs remain;
+   original URLs are intentionally unrecoverable. Switch rentals and verify
+   each sees only its own links. Test no links, many links, and no synced
+   rental. Enable airplane mode and verify a clear error with retry.
+5. Check Default, XXXL and AX5 Dynamic Type, VoiceOver control order, dark
+   mode, Increase Contrast, Reduce Transparency and Reduce Motion. Revoke,
+   Share New Link, pagination, Refresh and Settings Close must stay usable.
+   Check Safari input zoom, keyboard, landscape and safe areas on hardware.
+
+```text
+settings-shares|ios|skeptic|Open Settings > Share Links, create scoped links with and without a PIN, share a new URL, inspect and page access history, revoke, switch rentals and retry offline. Verify expiry and revoked status, VoiceOver labels and AX5 wrapping; never expect the server to recover a raw URL after creation.
+```
