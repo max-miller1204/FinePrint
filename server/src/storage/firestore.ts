@@ -3,9 +3,10 @@ import type { AuthUser } from '../auth.js';
 import { firebaseApp } from '../firebase.js';
 import { LedgerEntry, type LedgerHead } from '../integrity/ledger.js';
 import { Manifest } from '../integrity/manifest.js';
+import type { Clause, Finding } from '../ai/pipeline/types.js';
 import { Evidence, type EvidenceSession } from '../models/evidence.js';
 import { Issue } from '../models/issue.js';
-import { LeaseClause, type AnalyzedLease } from '../models/lease.js';
+import { Lease, type AnalyzedLease } from '../models/lease.js';
 import { Rental } from '../models/rental.js';
 import { User } from '../models/user.js';
 
@@ -41,8 +42,8 @@ export interface Store {
   // that land with it. A concurrent append makes the transaction retry, so
   // `build` may run more than once and must not write anything itself.
   appendLedger(rentalId: string, build: (head: LedgerHead | null) => Promise<LedgerAppend>): Promise<LedgerAppend>;
-  // The newest analyzed lease (`analyzedAt`) with its clauses in lease
-  // order. Null when no lease was analyzed. The lease route (#16) writes them.
+  // The newest lease whose status is `analyzed`, with its clauses in lease
+  // order. Null when no lease was analyzed.
   latestLease(rentalId: string): Promise<AnalyzedLease | null>;
   // Creates `rentals/{rentalId}/issues/{issue.id}`.
   createIssue(rentalId: string, issue: Issue): Promise<void>;
@@ -57,6 +58,17 @@ export interface Store {
   deleteRental(rentalId: string): Promise<{ evidenceItems: number }>;
   // Deletes `users/{uid}`. Nothing changes if there is none.
   deleteUser(uid: string): Promise<void>;
+  // `rentals/{rentalId}/leases/{leaseId}`. `build` gets the new lease's id.
+  createLease(rentalId: string, build: (id: string) => Lease): Promise<Lease>;
+  // Null when there is no such lease.
+  getLease(rentalId: string, leaseId: string): Promise<Lease | null>;
+  // Like updateRental: one transaction, and `change` may throw to abort.
+  updateLease(rentalId: string, leaseId: string, change: (current: Lease) => Lease): Promise<Lease | null>;
+  // Writes the finished lease with its clauses and findings in one batch,
+  // replacing any clauses and findings it had.
+  saveLeaseAnalysis(rentalId: string, lease: Lease, clauses: Clause[], findings: Finding[]): Promise<void>;
+  // In lease order and display order.
+  getLeaseResults(rentalId: string, leaseId: string): Promise<{ clauses: Clause[]; findings: Finding[] }>;
 }
 
 export interface LedgerAppend {
@@ -197,12 +209,16 @@ export function firestoreStore(connect: () => Firestore = () => getFirestore(fir
     },
 
     async latestLease(rentalId) {
-      // A lease still being analyzed has no `analyzedAt`, so the order skips it.
-      const newest = await leases(rentalId).orderBy('analyzedAt', 'desc').limit(1).get();
-      const lease = newest.docs[0];
+      // Escalated and not-a-lease results have an `analyzedAt` too, so the
+      // newest few are checked for one that was analyzed.
+      const newest = await leases(rentalId).orderBy('analyzedAt', 'desc').limit(10).get();
+      const lease = newest.docs.find((doc) => doc.get('status') === 'analyzed');
       if (!lease) return null;
-      const snapshot = await lease.ref.collection('clauses').get();
-      const clauses = snapshot.docs.map((doc) => LeaseClause.parse({ ...doc.data(), id: doc.id })).sort((a, b) => a.charStart - b.charStart);
+      const snapshot = await lease.ref.collection('clauses').orderBy('order').get();
+      const clauses = snapshot.docs.map((doc) => {
+        const { order: _, ...fields } = doc.data();
+        return { ...fields, id: doc.id } as Clause;
+      });
       return { id: lease.id, clauses };
     },
 
@@ -239,6 +255,53 @@ export function firestoreStore(connect: () => Firestore = () => getFirestore(fir
     async deleteUser(uid) {
       await collections().users.doc(uid).delete();
     },
+
+    async createLease(rentalId, build) {
+      const ref = leases(rentalId).doc();
+      const lease = Lease.parse(build(ref.id));
+      await ref.create(leaseToFirestore(lease));
+      return lease;
+    },
+
+    async getLease(rentalId, leaseId) {
+      const snapshot = await leases(rentalId).doc(leaseId).get();
+      return snapshot.exists ? leaseFromFirestore(leaseId, snapshot.data()!) : null;
+    },
+
+    async updateLease(rentalId, leaseId, change) {
+      const { db } = collections();
+      const ref = leases(rentalId).doc(leaseId);
+      return db.runTransaction(async (tx) => {
+        const snapshot = await tx.get(ref);
+        if (!snapshot.exists) return null;
+        const next = Lease.parse(change(leaseFromFirestore(leaseId, snapshot.data()!)));
+        tx.set(ref, leaseToFirestore(next));
+        return next;
+      });
+    },
+
+    async saveLeaseAnalysis(rentalId, lease, clauses, findings) {
+      const { db } = collections();
+      const ref = leases(rentalId).doc(lease.id);
+      const [oldClauses, oldFindings] = await Promise.all([ref.collection('clauses').select().get(), ref.collection('findings').select().get()]);
+      // A lease has a few dozen clauses and findings, well under a batch's 500 writes.
+      const batch = db.batch();
+      for (const doc of [...oldClauses.docs, ...oldFindings.docs]) batch.delete(doc.ref);
+      for (const [order, { id, ...fields }] of clauses.entries()) batch.set(ref.collection('clauses').doc(id), plain({ ...fields, order }));
+      for (const [order, { id, ...fields }] of findings.entries()) batch.set(ref.collection('findings').doc(id), plain({ ...fields, order }));
+      batch.set(ref, leaseToFirestore(Lease.parse(lease)));
+      await batch.commit();
+    },
+
+    async getLeaseResults(rentalId, leaseId) {
+      const ref = leases(rentalId).doc(leaseId);
+      const [clauses, findings] = await Promise.all([ref.collection('clauses').orderBy('order').get(), ref.collection('findings').orderBy('order').get()]);
+      const read = <T>(doc: { id: string; data(): DocumentData }) => {
+        const { order: _, ...fields } = doc.data();
+        return { ...fields, id: doc.id } as T;
+      };
+      return { clauses: clauses.docs.map((doc) => read<Clause>(doc)), findings: findings.docs.map((doc) => read<Finding>(doc)) };
+    },
   };
 }
 
@@ -256,6 +319,24 @@ function withoutId({ id: _, ...fields }: Rental) {
 // Dates are stored as Timestamps, which a TTL policy on `purgeAfter` needs.
 function toFirestore(fields: Record<string, unknown>): DocumentData {
   return Object.fromEntries(Object.entries(fields).map(([key, value]) => [key, value instanceof Date ? Timestamp.fromDate(value) : value]));
+}
+
+// Firestore refuses `undefined`; the pipeline's objects are plain JSON otherwise.
+function plain(value: Record<string, unknown>): DocumentData {
+  return JSON.parse(JSON.stringify(value));
+}
+
+function leaseToFirestore({ id: _, ...fields }: Lease): DocumentData {
+  return Object.fromEntries(
+    Object.entries(fields).map(([key, value]) => [
+      key,
+      value instanceof Date ? Timestamp.fromDate(value) : value === null || typeof value !== 'object' ? value : JSON.parse(JSON.stringify(value)),
+    ]),
+  );
+}
+
+function leaseFromFirestore(id: string, data: DocumentData): Lease {
+  return Lease.parse({ ...fromTimestamps(data), id });
 }
 
 function fromTimestamps(data: DocumentData): Record<string, unknown> {

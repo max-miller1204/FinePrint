@@ -53,12 +53,14 @@ describe.runIf(authHost && process.env.FIRESTORE_EMULATOR_HOST)('issues against 
     const { id } = await (await send('/v1/rentals', idToken, { jurisdiction: 'VA', city: 'Richmond' })).json();
     const leases = db().collection(`rentals/${id}/leases`);
     const seed = db().batch();
-    seed.set(leases.doc('old'), { analyzedAt: Timestamp.fromDate(new Date('2026-01-01T00:00:00Z')) });
-    seed.set(leases.doc('old').collection('clauses').doc('c7'), { heading: 'REPAIRS', verbatim: 'An older lease.', charStart: 0, charEnd: 15 });
-    seed.set(leases.doc('new'), { analyzedAt: Timestamp.fromDate(new Date('2026-09-01T00:00:00Z')) });
-    seed.set(leases.doc('new').collection('clauses').doc('c7'), { heading: 'REPAIRS', verbatim: CLAUSE, charStart: 500, charEnd: 500 + CLAUSE.length });
-    // Still being analyzed: no analyzedAt, so it is not the newest.
-    seed.set(leases.doc('pending'), { redactedText: '' });
+    seed.set(leases.doc('old'), { status: 'analyzed', analyzedAt: Timestamp.fromDate(new Date('2026-01-01T00:00:00Z')) });
+    seed.set(leases.doc('old').collection('clauses').doc('c7'), { heading: 'REPAIRS', verbatim: 'An older lease.', start: 0, end: 15, order: 0 });
+    seed.set(leases.doc('new'), { status: 'analyzed', analyzedAt: Timestamp.fromDate(new Date('2026-09-01T00:00:00Z')) });
+    seed.set(leases.doc('new').collection('clauses').doc('c7'), { heading: 'REPAIRS', verbatim: CLAUSE, start: 500, end: 500 + CLAUSE.length, order: 0 });
+    // Newer, but not a lease: it is skipped.
+    seed.set(leases.doc('menu'), { status: 'not_a_lease', analyzedAt: Timestamp.fromDate(new Date('2026-10-01T00:00:00Z')) });
+    // Still being analyzed: no analyzedAt yet, so it is not the newest.
+    seed.set(leases.doc('pending'), { status: 'running', analyzedAt: null });
     await seed.commit();
 
     const res = await send(`/v1/rentals/${id}/issues`, idToken, { description: 'The heater stopped working.' });

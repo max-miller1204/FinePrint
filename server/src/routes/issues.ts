@@ -16,8 +16,9 @@ export interface IssueDeps {
   // Shared with triage, so one rate limiter sees every call. Null: no model
   // is configured, and a check that does not escalate answers 503.
   gemma: GemmaClient | null;
-  // By jurisdiction ("VA"). A rental elsewhere is checked with no rules.
-  rulePacks: ReadonlyMap<string, RulePack>;
+  // Loaded on first use. Keyed by jurisdiction ("VA"); a rental elsewhere is
+  // checked with no rules.
+  packs: () => ReadonlyMap<string, RulePack>;
   triage: Triage;
 }
 
@@ -60,7 +61,7 @@ export function createIssues(store: Store, deps: IssueDeps, now: () => Date = ()
           lease,
           moveIn: moveInRecords(moveIn, room, checklistItem),
         },
-        { gemma: deps.gemma, pack: deps.rulePacks.get(rental.jurisdiction) ?? null, triage: deps.triage, log },
+        { gemma: deps.gemma, pack: deps.packs().get(rental.jurisdiction) ?? null, triage: deps.triage, log },
         { signal: c.req.raw.signal },
       );
     } catch (err) {

@@ -4,8 +4,8 @@ The lease analysis behind F1 Lease Explainer (spec §4.3 F1, §7.3; #14,
 #15): triage, clause segmentation and key terms, quote resolution,
 deterministic checks, rule mapping, mechanical verification, the 31B legal
 verifier and the severity table, plain-language explanations, and
-translation. Gemma interprets; code verifies. No route of its own yet:
-`POST /v1/rentals/:id/leases` and the SSE stream are #16. Details:
+translation. Gemma interprets; code verifies. The route is
+`GET /v1/rentals/:id/leases/:leaseId/stream` ([leases](leases.md), #16). Details:
 `docs/ai-pipeline.md`, "Lease pipeline (#14, #15)".
 
 ## Sub-features
@@ -78,13 +78,14 @@ translation. Gemma interprets; code verifies. No route of its own yet:
 
 ## How to get to it (user POV)
 
-Not reachable from a route yet. The tenant uploads a lease in the app (#16
-adds the route); this runs behind it, and the findings screen shows the
-`findings` list.
+The tenant uploads a lease in the app; the lease stream
+([leases](leases.md)) runs this and sends each finding as an event, and the
+findings screen shows the `findings` list.
 
 ## Driving it with e2e
 
-No e2e test until #16 adds the route. Unit tests cover it with a scripted
+`tests/web/leases.e2e.ts` drives it through the route ([leases](leases.md)).
+Unit tests cover it with a scripted
 model (`server/test/lease-pipeline.test.ts`): S3 matching, clause cutting,
 key term reading, S4 on the planted values, S6 drops, the full run on the
 synthetic lease with its findings and severities, escalation, a non-lease,
@@ -100,7 +101,17 @@ The live checks run the real model:
 pnpm --filter @fineprint/server test
 cd server && op run --env-file ../.env -- pnpm smoke:lease
 cd eval && op run --env-file ../.env -- pnpm verifier     # S7 on clauses-golden, both output modes
+op run --env-file ~/.config/fineprint/.env -- pnpm eval  # the lease eval sets (#20), about 30 minutes
 ```
+
+The eval sets (#20, `docs/ai-pipeline.md`, "Lease eval sets"):
+`eval/datasets/lease-synthetic/` holds a 12-page lease with the same 8
+plants and 2 clean variants, written by `node
+scripts/make-synthetic-lease.ts` (`pnpm check:synthetic-lease` fails when
+the files are stale). `pnpm eval` runs them S1 to S8, runs the 60
+`clauses-golden` excerpts through S5 to S7, and checks that every finding's
+lease quote and statute quote resolve. `server/test/lease-eval.test.ts`
+covers the set, the scoring, and the citations gate with no model.
 
 The fixture is `server/test/fixtures/lease-synthetic.txt`: a Virginia lease
 with a 3-month deposit, a 15% late fee, 24 hours' notice for routine
@@ -127,13 +138,20 @@ waits). `pnpm verifier` in `eval/` prints each mode's agreement; on
 2026-10-25 `json` agreed with 29/30 violations and 0/15 look-alikes
 (`docs/ai-pipeline.md`, "Verifier output mode").
 
+`pnpm eval` prints a results table and `PASS` with exit 0 when recall on
+`lease-synthetic` is 0.9 or higher, precision 0.85 or higher, and the
+citations gate is 100%; a full run rewrites `docs/eval-results.md` (see it
+for the latest numbers).
+
 ## Charters
 
-None until #16 adds the route. Its charter will cover document injection
+The lease upload charter in [leases](leases.md) covers document injection
 and non-lease uploads end to end.
 
 ## Gotchas
 
+- `pnpm eval` and `smoke:lease` on the same key at the same time slow
+  each other down: both wait out 429s for the same 16K tokens a minute.
 - The 26B and 31B quotas are per project: another lease, the eval, or a
   second worktree on the same key in the same minute makes the run wait
   out 429s.

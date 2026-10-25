@@ -21,7 +21,10 @@ in Cloud Shell, who has created a project and linked billing.
   [delete-purge.md](delete-purge.md)); the service gets
   `PURGE_CALLER_EMAIL` to match.
 - Least privilege for `fineprint-api`: `datastore.user` on the project,
-  `storage.objectAdmin` on the bucket, `cloudkms.signerVerifier` on the key,
+  `firebaseauth.admin` on the project (Delete Everything removes the user;
+  without it `DELETE /v1/me` is 503), `storage.objectAdmin` on the bucket,
+  `cloudkms.signerVerifier` and `cloudkms.viewer` on the key (the server lists
+  the key's versions; without `viewer`, sealing and the key URL are 503),
   `secretmanager.secretAccessor` on the secret, and
   `iam.serviceAccountTokenCreator` on itself only, so it can sign evidence
   upload and read URLs through IAM `signBlob` (Cloud Run has no key file).
@@ -32,7 +35,8 @@ in Cloud Shell, who has created a project and linked billing.
   `/health` (Cloud Run reserves `/healthz` on `*.run.app`) and prints the
   service URL, the key URL, and the iOS settings: the exact
   `FINEPRINT_SERVER_URL[config=Release] = https:/$()/<host>` line for
-  `ios/Config/Server.xcconfig` (spec §15.1 step 6, #78).
+  `ios/Config/Server.xcconfig` (spec §15.1 step 6, #78). The project's own
+  server is committed in `ios/Config/DeployedServer.xcconfig` (#53).
 - A second run creates nothing and ships a new revision.
 - `--destroy` asks for the project ID typed back, then removes everything.
   KMS keys cannot be deleted: their versions are scheduled for destruction

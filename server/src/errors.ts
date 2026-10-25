@@ -8,6 +8,8 @@ export type ErrorCode =
   | 'CONFLICT'
   | 'HASH_MISMATCH'
   | 'PAYLOAD_TOO_LARGE'
+  // A route that needs a rule pack, for a state with none (only VA today).
+  | 'UNSUPPORTED_JURISDICTION'
   | 'RATE_LIMITED'
   | 'DEPENDENCY_UNAVAILABLE'
   | 'INTERNAL';

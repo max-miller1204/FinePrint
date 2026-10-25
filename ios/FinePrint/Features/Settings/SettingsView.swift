@@ -53,6 +53,13 @@ struct SettingsView: View {
                     }
                     .disabled(deletion.isDeleting)
                     .accessibilityIdentifier("settings.deleteEverything")
+                    // Keep the iOS 26 popover anchored to the row that opens it.
+                    .confirmationDialog("Delete everything?", isPresented: $isConfirmingDelete, titleVisibility: .visible) {
+                        Button("Delete All My Data", role: .destructive, action: deleteEverything)
+                            .accessibilityIdentifier("settings.deleteEverything.confirm")
+                    } message: {
+                        Text("This removes your rentals, photos, and anonymous account from this device and from the server. It can't be undone.")
+                    }
 
                     if deletion.isDeleting {
                         HStack {
@@ -112,12 +119,6 @@ struct SettingsView: View {
             .sensoryFeedback(.success, trigger: unlockCount)
             .sensoryFeedback(.error, trigger: deletion.phase) { _, new in
                 if case .failed = new { true } else { false }
-            }
-            .confirmationDialog("Delete everything?", isPresented: $isConfirmingDelete, titleVisibility: .visible) {
-                Button("Delete All My Data", role: .destructive, action: deleteEverything)
-                    .accessibilityIdentifier("settings.deleteEverything.confirm")
-            } message: {
-                Text("This removes your rentals, photos, and anonymous account from this device and from the server. It can't be undone.")
             }
         }
     }

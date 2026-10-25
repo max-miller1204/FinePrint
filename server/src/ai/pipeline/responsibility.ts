@@ -18,7 +18,7 @@
 import { createLogger, type Logger } from '../../log.js';
 import type { Evidence } from '../../models/evidence.js';
 import type { Citation, Reason, VerificationStatus } from '../../models/issue.js';
-import type { AnalyzedLease, LeaseClause } from '../../models/lease.js';
+import type { AnalyzedLease } from '../../models/lease.js';
 import { versionOn } from '../../rules/resolve.js';
 import type { IsoDate, RulePack } from '../../rules/types.js';
 import type { TextDocument } from '../documents.js';
@@ -27,7 +27,7 @@ import { responsibilityInstruction, responsibilityTask, verifyInstruction, VERIF
 import { responsibilitySchema, ResponsibilityVerifySchema, type Category, type Confidence, type Verdict } from '../schemas/responsibility.js';
 import type { Triage, TriageCategory, TriageDecision } from '../triage/index.js';
 import { locateQuote } from './quotes.js';
-import type { PipelineUsage } from './types.js';
+import type { Clause, PipelineUsage } from './types.js';
 
 // Spec §7.7: the maintenance duty, wear and tear, repair fees (allowed only
 // for the tenant's own violation), and rent escrow. The pack has no
@@ -55,8 +55,8 @@ export const STOP_CATEGORIES: ReadonlySet<TriageCategory> = new Set(['immediate_
 const RELEVANT_CLAUSE =
   /repair|maint|damage|condition|wear and tear|appliance|heat|hvac|furnace|air.?condition|plumb|electric|pest|mold|alteration|smoke (alarm|detector)|utilit|surrender|move.?out|inspection/i;
 
-export function relevantClauses(clauses: readonly LeaseClause[], maxChars = MAX_LEASE_CHARS): LeaseClause[] {
-  const picked: LeaseClause[] = [];
+export function relevantClauses(clauses: readonly Clause[], maxChars = MAX_LEASE_CHARS): Clause[] {
+  const picked: Clause[] = [];
   let used = 0;
   for (const clause of clauses) {
     if (!RELEVANT_CLAUSE.test(`${clause.heading ?? ''}\n${clause.verbatim}`)) continue;
@@ -259,7 +259,7 @@ export async function checkResponsibility(input: ResponsibilityInput, deps: Resp
             leaseId: input.lease!.id,
             heading: clause.heading,
             quote: clause.verbatim.slice(span.start, span.end),
-            quoteSpan: { start: clause.charStart + span.start, end: clause.charStart + span.end },
+            quoteSpan: { start: clause.start + span.start, end: clause.start + span.end },
           };
         }
       }

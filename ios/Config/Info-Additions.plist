@@ -5,5 +5,8 @@
 	<!-- Merged into the generated Info.plist. The value comes from Config/Shared.xcconfig (#78). -->
 	<key>FinePrintServerURL</key>
 	<string>$(FINEPRINT_SERVER_URL)</string>
+	<!-- Export compliance (#53): the app only uses HTTPS and hashing, which are exempt, so TestFlight skips the question. -->
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
 </dict>
 </plist>

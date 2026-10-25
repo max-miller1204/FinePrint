@@ -47,7 +47,8 @@ AI features reach it through `generate(stage, schema, docs, { task })` in
 Through `POST /v1/triage` (the `triage` stage, [triage](triage.md)) when
 the server has `GEMINI_API_KEY` or `GEMMA_PROVIDER=openai_compatible`. The
 lease pipeline ([lease-pipeline](lease-pipeline.md), #14) calls the
-`extraction` and `mapping` stages; its route is #16.
+`extraction` and `mapping` stages behind the lease stream ([leases](leases.md), #16).
+Triage and the lease stream share one client, so one rate limiter.
 
 ## Driving it with e2e
 
@@ -86,8 +87,7 @@ name the server's models (`gemma4:e2b` on 2026-10-24: 3 to 4 s per
 
 ## Charters
 
-None until a route calls the client. The lease route's charter (#16) will
-cover document injection end to end.
+The lease upload charter in [leases](leases.md) drives the client end to end.
 
 ## Gotchas
 

@@ -59,6 +59,14 @@ nonisolated struct AuthCredentials: Codable, Equatable, Sendable {
     func belongs(to config: ClientConfig.Firebase) -> Bool {
         projectId == config.projectId && authEmulatorHost == config.authEmulatorHost
     }
+
+    /// The same account with the server's current API key. A redeploy can replace the key while the
+    /// project, and so the account, stays the same.
+    func rekeyed(to config: ClientConfig.Firebase) -> AuthCredentials {
+        var copy = self
+        copy.apiKey = config.apiKey
+        return copy
+    }
 }
 
 nonisolated enum AuthError: Error, Equatable, Sendable {
@@ -72,6 +80,8 @@ nonisolated enum AuthError: Error, Equatable, Sendable {
     case accountDisabled
     /// The account was deleted or its refresh token revoked. A new anonymous account replaces it.
     case accountGone
+    /// Google rejected the API key: it was deleted or expired, usually because the server was redeployed.
+    case apiKeyRejected
 
     var message: LocalizedStringResource {
         switch self {
@@ -82,6 +92,7 @@ nonisolated enum AuthError: Error, Equatable, Sendable {
         case .anonymousSignInDisabled: "Anonymous sign-in is turned off for this server."
         case .accountDisabled: "This account has been turned off."
         case .accountGone: "Your sign-in ended. FinePrint will start a new one."
+        case .apiKeyRejected: "This server's sign-in key changed. Try again."
         }
     }
 }
@@ -168,10 +179,14 @@ nonisolated struct FirebaseAuthAPI: Sendable {
         }
     }
 
-    /// Firebase puts the reason in `error.message`, sometimes followed by " : details".
+    /// Firebase puts the reason in `error.message`, sometimes followed by " : details". Google's API
+    /// layer rejects a bad key before Firebase sees the request, with the reason in `error.details`.
     static func error(status: Int, body: Data) -> AuthError {
-        let reason = (try? JSONDecoder().decode(ErrorReply.self, from: body))?.error.message
-            .split(separator: " ").first.map(String.init)
+        let reply = try? JSONDecoder().decode(ErrorReply.self, from: body)
+        if reply?.error.details?.contains(where: { $0.reason == "API_KEY_INVALID" }) == true {
+            return .apiKeyRejected
+        }
+        let reason = reply?.error.message.split(separator: " ").first.map(String.init)
         switch reason {
         case "USER_NOT_FOUND", "INVALID_REFRESH_TOKEN", "TOKEN_EXPIRED": return .accountGone
         case "USER_DISABLED": return .accountDisabled
@@ -202,7 +217,11 @@ nonisolated struct FirebaseAuthAPI: Sendable {
     }
 
     private struct ErrorReply: Decodable {
-        struct Body: Decodable { var message: String }
+        struct Body: Decodable {
+            var message: String
+            var details: [Detail]?
+        }
+        struct Detail: Decodable { var reason: String? }
         var error: Body
     }
 }

@@ -1,21 +1,25 @@
+import { getFirestore } from 'firebase-admin/firestore';
 import { Hono } from 'hono';
 import { requestId } from 'hono/request-id';
-import type { GemmaClient } from './ai/gemma.js';
-import { modelFromEnv, triageWith } from './ai/triage/from-env.js';
+import { gemmaFromEnv, type GemmaClient } from './ai/gemma.js';
+import { triageFromEnv, triageModelConfigured } from './ai/triage/from-env.js';
 import type { Triage } from './ai/triage/index.js';
 import { firebaseAccounts, type Accounts } from './accounts.js';
 import { firebaseIdTokenVerifier, type VerifyIdToken } from './auth.js';
+import { firebaseApp } from './firebase.js';
 import { ApiError } from './errors.js';
 import { runChecks, stubbedChecks, type HealthChecks } from './health.js';
 import { signerFromEnv, type Signer } from './integrity/kms.js';
 import { createLogger, type LogSink, type Logger } from './log.js';
 import { createInternal, googleSchedulerVerifier, type VerifyScheduler } from './routes/internal.js';
+import type { LeaseAnalyzer } from './routes/leases.js';
 import { createV1 } from './routes/v1.js';
-import { loadRulePacks } from './rules/loader.js';
-import type { RulePack } from './rules/types.js';
 import { firestoreStore, type Store } from './storage/firestore.js';
 import { gcsObjects, type EvidenceObjects } from './storage/gcs.js';
 import { clientConfigFromEnv, createWellKnown, type ClientConfig } from './routes/wellknown.js';
+import { JURISDICTIONS_ROOT, loadRulePacks } from './rules/loader.js';
+import type { RulePack } from './rules/types.js';
+import { firestoreUsageSink } from './usage.js';
 
 export type AppEnv = {
   Variables: { requestId: string; log: Logger };
@@ -30,13 +34,15 @@ export interface AppDeps {
   objects?: EvidenceObjects;
   // Null: sealing and the key set answer 503.
   signer?: Signer | null;
-  // The Gemma client the model-backed routes share. Null: no key, so triage
-  // runs on the backstop alone and the responsibility check answers 503.
+  // The one model client, so triage, the lease pipeline, and the
+  // responsibility check share its rate limiter. Null without a key: the lease
+  // stream stops after S1 and the responsibility check answers 503.
   gemma?: GemmaClient | null;
   // Gemma plus the keyword backstop, or the backstop alone without a key.
   triage?: Triage;
-  // Rule packs by jurisdiction. Every rule must be verified to load.
-  rulePacks?: ReadonlyMap<string, RulePack>;
+  // The rule packs the lease pipeline and the responsibility check use;
+  // loaded on first use.
+  packs?: () => ReadonlyMap<string, RulePack>;
   accounts?: Accounts;
   // Null: /internal/purge answers 404.
   verifyScheduler?: VerifyScheduler | null;
@@ -52,9 +58,9 @@ export function createApp({
   store = firestoreStore(),
   objects = gcsObjects(),
   signer = signerFromEnv(),
-  gemma = modelFromEnv(createLogger(null, logSink)),
-  triage = triageWith(gemma),
-  rulePacks = loadRulePacks(undefined, { requireVerified: true }),
+  gemma = triageModelConfigured() ? gemmaFromEnv({ usage: firestoreUsageSink(getFirestore(firebaseApp())), log: createLogger(null, logSink) }) : null,
+  triage = triageFromEnv(createLogger(null, logSink), process.env, () => gemma!),
+  packs = lazyRulePacks(),
   accounts = firebaseAccounts(),
   verifyScheduler = googleSchedulerVerifier(),
   purgeAudience,
@@ -93,7 +99,8 @@ export function createApp({
 
   // Public: /healthz and /health above, /.well-known/*, and later /r/* and /impact.
   app.route('/.well-known', createWellKnown(clientConfig, signer));
-  app.route('/v1', createV1(verifyIdToken, store, objects, signer, { gemma, triage, rulePacks }, accounts));
+  const analyzer: LeaseAnalyzer = { gemma, triage, packs };
+  app.route('/v1', createV1(verifyIdToken, store, objects, signer, triage, accounts, analyzer));
   // Cloud Scheduler only; it checks its own Google token, not a Firebase one.
   app.route('/internal', createInternal(store, objects, verifyScheduler, undefined, purgeAudience ?? process.env.PURGE_AUDIENCE));
 
@@ -113,4 +120,11 @@ export function createApp({
   });
 
   return app;
+}
+
+// Every verified pack, read once. A pack that fails to load throws on each
+// use (the lease routes answer 503) rather than stopping the server.
+function lazyRulePacks(): () => ReadonlyMap<string, RulePack> {
+  let packs: ReadonlyMap<string, RulePack> | undefined;
+  return () => (packs ??= loadRulePacks(JURISDICTIONS_ROOT, { requireVerified: true }));
 }

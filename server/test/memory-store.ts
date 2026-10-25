@@ -1,9 +1,10 @@
 import type { AuthUser } from '../src/auth.js';
 import { LedgerEntry } from '../src/integrity/ledger.js';
 import { Manifest } from '../src/integrity/manifest.js';
+import type { Clause, Finding } from '../src/ai/pipeline/types.js';
 import { Evidence } from '../src/models/evidence.js';
 import { Issue } from '../src/models/issue.js';
-import type { AnalyzedLease } from '../src/models/lease.js';
+import { Lease } from '../src/models/lease.js';
 import { Rental } from '../src/models/rental.js';
 import type { Store } from '../src/storage/firestore.js';
 
@@ -17,8 +18,9 @@ export function memoryStore() {
   const ledgers = new Map<string, LedgerEntry[]>();
   // Keyed `rentalId/manifestId`.
   const manifests = new Map<string, Manifest>();
-  // Keyed by rentalId: the analyzed lease latestLease() returns. Tests set it.
-  const leases = new Map<string, AnalyzedLease>();
+  // Keyed `rentalId/leaseId`.
+  const leases = new Map<string, Lease>();
+  const leaseResults = new Map<string, { clauses: Clause[]; findings: Finding[] }>();
   // Keyed `rentalId/issueId`.
   const issues = new Map<string, Issue>();
   let nextId = 1;
@@ -72,7 +74,13 @@ export function memoryStore() {
       return structuredClone(append);
     },
     async latestLease(rentalId) {
-      return structuredClone(leases.get(rentalId) ?? null);
+      const analyzed = [...leases.entries()]
+        .filter(([key, lease]) => key.startsWith(`${rentalId}/`) && lease.status === 'analyzed')
+        .sort(([, a], [, b]) => (b.analyzedAt?.getTime() ?? 0) - (a.analyzedAt?.getTime() ?? 0));
+      const newest = analyzed[0];
+      if (!newest) return null;
+      const [key, lease] = newest;
+      return structuredClone({ id: lease.id, clauses: leaseResults.get(key)?.clauses ?? [] });
     },
     async createIssue(rentalId, issue) {
       const key = `${rentalId}/${issue.id}`;
@@ -97,7 +105,11 @@ export function memoryStore() {
       }
       for (const key of [...manifests.keys()]) if (key.startsWith(`${rentalId}/`)) manifests.delete(key);
       for (const key of [...issues.keys()]) if (key.startsWith(`${rentalId}/`)) issues.delete(key);
-      leases.delete(rentalId);
+      for (const key of [...leases.keys()]) {
+        if (!key.startsWith(`${rentalId}/`)) continue;
+        leases.delete(key);
+        leaseResults.delete(key);
+      }
       ledgers.delete(rentalId);
       rentals.delete(rentalId);
       return { evidenceItems };
@@ -105,6 +117,29 @@ export function memoryStore() {
     async deleteUser(uid) {
       users.delete(uid);
     },
+    async createLease(rentalId, build) {
+      const lease = Lease.parse(build(`lease-${nextId++}`));
+      leases.set(`${rentalId}/${lease.id}`, lease);
+      return structuredClone(lease);
+    },
+    async getLease(rentalId, leaseId) {
+      return structuredClone(leases.get(`${rentalId}/${leaseId}`) ?? null);
+    },
+    async updateLease(rentalId, leaseId, change) {
+      const current = leases.get(`${rentalId}/${leaseId}`);
+      if (!current) return null;
+      const next = Lease.parse(change(structuredClone(current)));
+      leases.set(`${rentalId}/${leaseId}`, next);
+      return structuredClone(next);
+    },
+    async saveLeaseAnalysis(rentalId, lease, clauses, findings) {
+      // A JSON round trip, as Firestore stores it.
+      leases.set(`${rentalId}/${lease.id}`, Lease.parse(structuredClone(lease)));
+      leaseResults.set(`${rentalId}/${lease.id}`, JSON.parse(JSON.stringify({ clauses, findings })));
+    },
+    async getLeaseResults(rentalId, leaseId) {
+      return structuredClone(leaseResults.get(`${rentalId}/${leaseId}`) ?? { clauses: [], findings: [] });
+    },
   };
-  return { store, rentals, users, evidence, ledgers, manifests, leases, issues };
+  return { store, rentals, users, evidence, ledgers, manifests, leases, leaseResults, issues };
 }

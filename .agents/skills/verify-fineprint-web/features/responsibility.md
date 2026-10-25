@@ -42,9 +42,9 @@ not resolve; Gemma 31B gives its own verdict before an answer may say
   lease quote is in its clause, exactly (S3's matcher). Others are dropped
   (the log counts them). No reason left: `not_sure`, `unknown`, `low`.
   `pre_existing` with no move-in record cited: `unknown`.
-- Inputs: the description; the newest analyzed lease's clauses about
-  repairs, maintenance, damage, and systems (up to 24,000 characters;
-  `rentals/{id}/leases`, written by #16, so none yet); the rental's received
+- Inputs: the description; the clauses about repairs, maintenance, damage,
+  and systems of the newest lease with status `analyzed` (up to 24,000
+  characters; written by the [lease stream](leases.md)); the rental's received
   move-in photos of the same `room`, same item and sealed first, up to 8, as
   records (room, item, time, sealed), not images.
 - Triage first (`source: repair`, the same check as `POST /v1/triage`).

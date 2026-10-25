@@ -18,7 +18,7 @@ import type { ResponsibilityAnswer } from '../src/ai/schemas/responsibility.js';
 import { createTriage } from '../src/ai/triage/index.js';
 import { keywordBackstop } from '../src/ai/triage/keywords.js';
 import { newEvidence, type Evidence } from '../src/models/evidence.js';
-import type { AnalyzedLease } from '../src/models/lease.js';
+import { CreateLeaseInput, newLease, type AnalyzedLease } from '../src/models/lease.js';
 import { JURISDICTIONS_ROOT, loadRulePack } from '../src/rules/loader.js';
 import { memoryStore } from './memory-store.js';
 
@@ -31,10 +31,18 @@ const REPAIRS_CLAUSE = '7. REPAIRS. Landlord shall keep the heating system in go
 const LEASE: AnalyzedLease = {
   id: 'lease-1',
   clauses: [
-    { id: 'c1', heading: 'RENT', verbatim: '1. RENT. Tenant shall pay monthly rent of $1,500.00 on the first day of each month.', charStart: 0, charEnd: 82 },
-    { id: 'c7', heading: 'REPAIRS', verbatim: REPAIRS_CLAUSE, charStart: 900, charEnd: 900 + REPAIRS_CLAUSE.length },
+    { id: 'c1', heading: 'RENT', verbatim: '1. RENT. Tenant shall pay monthly rent of $1,500.00 on the first day of each month.', start: 0, end: 82 },
+    { id: 'c7', heading: 'REPAIRS', verbatim: REPAIRS_CLAUSE, start: 900, end: 900 + REPAIRS_CLAUSE.length },
   ],
 };
+
+/** Stores LEASE the way the lease route leaves an analyzed lease. */
+function seedAnalyzedLease(memory: ReturnType<typeof memoryStore>, rentalId: string) {
+  const at = new Date();
+  const lease = newLease(LEASE.id, 'VA', CreateLeaseInput.parse({ text: REPAIRS_CLAUSE }), at);
+  memory.leases.set(`${rentalId}/${LEASE.id}`, { ...lease, status: 'analyzed', analyzedAt: at });
+  memory.leaseResults.set(`${rentalId}/${LEASE.id}`, { clauses: LEASE.clauses, findings: [] });
+}
 
 const MOVE_IN_ID = '6f1e1c9a-9a48-4b8e-9a62-2c1f9ad1b001';
 
@@ -393,7 +401,7 @@ async function route(answers: Answers | null = { responsibility: landlordAnswer,
     store: memory.store,
     gemma: fake?.gemma ?? null,
     triage: backstopOnly(),
-    rulePacks: new Map([['VA', PACK]]),
+    packs: () => new Map([['VA', PACK]]),
   });
   const request = (path: string, body: unknown, token: string | null = 'alice') =>
     app.request(path, {
@@ -410,7 +418,7 @@ async function route(answers: Answers | null = { responsibility: landlordAnswer,
 describe('POST /v1/rentals/:id/issues', () => {
   it('checks a broken heater and stores the issue', async () => {
     const { post, memory, rentalId, logged, calls } = await route();
-    memory.leases.set(rentalId, LEASE);
+    seedAnalyzedLease(memory, rentalId);
     memory.evidence.set(`${rentalId}/${MOVE_IN_ID}`, photo(MOVE_IN_ID));
     memory.evidence.set(`${rentalId}/${INCIDENT_ID}`, photo(INCIDENT_ID, { session: 'incident', sealedManifestId: null }));
 

@@ -10,7 +10,9 @@
     "lint": "biome lint .",
     "typecheck": "pnpm -r --if-present typecheck",
     "test": "pnpm -r --if-present test",
-    "check:jurisdictions": "node scripts/check-jurisdictions.ts"
+    "check:jurisdictions": "node scripts/check-jurisdictions.ts",
+    "eval": "pnpm --filter @fineprint/eval eval",
+    "check:synthetic-lease": "node scripts/make-synthetic-lease.ts --check"
   },
   "devDependencies": {
     "@biomejs/biome": "2.5.15"
