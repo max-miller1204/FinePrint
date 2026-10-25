@@ -49,7 +49,8 @@ const serverCommand = (port: string, log: string, firebaseConfig: string, emulat
 const iphone = mobile({ platform: 'ios', device: process.env.E2E_IOS_DEVICE ?? 'iPhone 17 Pro' });
 
 export default {
-  tests: 'tests/**/*.e2e.ts',
+  // tests/deployed runs against Cloud Run through e2e.deployed.config.ts.
+  tests: ['tests/**/*.e2e.ts', '!tests/deployed/**'],
   targets: [
     {
       name: 'web',

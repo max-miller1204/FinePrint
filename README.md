@@ -16,7 +16,22 @@ TODO: rendered architecture diagram from spec §5.1 (#48)
 
 ## Setup
 
-TODO: local development and "Deploy your own" (#4, #48)
+TODO: local development (#48)
+
+### Deploy your own
+
+Create a Google Cloud project, link billing, then from Cloud Shell or any
+machine with the Google Cloud CLI:
+
+```sh
+gcloud auth login
+./deploy.sh                    # prompts for the project, region (us-east4), and Gemini API key
+./deploy.sh --destroy          # removes it all, after you type the project ID
+```
+
+Run it again any time: it skips what exists and ships a new revision. It
+prints the server URL to set in the iOS app. The budget alerts are in US
+dollars, so the budget step fails on a billing account in another currency.
 
 ## API dependency map
 

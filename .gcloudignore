@@ -1,0 +1,15 @@
+# What `gcloud run deploy --source .` leaves out of the upload. Keep in sync
+# with .dockerignore.
+.gcloudignore
+#!include:.gitignore
+.git
+.github
+.agents
+.claude
+.plans
+ios/
+e2e/
+eval/
+research/
+docs/
+scripts/

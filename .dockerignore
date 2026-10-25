@@ -1,0 +1,18 @@
+# Keep in sync with .gcloudignore. The server image needs the workspace
+# root files, server/, and (later) jurisdictions/.
+.git
+.github
+.agents
+.claude
+.plans
+**/node_modules
+**/dist
+**/.e2e
+.env
+.env.*
+ios
+e2e
+eval
+research
+docs
+scripts
