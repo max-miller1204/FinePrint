@@ -62,7 +62,7 @@ export default {
         // with a dev server you started by hand.
         url: 'http://127.0.0.1:0',
         readyUrl: 'http://127.0.0.1:{port}/healthz',
-        command: serverCommand('{port}', '.e2e/logs/server.log', join(import.meta.dirname, '..', 'firebase.json'), 'auth,firestore,storage'),
+        command: serverCommand('{port}', '.e2e/logs/server.log', process.env.E2E_WEB_FIREBASE_CONFIG ?? join(import.meta.dirname, '..', 'firebase.json'), 'auth,firestore,storage'),
       },
     },
     {
@@ -79,6 +79,7 @@ export default {
       },
     },
   ],
+  secrets: { sharePin: '483927', shareWrongPin: '000000' },
   agents: {
     default: {
       model: google('gemini-flash-latest'),

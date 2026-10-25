@@ -6,7 +6,7 @@ import { verifySignature, type PublicJwk, type Signer } from './kms.js';
 // hash of the one before it and is signed, so removing or reordering
 // entries breaks the chain.
 
-export const LedgerType = z.enum(['manifest_sealed', 'evidence_deleted']);
+export const LedgerType = z.enum(['manifest_sealed', 'evidence_deleted', 'share_created', 'share_revoked']);
 export type LedgerType = z.infer<typeof LedgerType>;
 
 // The hash the first entry points back to.

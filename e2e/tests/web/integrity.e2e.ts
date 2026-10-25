@@ -47,7 +47,7 @@ function call(baseUrl: string, method: string, path: string, idToken: string, bo
 }
 
 async function storedItem(rentalId: string, itemId: string): Promise<{ fields: Record<string, Record<string, unknown>> }> {
-  const res = await fetch(`http://127.0.0.1:8090/v1/projects/demo-fineprint/databases/(default)/documents/rentals/${rentalId}/evidence/${itemId}`, {
+  const res = await fetch(`http://${process.env.E2E_WEB_FIRESTORE_HOST ?? '127.0.0.1:8090'}/v1/projects/demo-fineprint/databases/(default)/documents/rentals/${rentalId}/evidence/${itemId}`, {
     headers: { Authorization: 'Bearer owner' },
   });
   expect(res.status).toBe(200);

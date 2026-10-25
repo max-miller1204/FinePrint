@@ -1,0 +1,49 @@
+Issue #35 Linux verification
+
+e2e run: 01a172c8-1165-7da9-b6d1-de9bed7cde52
+Started: 2026-10-25T11:17:57.138Z
+Finished: 2026-10-25T11:18:17.261Z
+Exit: 0
+Command (e2e/):
+E2E_WEB_FIREBASE_CONFIG="$PWD/.e2e/firebase-isolated.json" E2E_WEB_FIRESTORE_HOST=127.0.0.1:18090 E2E_WEB_AUTH_HOST=127.0.0.1:19099 pnpm exec e2e run tests/web --target web --output .e2e/proof/issue-35-final --retries 0 --trace on --no-cache
+
+12 files passed; 46 tests passed, 2 live-model tests skipped (no model configured).
+Smoke, all 7 sharing tests, report, photo/upload, seal/ledger, auth, rentals, errors, leases, triage and health included in this one run.
+pnpm test: 446 passed, exit 0.
+pnpm typecheck: exit 0.
+pnpm lint: exit 0 (330 warnings).
+pnpm check:jurisdictions: 33 JSON files, 32 rules valid, exit 0.
+git diff --check: exit 0.
+
+Screenshots are synthetic emulator data at 320px for PIN, accepted, revoked, expired and limited pages. The live photo report is a synthetic sealed fixture JPEG. PIN and accepted screenshots use dark mode at 320x720, before and after submitting the correct PIN.
+iOS e2e did not run: Linux, no Mac or iOS simulator. The separate macOS CI job compiles without signing. TestFlight and device checks are required before claiming runtime validation.
+
+Reverification after merging origin/main 8f00684 (#123 WebCrypto Verify and #124 Secret Manager)
+
+e2e run: 01a172d6-2106-7bbf-b530-9f4bbcfce8d8
+Started: 2026-10-25T11:33:18.937Z
+Finished: 2026-10-25T11:33:39.635Z
+Exit: 0
+Command (e2e/):
+E2E_WEB_FIREBASE_CONFIG="$PWD/.e2e/firebase-isolated.json" E2E_WEB_FIRESTORE_HOST=127.0.0.1:18090 E2E_WEB_AUTH_HOST=127.0.0.1:19099 pnpm exec e2e run tests/web --target web --exclude-tag bugbash --output .e2e/proof/issue-35-main-merge --retries 0 --trace on --no-cache
+
+13 files passed; 52 tests passed, 2 live-model tests skipped (no model configured), exit 0 in one invocation.
+Includes smoke, all 7 sharing tests and all 6 browser verification tests, SSR/print, auth, rentals, evidence, integrity, leases, triage, errors and health.
+Integrated PIN-protected original verification passes with the link cookie; a fresh Verify after revocation fails. Cross-origin fetches omit credentials. PIN form submission and self-hosted Verify are both permitted by the combined CSP.
+pnpm test: 447 passed, exit 0.
+python3 scripts/test-with-secrets.py: all 13 checks passed, exit 0. No real secret was accessed.
+pnpm typecheck, pnpm lint (338 warnings, 1 info), pnpm check:jurisdictions, git diff --check: exit 0.
+Screenshots refreshed from this merged-tree run.
+Waiting on: iOS e2e test written and run by @maddoxrjohnson. No iOS runtime check ran on Linux. Do not merge until the required Mac run and review are posted.
+
+Latest main sync: ff20bdf (#120, in addition to #123 and #124)
+e2e run: 01a172db-66d8-77e6-b55f-6c7363a93fcc
+Started: 2026-10-25T11:39:04.557Z
+Finished: 2026-10-25T11:39:24.313Z
+Exit: 0
+Command (e2e/):
+E2E_WEB_FIREBASE_CONFIG="$PWD/.e2e/firebase-isolated.json" E2E_WEB_FIRESTORE_HOST=127.0.0.1:18090 E2E_WEB_AUTH_HOST=127.0.0.1:19099 pnpm exec e2e run tests/web --target web --exclude-tag bugbash --output .e2e/proof/issue-35-main-sync --retries 0 --trace on --no-cache
+
+14 files passed; 54 tests passed, 2 live-model skips, exit 0 in one run. Includes smoke, sharing, WebCrypto Verify and the newly merged parity CLI checks.
+pnpm test: 452 passed, exit 0. Typecheck and lint passed (366 warnings, 1 info).
+No iOS e2e test file was written or pushed from Linux. Test authoring and execution belong to @maddoxrjohnson's Mac agents under their slimmed-down standard. Do not merge until passing iOS evidence and review are posted.
