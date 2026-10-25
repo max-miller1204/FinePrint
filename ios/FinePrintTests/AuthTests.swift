@@ -70,6 +70,17 @@ nonisolated enum Fixture {
         StubHTTP.Reply(status: status, body: #"{"error":{"code":\#(status),"message":"\#(message)"}}"#)
     }
 
+    /// Google's API layer, not Firebase, answers a deleted or expired key.
+    static let apiKeyRejected = StubHTTP.Reply(
+        status: 400,
+        body: #"{"error":{"code":400,"message":"API key expired. Please renew the API key.","status":"INVALID_ARGUMENT","details":[{"@type":"type.googleapis.com/google.rpc.ErrorInfo","reason":"API_KEY_INVALID","domain":"googleapis.com"}]}}"#
+    )
+    /// The same project after a redeploy replaced its API key.
+    static let rekeyedConfig = StubHTTP.Reply(
+        status: 200,
+        body: #"{"firebase":{"apiKey":"key-2","projectId":"demo-fineprint","authEmulatorHost":"127.0.0.1:9099"}}"#
+    )
+
     static let emulator = ClientConfig.Firebase(apiKey: "key-1", projectId: "demo-fineprint", authEmulatorHost: "127.0.0.1:9099")
 
     static func credentials(project: String = "demo-fineprint", expiresIn: TimeInterval = 3600) -> AuthCredentials {
@@ -140,6 +151,14 @@ struct FirebaseAuthAPITests {
         let http = StubHTTP(["token": [Fixture.firebaseError(message)]])
         let api = FirebaseAuthAPI(config: Fixture.emulator, transport: http.transport)
         await #expect(throws: expected) {
+            try await api.refresh(Fixture.credentials())
+        }
+    }
+
+    @Test func `a rejected API key reads as apiKeyRejected`() async {
+        let http = StubHTTP(["token": [Fixture.apiKeyRejected]])
+        let api = FirebaseAuthAPI(config: Fixture.emulator, transport: http.transport)
+        await #expect(throws: AuthError.apiKeyRejected) {
             try await api.refresh(Fixture.credentials())
         }
     }
@@ -223,6 +242,43 @@ struct AuthSessionTests {
 
         #expect(store.load()?.projectId == "demo-fineprint")
         #expect(http.requests(to: "accounts:signUp").count == 1)
+    }
+
+    @Test func `a new API key on the same project keeps the account`() async throws {
+        let http = StubHTTP(["fineprint-client.json": [Fixture.rekeyedConfig]])
+        let store = InMemoryCredentialStore(Fixture.credentials())
+        let auth = session(http, store: store)
+
+        await auth.start()
+
+        #expect(store.load()?.uid == "uid-1")
+        #expect(store.load()?.apiKey == "key-2")
+        #expect(http.requests(to: "accounts:signUp").isEmpty)
+        #expect(try await auth.idToken() == "id-1")
+    }
+
+    @Test func `a rejected API key is retried once with the server's current key`() async throws {
+        let http = StubHTTP([
+            "token": [Fixture.apiKeyRejected, Fixture.refresh],
+            "fineprint-client.json": [Fixture.rekeyedConfig],
+        ])
+        let store = InMemoryCredentialStore(Fixture.credentials(expiresIn: -1))
+        let auth = session(http, store: store)
+
+        #expect(try await auth.idToken() == "id-2")
+
+        #expect(http.requests(to: "token").map { $0.url?.query } == ["key=key-1", "key=key-2"])
+        #expect(http.requests(to: "accounts:signUp").isEmpty)
+        #expect(store.load()?.uid == "uid-1")
+        #expect(store.load()?.apiKey == "key-2")
+    }
+
+    @Test func `a rejected API key the server still serves is reported, not retried`() async {
+        let http = StubHTTP(["token": [Fixture.apiKeyRejected], "fineprint-client.json": [Fixture.config]])
+        let auth = session(http, store: InMemoryCredentialStore(Fixture.credentials(expiresIn: -1)))
+
+        await #expect(throws: AuthError.apiKeyRejected) { try await auth.idToken() }
+        #expect(http.requests(to: "token").count == 1)
     }
 
     @Test func `offline at launch keeps the saved account`() async {
