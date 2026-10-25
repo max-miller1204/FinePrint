@@ -20,5 +20,7 @@
   ],
   "tenantExplanation": "For routine maintenance you didn't ask for, Virginia requires your landlord to give you at least 72 hours' notice.",
   "action": "You can ask your landlord to change the notice period for routine maintenance to at least 72 hours.",
-  "severityIfViolated": "unenforceable"
+  "severityIfViolated": "unenforceable",
+  "verifiedBy": "Max Miller",
+  "verifiedAt": "2026-10-24"
 }

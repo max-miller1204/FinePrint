@@ -231,7 +231,7 @@ What the evidence model proves, and what it does not (spec §8.4):
 
 Other limits:
 
-- **Virginia only.** The rules cover the VRLTA. The pack (`jurisdictions/va/`) has 16 rules from §§ 55.1-1204, -1208, -1214, -1220, -1226, -1229, and -1244, with snapshots fetched 2026-10-25. Last verified: not yet; each rule needs a person's check before it ships.
+- **Virginia only.** The rules cover the VRLTA. The pack (`jurisdictions/va/`) has 16 rules from §§ 55.1-1204, -1208, -1214, -1220, -1226, -1229, and -1244, with snapshots fetched 2026-10-25. Last verified: 2026-10-24, by a person checking every quote and subsection against its snapshot.
 - **Data use.** Gemma calls fall under Google's unpaid terms: Google may use the content to improve its products (see [Gemini API data use](#gemini-api-data-use)).
 - **Not legal advice.** Verdicts say "likely", with reasons, citations, and confidence. High-stakes situations go to legal aid.
 - **The AI can be wrong.** Code checks quotes, citations, numbers, and dates literally, and a second model checks legal findings. Interpretation can still be wrong. A finding checked by a fallback model carries a label.

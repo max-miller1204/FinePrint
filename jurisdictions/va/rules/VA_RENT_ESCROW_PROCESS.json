@@ -25,5 +25,7 @@
   ],
   "tenantExplanation": "If your landlord won't fix a serious problem after written notice, Virginia lets you go to court and pay your rent into a court escrow account instead of to the landlord. The rules for this change on January 1, 2027.",
   "action": "Send your landlord written notice of the problem and keep a copy. If it isn't fixed in a reasonable time, you can file a tenant's assertion at your local general district court.",
-  "severityIfViolated": "info"
+  "severityIfViolated": "info",
+  "verifiedBy": "Max Miller",
+  "verifiedAt": "2026-10-24"
 }

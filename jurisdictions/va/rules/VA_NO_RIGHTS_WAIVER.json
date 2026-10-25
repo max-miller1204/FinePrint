@@ -20,5 +20,7 @@
   ],
   "tenantExplanation": "Virginia law doesn't let a lease take away your rights as a tenant. A clause that says you give them up can't be enforced.",
   "action": "You can ask your landlord to remove this clause before you sign. Even if it stays, you keep your rights.",
-  "severityIfViolated": "unenforceable"
+  "severityIfViolated": "unenforceable",
+  "verifiedBy": "Max Miller",
+  "verifiedAt": "2026-10-24"
 }

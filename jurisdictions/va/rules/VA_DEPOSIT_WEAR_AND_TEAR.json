@@ -20,5 +20,7 @@
   ],
   "tenantExplanation": "Your landlord can't take money from your deposit for normal wear from everyday living, only for damage beyond that.",
   "action": "You can ask your landlord to remove automatic move-out charges for normal wear. Take dated move-in photos to show what was already there.",
-  "severityIfViolated": "unenforceable"
+  "severityIfViolated": "unenforceable",
+  "verifiedBy": "Max Miller",
+  "verifiedAt": "2026-10-24"
 }

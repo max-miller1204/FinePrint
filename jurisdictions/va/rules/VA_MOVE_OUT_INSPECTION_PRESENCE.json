@@ -19,5 +19,7 @@
   ],
   "tenantExplanation": "You have the right to be there when your landlord inspects the unit at move-out to decide your deposit. Ask in writing to attend.",
   "action": "When you give notice to move out, also tell your landlord in writing that you want to be present at the move-out inspection.",
-  "severityIfViolated": "unenforceable"
+  "severityIfViolated": "unenforceable",
+  "verifiedBy": "Max Miller",
+  "verifiedAt": "2026-10-24"
 }

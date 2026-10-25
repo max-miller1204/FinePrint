@@ -20,5 +20,7 @@
   ],
   "tenantExplanation": "Virginia makes your landlord keep heating, cooling, plumbing, electrical, and supplied appliances working. A lease generally can't hand those repairs to you.",
   "action": "You can ask your landlord to change this so major system and appliance repairs stay with them, unless you caused the damage.",
-  "severityIfViolated": "ask"
+  "severityIfViolated": "ask",
+  "verifiedBy": "Max Miller",
+  "verifiedAt": "2026-10-24"
 }

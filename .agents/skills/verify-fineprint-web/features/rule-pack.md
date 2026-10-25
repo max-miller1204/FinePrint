@@ -48,8 +48,10 @@ through `server/src/rules/`. How to add a state:
   future version: § 55.1-1204 (July 1, 2027; `VA_LATE_FEE_CAP` and
   `VA_TENANT_RIGHTS_STATEMENT`, same quote in both) and § 55.1-1244
   (January 1, 2027; the escrow payment moves from B 2 to C, so the quote
-  changes). `verifiedBy` and `verifiedAt` are set only after a person
-  checks every quote and subsection letter against its snapshot.
+  changes). Every rule has `verifiedBy` and `verifiedAt` (Max Miller,
+  2026-10-24), set after a person checked every quote and subsection
+  letter against its snapshot, so the pack loads with
+  `requireVerified: true` and `verifiedThrough` is 2026-10-24.
 
 ## How to get to it (user POV)
 
@@ -62,8 +64,8 @@ against the lease dates.
 
 No e2e test until a route reads the pack. `server/test/rules.test.ts`
 covers it under `pnpm test`: it loads the real packs (all 16 VA rule ids,
-and both § 55.1-1244 versions with `quoteChanged: true` for an October 2026
-lease), checks the resolver
+both § 55.1-1244 versions with `quoteChanged: true` for an October 2026
+lease, and `requireVerified: true`), checks the resolver
 (both § 55.1-1204 versions for an October 2026 to October 2027 lease, the
 exclusive and inclusive boundaries, open-ended terms, gaps, bad dates), runs
 every check (including the cent that tips 10% over), breaks a scratch copy

@@ -25,5 +25,7 @@
   ],
   "tenantExplanation": "Your landlord must give you Virginia's official Statement of Tenant Rights and Responsibilities with your lease. It explains your rights in plain language.",
   "action": "If it isn't attached, ask your landlord for the Statement of Tenant Rights and Responsibilities before you sign.",
-  "severityIfViolated": "ask"
+  "severityIfViolated": "ask",
+  "verifiedBy": "Max Miller",
+  "verifiedAt": "2026-10-24"
 }

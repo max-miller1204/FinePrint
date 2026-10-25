@@ -19,5 +19,7 @@
   ],
   "tenantExplanation": "A lease can't let your landlord get a court judgment against you without you having a chance to respond. This clause can't be enforced.",
   "action": "You can ask your landlord to remove this clause before you sign.",
-  "severityIfViolated": "unenforceable"
+  "severityIfViolated": "unenforceable",
+  "verifiedBy": "Max Miller",
+  "verifiedAt": "2026-10-24"
 }

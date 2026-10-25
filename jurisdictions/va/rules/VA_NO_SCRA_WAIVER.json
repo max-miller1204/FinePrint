@@ -19,5 +19,7 @@
   ],
   "tenantExplanation": "If you serve in the military, a lease can't make you give up your federal protections in advance, and a landlord can't require that waiver to rent to you.",
   "action": "You can ask your landlord to remove this clause. You keep your SCRA rights either way.",
-  "severityIfViolated": "unenforceable"
+  "severityIfViolated": "unenforceable",
+  "verifiedBy": "Max Miller",
+  "verifiedAt": "2026-10-24"
 }

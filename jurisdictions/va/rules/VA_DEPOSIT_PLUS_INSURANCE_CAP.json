@@ -20,5 +20,7 @@
   ],
   "tenantExplanation": "Virginia caps what you pay up front for the deposit plus damage and renter's insurance at two months' rent combined.",
   "action": "You can ask your landlord to lower the deposit or insurance charges so the total is two months' rent or less.",
-  "severityIfViolated": "unenforceable"
+  "severityIfViolated": "unenforceable",
+  "verifiedBy": "Max Miller",
+  "verifiedAt": "2026-10-24"
 }

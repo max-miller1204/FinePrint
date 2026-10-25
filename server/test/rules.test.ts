@@ -1,10 +1,10 @@
 import { spawnSync } from 'node:child_process';
-import { cpSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { cpSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 import { CHECKS, runCheck } from '../src/rules/checks.js';
-import { JURISDICTIONS_ROOT, loadRulePack, loadRulePacks, RulePackError } from '../src/rules/loader.js';
+import { JURISDICTIONS_ROOT, type LoadOptions, loadRulePack, loadRulePacks, RulePackError } from '../src/rules/loader.js';
 import { resolveRules, versionOn, versionsForTerm } from '../src/rules/resolve.js';
 import type { Rule } from '../src/rules/types.js';
 import { parseSectionPage } from '../../scripts/refresh-snapshots.ts';
@@ -60,9 +60,9 @@ describe('the real rule packs', () => {
     expect(resolved?.changes).toEqual([{ on: '2027-01-01', quoteChanged: true }]);
   });
 
-  it('report no verification date while a rule is unverified', () => {
-    expect(va?.verifiedThrough).toBeNull();
-    expect(() => loadRulePacks(JURISDICTIONS_ROOT, { requireVerified: true })).toThrow(/not verified/);
+  it('are verified by a person, so they load when verification is required', () => {
+    expect(va?.verifiedThrough).toBe('2026-10-24');
+    expect(loadRulePacks(JURISDICTIONS_ROOT, { requireVerified: true }).get('VA')?.rules).toHaveLength(16);
   });
 });
 
@@ -203,9 +203,9 @@ describe('loadRulePack refuses a bad pack', () => {
     return join(root, 'va');
   }
 
-  const issues = (dir: string) => {
+  const issues = (dir: string, options?: LoadOptions) => {
     try {
-      loadRulePack(dir);
+      loadRulePack(dir, options);
     } catch (error) {
       expect(error).toBeInstanceOf(RulePackError);
       return (error as RulePackError).issues;
@@ -269,7 +269,7 @@ describe('loadRulePack refuses a bad pack', () => {
       'VA_LATE_FEE_CAP.json: must match "else" schema',
     ]);
     expect(issues(scratchPack((rule) => {
-      rule.verifiedBy = 'A. Person';
+      delete rule.verifiedAt;
     }))).toEqual([expect.stringMatching(/verifiedAt/)]);
     expect(issues(scratchPack((rule) => {
       rule.versions[0].effectiveFrom = '2019-13-01';
@@ -286,18 +286,19 @@ describe('loadRulePack refuses a bad pack', () => {
     }))).toEqual([expect.stringMatching(/MD in the VA pack/)]);
   });
 
+  it('when verification is required and a rule is unverified', () => {
+    const dir = scratchPack((rule) => {
+      delete rule.verifiedBy;
+      delete rule.verifiedAt;
+    });
+    expect(loadRulePack(dir).verifiedThrough).toBeNull();
+    expect(issues(dir, { requireVerified: true })).toEqual(['VA_LATE_FEE_CAP.json: not verified (verifiedBy, verifiedAt)']);
+  });
+
   it('reports the oldest verification date once every rule is verified', () => {
     const dir = scratchPack((rule) => {
-      rule.verifiedBy = 'A. Person';
       rule.verifiedAt = '2026-10-20';
     });
-    for (const name of readdirSync(join(dir, 'rules'))) {
-      const file = join(dir, 'rules', name);
-      const rule = JSON.parse(readFileSync(file, 'utf8'));
-      rule.verifiedBy ??= 'A. Person';
-      rule.verifiedAt ??= '2026-10-25';
-      writeFileSync(file, JSON.stringify(rule));
-    }
     expect(loadRulePack(dir, { requireVerified: true }).verifiedThrough).toBe('2026-10-20');
   });
 });

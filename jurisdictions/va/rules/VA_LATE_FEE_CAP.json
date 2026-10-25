@@ -26,5 +26,7 @@
   ],
   "tenantExplanation": "Virginia limits late fees to 10% of your rent. A higher fee can't be enforced.",
   "action": "You can ask your landlord to change this to 10% or less before you sign.",
-  "severityIfViolated": "unenforceable"
+  "severityIfViolated": "unenforceable",
+  "verifiedBy": "Max Miller",
+  "verifiedAt": "2026-10-24"
 }

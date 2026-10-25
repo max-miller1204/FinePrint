@@ -19,5 +19,7 @@
   ],
   "tenantExplanation": "Your landlord must give you a written list of existing damage within five days of move-in. You then have five days to object in writing, or the list is treated as correct.",
   "action": "Ask for the move-in report if you don't get it within five days. Check it against your own photos and send any objections in writing within five days.",
-  "severityIfViolated": "ask"
+  "severityIfViolated": "ask",
+  "verifiedBy": "Max Miller",
+  "verifiedAt": "2026-10-24"
 }

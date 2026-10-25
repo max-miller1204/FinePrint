@@ -28,8 +28,8 @@ export class RulePackError extends Error {
 }
 
 export interface LoadOptions {
-  // Refuse rules without verifiedBy and verifiedAt. Off until #13's human
-  // review lands; then production loads with it on.
+  // Refuse rules without verifiedBy and verifiedAt. Every VA rule is
+  // verified (#13), so production (the lease pipeline, #14) loads with it on.
   requireVerified?: boolean;
 }
 

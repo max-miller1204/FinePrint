@@ -19,5 +19,7 @@
   ],
   "tenantExplanation": "Your landlord has 45 days after you move out to send you an itemized list of deductions and return what's left. A lease can't give them longer.",
   "action": "You can ask your landlord to change this to 45 days. Write down your move-out date so you can track the deadline.",
-  "severityIfViolated": "unenforceable"
+  "severityIfViolated": "unenforceable",
+  "verifiedBy": "Max Miller",
+  "verifiedAt": "2026-10-24"
 }

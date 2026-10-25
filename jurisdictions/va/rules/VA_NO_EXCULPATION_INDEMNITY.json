@@ -20,5 +20,7 @@
   ],
   "tenantExplanation": "A lease can't excuse your landlord from responsibility the law puts on them, or make you cover their costs for it. This clause can't be enforced.",
   "action": "You can ask your landlord to remove this clause or limit it to damage you cause.",
-  "severityIfViolated": "unenforceable"
+  "severityIfViolated": "unenforceable",
+  "verifiedBy": "Max Miller",
+  "verifiedAt": "2026-10-24"
 }
