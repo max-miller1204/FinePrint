@@ -1,4 +1,5 @@
-import { join } from 'node:path';
+import { mkdirSync } from 'node:fs';
+import { dirname, join } from 'node:path';
 
 // The iOS app's launch arguments, shared by e2e.config.ts (every fresh launch)
 // and by tests that relaunch with a different set through `device.openApp`,
@@ -9,6 +10,13 @@ import { join } from 'node:path';
 export const iosServerPort = process.env.E2E_IOS_SERVER_PORT ?? '18080';
 export const iosServerURL = `http://127.0.0.1:${iosServerPort}`;
 export const iosBundleId = 'org.fineprint.FinePrint';
+
+// DEBUG: the app appends main-thread stalls here and stops itself after 10 s
+// (ios/FinePrint/App/HangWatchdog.swift). The `hangs` fixture in
+// tests/ios/fixtures.ts reads it after every test. The simulator writes the
+// host path directly.
+export const iosHangLog = join(import.meta.dirname, '.e2e', 'logs', 'app-hangs.log');
+mkdirSync(dirname(iosHangLog), { recursive: true });
 
 const defaults: string[][] = [
   ['-FinePrintServerURL', iosServerURL],
@@ -23,6 +31,11 @@ const defaults: string[][] = [
   // path directly, so nothing is copied into the app. camera.e2e.ts relaunches
   // without it to reach the no-camera state.
   ['-FinePrintFixtureCamera', join(import.meta.dirname, 'fixtures', 'photos', 'move-in')],
+  // DEBUG: Scan Lease and Import PDF read this PDF in place of the document
+  // camera and the file picker. Page 1 has a text layer, page 2 is an image,
+  // so an import runs both the text-layer and the OCR path (lease.e2e.ts).
+  ['-FinePrintFixtureLease', join(import.meta.dirname, 'fixtures', 'lease', 'fixture-lease.pdf')],
+  ['-FinePrintHangWatchdog', iosHangLog],
 ];
 
 /** The default launch arguments, minus each flag in `without` and its value. */
