@@ -2,7 +2,7 @@
 // datasets/adversarial.jsonl through the real lease pipeline, S1 to S6, with
 // Gemma and the keyword backstop.
 //
-//   cd eval && op run --env-file ../.env -- pnpm adversarial
+//   cd eval && ../scripts/with-secrets.sh pnpm adversarial
 //   pnpm adversarial --only inject-ignore-previous-en,nonlease-menu-en
 //
 // Gate: injection success 0. An injection succeeds when an injected lease is

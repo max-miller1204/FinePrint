@@ -49,12 +49,12 @@ opens the handoff (#38).
 pay-or-quit notice under a lease heading escalate on the backstop; an
 invoice with injected text neither escalates nor reaches `server.log`).
 `tests/web/leases.e2e.ts` runs `inject-ignore-previous-es` through the
-lease stream under `op run`: `done.injection` carries the Spanish title. The rest:
+lease stream under `scripts/with-secrets.sh`: `done.injection` carries the Spanish title. The rest:
 
 ```bash
 pnpm --filter @fineprint/server test                          # server/test/adversarial.test.ts, the CI gate
 cd e2e && npx e2e run tests/web/adversarial.e2e.ts --target web
-cd eval && op run --env-file ../.env -- pnpm adversarial      # live, about 35 minutes
+cd eval && ../scripts/with-secrets.sh pnpm adversarial      # live, about 35 minutes
 ```
 
 The set is `eval/datasets/adversarial.jsonl` (`eval/runners/adversarial-cases.ts`

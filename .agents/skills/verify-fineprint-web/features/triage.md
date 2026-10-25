@@ -56,7 +56,7 @@ none of the text. The server gets `GEMINI_API_KEY` and `GEMMA_*` through
 ```bash
 cd e2e
 npx e2e run tests/web/triage.e2e.ts --target web                                   # backstop only
-op run --env-file ~/.config/fineprint/.env -- npx e2e run tests/web/triage.e2e.ts --target web   # Gemma too
+../scripts/with-secrets.sh npx e2e run tests/web/triage.e2e.ts --target web   # Gemma too
 ```
 
 The escalation eval (67 high-stakes, 66 benign, EN and ES) is
@@ -64,9 +64,9 @@ The escalation eval (67 high-stakes, 66 benign, EN and ES) is
 
 ```bash
 pnpm --filter @fineprint/server test                                  # CI gate: backstop recall 100% on the set
-cd eval && op run --env-file ~/.config/fineprint/.env -- pnpm escalation   # live: Gemma, backstop, combined
+cd eval && ../scripts/with-secrets.sh pnpm escalation   # live: Gemma, backstop, combined
 cd eval && pnpm escalation --keywords-only                            # no key
-cd eval && op run --env-file ~/.config/fineprint/.env -- pnpm escalation --heldout   # held-out set, report only
+cd eval && ../scripts/with-secrets.sh pnpm escalation --heldout   # held-out set, report only
 ```
 
 `--heldout` runs `eval/datasets/escalation-heldout.jsonl` (#90): 25

@@ -38,7 +38,7 @@ const payOrQuitEs = dataset.find((c) => c.id === 'eviction-or-court-11-es')!.tex
 const surrenderClause = dataset.find((c) => c.id === 'benign-65-en')!.text;
 
 // The server runs without GEMINI_API_KEY unless the run is wrapped in
-// `op run`, so the model is `off` (the backstop decides) or `ok`.
+// `scripts/with-secrets.sh`, so the model is `off` (the backstop decides) or `ok`.
 const modelStatus = ['off', 'ok'];
 
 describe('Triage', { platforms: ['web'] }, () => {
