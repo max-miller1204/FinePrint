@@ -56,6 +56,12 @@ export function memoryStore() {
       if (item.receivedAtServer === null) item.receivedAtServer = at;
       return structuredClone(item);
     },
+    async updateEvidenceReview(rentalId, itemId, fields) {
+      const item = evidence.get(`${rentalId}/${itemId}`);
+      if (!item) return null;
+      Object.assign(item, Evidence.parse({ ...item, ...structuredClone(fields) }));
+      return structuredClone(item);
+    },
     async listEvidence(rentalId, session) {
       return [...evidence.entries()].filter(([key, item]) => key.startsWith(`${rentalId}/`) && item.session === session).map(([, item]) => structuredClone(item));
     },

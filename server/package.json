@@ -15,7 +15,8 @@
     "test:emulator": "firebase emulators:exec --only auth,firestore,storage --project demo-fineprint \"vitest run --dir test/emulator\"",
     "smoke:gemma": "tsx scripts/gemma-live.ts",
     "smoke:lease": "tsx scripts/lease-live.ts",
-    "smoke:responsibility": "tsx scripts/responsibility-live.ts"
+    "smoke:responsibility": "tsx scripts/responsibility-live.ts",
+    "smoke:damage": "tsx scripts/damage-live.ts"
   },
   "dependencies": {
     "@google-cloud/kms": "^6.3.0",

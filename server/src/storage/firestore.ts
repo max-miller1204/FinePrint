@@ -34,6 +34,10 @@ export interface Store {
   // Sets `receivedAtServer` unless it is already set, and returns the item.
   // Null when there is no such item.
   markEvidenceReceived(rentalId: string, itemId: string, at: Date): Promise<Evidence | null>;
+  // Sets the damage review fields of one item and returns it. They never
+  // touch the capture record, so the hash and manifests stay as they are.
+  // Null when there is no such item.
+  updateEvidenceReview(rentalId: string, itemId: string, fields: EvidenceReview): Promise<Evidence | null>;
   // Every item of one session, deleted ones included.
   listEvidence(rentalId: string, session: EvidenceSession): Promise<Evidence[]>;
   // The ledger in `seq` order.
@@ -81,6 +85,8 @@ export interface LedgerAppend {
   // Fields set on items, in the same transaction.
   items?: { itemId: string; fields: Partial<Pick<Evidence, 'sealedManifestId' | 'deletedAt'>> }[];
 }
+
+export type EvidenceReview = Partial<Pick<Evidence, 'aiProposal' | 'tenantAnnotations' | 'annotatedAt'>>;
 
 // Ledger document ids sort in `seq` order.
 export const ledgerDocId = (seq: number) => String(seq).padStart(10, '0');
@@ -196,6 +202,24 @@ export function firestoreStore(connect: () => Firestore = () => getFirestore(fir
         if (item.receivedAtServer !== null) return item;
         tx.update(ref, { receivedAtServer: Timestamp.fromDate(at) });
         return { ...item, receivedAtServer: at };
+      });
+    },
+
+    async updateEvidenceReview(rentalId, itemId, fields) {
+      const { db } = collections();
+      const ref = evidence(rentalId).doc(itemId);
+      return db.runTransaction(async (tx) => {
+        const snapshot = await tx.get(ref);
+        if (!snapshot.exists) return null;
+        const next = Evidence.parse({ ...evidenceFromFirestore(itemId, snapshot.data()!), ...fields });
+        const write = Object.fromEntries(
+          Object.keys(fields).map((key) => {
+            const value = next[key as keyof EvidenceReview];
+            return [key, value === null || value instanceof Date ? value : JSON.parse(JSON.stringify(value))];
+          }),
+        );
+        tx.update(ref, toFirestore(write));
+        return next;
       });
     },
 
