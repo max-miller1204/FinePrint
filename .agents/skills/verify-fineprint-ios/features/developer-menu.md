@@ -2,7 +2,8 @@
 
 Hidden developer options in Settings: the server URL in use and where it
 came from, the anonymous sign-in ([sign-in](sign-in.md)), the evidence
-camera ([camera](camera.md)), and in DEBUG builds, the sample-deadline switch.
+camera ([camera](camera.md)), the AI trace overlay (#39), and in DEBUG builds,
+the sample-deadline switch.
 
 ## Sub-features
 
@@ -17,6 +18,14 @@ camera ([camera](camera.md)), and in DEBUG builds, the sample-deadline switch.
   `developer.serverURLError`.
 - Camera: Open Camera (`developer.openCamera`) and, after a kept photo, its
   hash (`developer.lastCaptureHash`).
+- AI: Show AI Trace (`developer.aiTraceToggle`), off by default and saved in
+  `UserSettings.showsAITrace`. When on, a repair check's result card and each
+  Ask answer end with an AI Trace box (`aiTrace`, rows `aiTrace.step.N`): one
+  row per Gemma call with the model ID, stage, time, and tokens, from the
+  `trace` array the server returns. A High-confidence repair check shows both
+  `gemma-4-26b-a4b-it` (`responsibility`) and `gemma-4-31b-it`
+  (`responsibility_verify`). Each row is one VoiceOver element in reading
+  order; nothing overlays other content. Delete Everything turns it off.
 - DEBUG builds only: `developer.sampleDeadlineToggle`.
 
 ## How to get to it (user POV)
@@ -30,7 +39,7 @@ Scripted taps are too slow for the five-tap unlock (about 1.2 s per
 argument `-FinePrintDeveloperMenu`, which shows the Developer section for
 that launch without saving it. `tests/ios/auth.e2e.ts` opens Developer
 Options that way. The five-tap gesture itself stays untested in e2e; the
-server URL rows have no e2e test yet. Under the e2e target, expect Source
+server URL rows and the AI trace toggle have no e2e test yet. Under the e2e target, expect Source
 "Launch argument" and URL `http://127.0.0.1:18080`.
 `ios/FinePrintTests/LaunchOptionsTests.swift` and `ServerURLTests.swift`
 cover the parsing and that the argument never saves the unlock.

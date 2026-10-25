@@ -10,6 +10,7 @@ import {
   backoffMs,
   createGemma,
   stripFence,
+  traced,
   type GemmaEvent,
 } from '../src/ai/gemma.js';
 import { FLASH, GEMMA_26B, GEMMA_31B, STAGES, fallbackChain, modelConfigFromEnv } from '../src/ai/models.js';
@@ -325,5 +326,21 @@ describe('helpers', () => {
     const policy = { retries: 10, baseDelayMs: 2_000, maxDelayMs: 30_000 };
     expect(backoffMs(1, policy, () => 0)).toBe(1_000);
     expect(backoffMs(10, policy, () => 1)).toBe(30_000);
+  });
+});
+
+describe('traced', () => {
+  it('records each answered call with model, stage, latency, and tokens, and nothing else', async () => {
+    const { gemma, clock } = setup({ [GEMMA_26B]: [apiError(503), reply(JSON.stringify(ANSWER))] });
+    const run = traced(gemma, clock);
+    await run.gemma.generate('mapping', Finding, [LEASE], { task: 'Classify the late fee clause.' });
+    expect(run.trace).toEqual([{ stage: 'mapping', model: GEMMA_26B, ms: clock.sleeps[0], inputTokens: 120, outputTokens: 30, fallback: false }]);
+  });
+
+  it('records no step for a call that failed', async () => {
+    const { gemma } = setup([reply('not json'), reply('still not json')]);
+    const run = traced(gemma);
+    await expect(run.gemma.generate('mapping', Finding, [LEASE], { task: 'x' })).rejects.toBeInstanceOf(GemmaOutputError);
+    expect(run.trace).toEqual([]);
   });
 });

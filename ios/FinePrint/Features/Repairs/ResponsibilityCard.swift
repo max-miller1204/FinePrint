@@ -5,6 +5,7 @@ import SwiftUI
 struct ResponsibilityCard: View {
     let issue: RepairIssue
     let result: ResponsibilityResult
+    @Environment(UserSettings.self) private var settings: UserSettings?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 20) {
@@ -18,6 +19,9 @@ struct ResponsibilityCard: View {
             }
             if result.escrowEligible {
                 escrowNote
+            }
+            if settings?.showsAITrace == true, let trace = result.trace, !trace.isEmpty {
+                AITraceView(steps: trace)
             }
             Text("Legal information, not legal advice.")
                 .font(.footnote)

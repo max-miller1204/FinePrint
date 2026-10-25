@@ -1,7 +1,7 @@
 import { Hono, type Context } from 'hono';
 import { bodyLimit } from 'hono/body-limit';
 import { streamSSE, type SSEStreamingApi } from 'hono/streaming';
-import { GemmaOutputError, GemmaRequestError, GemmaUnavailableError, type GemmaClient, type GemmaEvent } from '../ai/gemma.js';
+import { GemmaOutputError, GemmaRequestError, GemmaUnavailableError, traced, type GemmaClient, type GemmaEvent } from '../ai/gemma.js';
 import { analyzeLease, type LeaseAnalysis, type LeaseEvent } from '../ai/pipeline/lease.js';
 import type { Finding, KeyTerm } from '../ai/pipeline/types.js';
 import type { Triage } from '../ai/triage/index.js';
@@ -23,7 +23,7 @@ import { guard, readBody } from './rentals.js';
 //          keyterms  { keyTerms }                  after S3
 //          finding   one Finding per event         after S8 (and S9), in display order
 //          error     { code, message, retryInMs }  a rate limit or busy-model wait; the stream goes on
-//          done      { status, findings, tokens, calls, ms, ... }   after the lease, clauses, and findings are stored
+//          done      { status, findings, tokens, calls, ms, trace, ... }   after the lease, clauses, and findings are stored
 //          error     { code, message }             no retryInMs: the analysis stopped; the stream ends
 //   GET  /v1/rentals/:id/leases/:leaseId           the stored lease, clauses, and findings
 //
@@ -138,6 +138,8 @@ export function createLeases(store: Store, analyzer: LeaseAnalyzer, now: () => D
         }
       };
 
+      // The model calls this run made, for the AI trace overlay (#39).
+      const run = traced(analyzer.gemma ?? noModel);
       try {
         const analysis = await analyzeLease(
           {
@@ -148,7 +150,7 @@ export function createLeases(store: Store, analyzer: LeaseAnalyzer, now: () => D
             ...(rental.occupancyDate ? { term: { start: rental.occupancyDate, end: rental.tenancyEndDate } } : {}),
             today: started.toISOString().slice(0, 10),
           },
-          { gemma: analyzer.gemma ?? noModel, pack, triage: analyzer.triage, log },
+          { gemma: run.gemma, pack, triage: analyzer.triage, log },
           { signal: controller.signal, onEvent },
         );
         const finished = finishedLease(claimed, analysis, pack, now());
@@ -156,7 +158,7 @@ export function createLeases(store: Store, analyzer: LeaseAnalyzer, now: () => D
           store.saveLeaseAnalysis(rentalId, finished, analysis.status === 'analyzed' ? analysis.clauses : [], analysis.status === 'analyzed' ? analysis.findings : []),
         );
         log.info('lease analyzed', { rentalId, leaseId: claimed.id, status: finished.status, findings: findings.length, keyTerms: keyTerms.length });
-        await send('done', donePayload(finished, findings.length, now().getTime() - started.getTime()));
+        await send('done', { ...donePayload(finished, findings.length, now().getTime() - started.getTime()), trace: run.trace });
       } catch (err) {
         if (controller.signal.aborted) {
           log.info('lease stream closed', { rentalId, leaseId: claimed.id });

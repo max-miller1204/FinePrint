@@ -278,6 +278,10 @@ describe('GET /v1/rentals/:id/leases/:leaseId/stream', () => {
       ms: expect.any(Number),
       injection: null,
     });
+    // The AI trace overlay (#39): every model call of the run.
+    const trace = events.at(-1)!.data.trace as { stage: string; model: string }[];
+    expect(trace.length).toBe(events.at(-1)!.data.calls);
+    expect(trace.every((t) => typeof t.model === 'string' && typeof t.stage === 'string')).toBe(true);
 
     // Persisted: the GET returns exactly what streamed.
     expect(leaseResults.get(`${rentalId}/${leaseId}`)!.findings).toEqual(findings.map((e) => e.data));

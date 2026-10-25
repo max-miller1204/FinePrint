@@ -1,7 +1,7 @@
 import SwiftUI
 
 /// Hidden developer options: the server address, the anonymous sign-in, a way to try the
-/// evidence camera, and, in DEBUG builds, sample data switches.
+/// evidence camera, the AI trace overlay, and, in DEBUG builds, sample data switches.
 struct DeveloperMenuView: View {
     @Environment(AppConfiguration.self) private var configuration
     @Environment(AuthSession.self) private var auth
@@ -10,6 +10,7 @@ struct DeveloperMenuView: View {
     @Environment(\.evidenceStore) private var evidenceStore
     @Environment(\.modelContext) private var modelContext
     @Environment(UploadQueue.self) private var uploads: UploadQueue?
+    @Environment(UserSettings.self) private var settings
     @State private var draft = ""
     @State private var error: ServerURLError?
     @State private var saveCount = 0
@@ -101,6 +102,15 @@ struct DeveloperMenuView: View {
                 Text("Camera")
             } footer: {
                 Text("Takes a test photo for the kitchen walls. It is hashed, saved on this device, and uploaded to the server in use.")
+            }
+
+            Section {
+                Toggle("Show AI Trace", isOn: Bindable(settings).showsAITrace)
+                    .accessibilityIdentifier("developer.aiTraceToggle")
+            } header: {
+                Text("AI")
+            } footer: {
+                Text("Shows the Gemma model, stage, time, and tokens for each AI step under repair checks and Ask answers.")
             }
 
             #if DEBUG
@@ -210,6 +220,7 @@ struct DeveloperMenuView: View {
         .environment(AppConfiguration.preview())
         .environment(DeadlineStore(launchOptions: LaunchOptions()))
         .environment(AuthSession.preview())
+        .environment(UserSettings.preview())
 }
 
 /// The last photo's seal status and the upload queue, which update as uploads finish.

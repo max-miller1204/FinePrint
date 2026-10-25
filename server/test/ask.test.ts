@@ -128,7 +128,12 @@ describe('Ask HTTP route', () => {
     const answer = await ask('alice', 'Who won the football game?');
     expect(answer.status).toBe(200);
     expect(answer.headers.get('Cache-Control')).toBe('no-store');
-    expect((await answer.json()).outOfScope).toBe(true);
+    const answered = await answer.json();
+    expect(answered.outOfScope).toBe(true);
+    // The AI trace overlay (#39): one step per model turn, no content.
+    expect(answered.trace.length).toBeGreaterThan(0);
+    expect(Object.keys(answered.trace[0]).sort()).toEqual(['fallback', 'inputTokens', 'model', 'ms', 'outputTokens', 'stage']);
+    expect(answered.trace[0].stage).toBe('ask');
     expect(memory.rentals.get(rental.id)).toEqual(rental);
     expect(memory.leases.size).toBe(0);
   });
