@@ -308,6 +308,12 @@ ensure_iam() {
   retry gc kms keys add-iam-policy-binding "$KEY" --keyring="$KEYRING" --location="$REGION" \
     --member="$member" --role=roles/cloudkms.signerVerifier
   have "$RUNTIME_SA_ID: roles/cloudkms.signerVerifier on $KEY"
+  # The server signs with the newest enabled version and publishes every one
+  # (server/src/integrity/kms.ts), so it lists the versions. signerVerifier
+  # cannot list; without this, sealing and the key URL are 503.
+  retry gc kms keys add-iam-policy-binding "$KEY" --keyring="$KEYRING" --location="$REGION" \
+    --member="$member" --role=roles/cloudkms.viewer
+  have "$RUNTIME_SA_ID: roles/cloudkms.viewer on $KEY"
   retry gc secrets add-iam-policy-binding "$SECRET" --member="$member" --role=roles/secretmanager.secretAccessor
   have "$RUNTIME_SA_ID: roles/secretmanager.secretAccessor on $SECRET"
   # Signed upload and read URLs (server/src/storage/gcs.ts): Cloud Run has no
@@ -316,6 +322,10 @@ ensure_iam() {
   retry gc iam service-accounts add-iam-policy-binding "$RUNTIME_SA" --member="$member" \
     --role=roles/iam.serviceAccountTokenCreator
   have "$RUNTIME_SA_ID: roles/iam.serviceAccountTokenCreator on itself"
+  # Delete Everything removes the caller's Firebase user last
+  # (server/src/accounts.ts). Without this, DELETE /v1/me is 503.
+  retry gc projects add-iam-policy-binding "$PROJECT" --member="$member" --role=roles/firebaseauth.admin --condition=None
+  have "$RUNTIME_SA_ID: roles/firebaseauth.admin on the project"
   retry gc projects add-iam-policy-binding "$PROJECT" --member="serviceAccount:$BUILD_SA" \
     --role=roles/run.builder --condition=None
   have "$BUILD_SA_ID: roles/run.builder on the project"
@@ -577,12 +587,16 @@ EOF
     done
     gc kms keys remove-iam-policy-binding "$KEY" --keyring="$KEYRING" --location="$REGION" \
       --member="serviceAccount:$RUNTIME_SA" --role=roles/cloudkms.signerVerifier >/dev/null 2>&1 || true
+    gc kms keys remove-iam-policy-binding "$KEY" --keyring="$KEYRING" --location="$REGION" \
+      --member="serviceAccount:$RUNTIME_SA" --role=roles/cloudkms.viewer >/dev/null 2>&1 || true
     if [[ -n $versions ]]; then gone "key versions of $KEY (scheduled for destruction)"; else skip "key versions of $KEY"; fi
   else skip "key $KEY"; fi
 
   step "Service accounts"
   gc projects remove-iam-policy-binding "$PROJECT" --member="serviceAccount:$RUNTIME_SA" \
     --role=roles/datastore.user --condition=None >/dev/null 2>&1 || true
+  gc projects remove-iam-policy-binding "$PROJECT" --member="serviceAccount:$RUNTIME_SA" \
+    --role=roles/firebaseauth.admin --condition=None >/dev/null 2>&1 || true
   gc projects remove-iam-policy-binding "$PROJECT" --member="serviceAccount:$BUILD_SA" \
     --role=roles/run.builder --condition=None >/dev/null 2>&1 || true
   local email
