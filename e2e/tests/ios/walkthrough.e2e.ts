@@ -104,6 +104,9 @@ test('a walkthrough is completed with the fixture camera and sealed, which start
   await expect(screen.getByTestId('camera.item')).toContainText('Walls');
   await expect(screen.getByTestId('camera.progress')).toContainText('0 of 10 done');
   await takeAndKeepPhoto(screen);
+  // The damage review opens on the kept photo (#26). Closing it leaves the suggestions for later.
+  await expect(screen.getByTestId('damage.status')).toBeVisible();
+  await screen.getByTestId('damage.cancel').tap();
   await expect(screen.getByTestId('walkthrough.item.walls')).toContainText('Photographed');
 
   // Mark the floor "no damage" from the camera's quick action: no photo.

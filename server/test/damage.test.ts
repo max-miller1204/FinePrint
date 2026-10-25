@@ -222,7 +222,8 @@ describe('PATCH /v1/rentals/:id/evidence/:itemId', () => {
     await receive();
     // Before analysis, only added boxes.
     expect((await annotate([{ proposalId: 'p1', decision: 'confirmed', box, label: 'Scuff' }])).status).toBe(400);
-    expect((await annotate([{ proposalId: null, decision: 'added', box, label: 'Scuff' }])).status).toBe(200);
+    // The app leaves out a null proposalId, as Swift's encoder does.
+    expect((await annotate([{ decision: 'added', box, label: 'Scuff' }])).status).toBe(200);
     await analyze();
     expect((await annotate([{ proposalId: 'p9', decision: 'confirmed', box, label: 'Scuff' }])).status).toBe(400);
     expect((await annotate([{ proposalId: null, decision: 'confirmed', box, label: 'Scuff' }])).status).toBe(400);

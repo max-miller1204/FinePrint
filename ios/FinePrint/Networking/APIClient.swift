@@ -48,6 +48,11 @@ struct APIClient {
         try await send("PATCH", path, body: try encode(body))
     }
 
+    /// Sends `data` as it is, such as a photo's model copy, with its own content type.
+    func post<Reply: Decodable>(_ path: String, data: Data, contentType: String) async throws(APIError) -> Reply {
+        try await send("POST", path, body: data, contentType: contentType)
+    }
+
     func delete<Reply: Decodable>(_ path: String) async throws(APIError) -> Reply {
         try await send("DELETE", path, body: nil)
     }
@@ -60,13 +65,13 @@ struct APIClient {
         }
     }
 
-    private func send<Reply: Decodable>(_ method: String, _ path: String, body: Data?, query: [URLQueryItem] = []) async throws(APIError) -> Reply {
+    private func send<Reply: Decodable>(_ method: String, _ path: String, body: Data?, contentType: String = "application/json", query: [URLQueryItem] = []) async throws(APIError) -> Reply {
         var components = URLComponents(url: serverURL.appending(path: path), resolvingAgainstBaseURL: false)
         if !query.isEmpty { components?.queryItems = query }
         guard let url = components?.url else { throw .malformedResponse }
-        var (data, status) = try await send(method, url, body: body, forceRefresh: false)
+        var (data, status) = try await send(method, url, body: body, contentType: contentType, forceRefresh: false)
         if status == 401 {
-            (data, status) = try await send(method, url, body: body, forceRefresh: true)
+            (data, status) = try await send(method, url, body: body, contentType: contentType, forceRefresh: true)
         }
         guard (200..<300).contains(status) else {
             let code = (try? JSONDecoder().decode(Envelope.self, from: data))?.error.code
@@ -79,7 +84,7 @@ struct APIClient {
         }
     }
 
-    private func send(_ method: String, _ url: URL, body: Data?, forceRefresh: Bool) async throws(APIError) -> (Data, Int) {
+    private func send(_ method: String, _ url: URL, body: Data?, contentType: String, forceRefresh: Bool) async throws(APIError) -> (Data, Int) {
         let token: String
         do {
             token = try await auth.idToken(forceRefresh: forceRefresh)
@@ -92,7 +97,7 @@ struct APIClient {
         request.setValue("application/json", forHTTPHeaderField: "Accept")
         if let body {
             request.httpBody = body
-            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+            request.setValue(contentType, forHTTPHeaderField: "Content-Type")
         }
         do {
             let (data, response) = try await transport(request)

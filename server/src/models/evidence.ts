@@ -69,7 +69,7 @@ export const MAX_ANNOTATIONS = 20;
 // apart from the original, whose hash and manifests never change.
 export const TenantAnnotation = z.strictObject({
   // The proposal this decides; null for one the tenant added.
-  proposalId: z.string().regex(/^p[0-9]{1,2}$/).nullable(),
+  proposalId: z.string().regex(/^p[0-9]{1,2}$/).nullable().default(null),
   decision: z.enum(ANNOTATION_DECISIONS),
   box: NormalizedBox,
   label: z.string().trim().min(1).max(100),
