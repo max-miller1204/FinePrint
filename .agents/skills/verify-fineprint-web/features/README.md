@@ -35,7 +35,7 @@ and F10's triage ([triage](triage.md)) have them, plus F1's
 | F1 Lease Explainer | `/v1` lease routes and the SSE stream; rule pack and pipeline behind them | #12, #13, #14, #15, #16, #19, #20 | rule pack schema, loader, check registry, and resolver built (#12, [rule-pack](rule-pack.md)); first 16 VA rules and snapshots written and verified (#13); 15 more verified, 31 in all (#43, #93); pipeline S1 to S6 built (#14, [lease-pipeline](lease-pipeline.md)); injection finding, not-a-lease stop, and court-paper escalation at S2 built (#19, [adversarial-input](adversarial-input.md)); S7 to S9 built: 31B verifier, severity table, graded explanations, translation (#15); injection finding (#19) and routes (#16) not built |
 | F2 Move-in Evidence | `/v1` evidence upload (signed URLs), seal, and ledger routes | #23, #24, #26 | upload URLs and hash check built (#23); seal, ledger, and delete built (#24); damage analysis not built |
 | F3 Landlord Report Diff + 5-Day Objection | `/v1` landlord report extract, diff, and objection draft routes | #28, #30 | not built |
-| F4 Responsibility Check | `POST /v1/rentals/:id/issues` | #31 | server route built ([responsibility](responsibility.md)); the iOS Repairs card, photo vision (#26), and the move-in compare (#27) not built |
+| F4 Responsibility Check | `POST /v1/rentals/:id/issues` | #31 | server route ([responsibility](responsibility.md)) and the iOS Repairs card built; photo vision (#26) and the move-in compare (#27) not built |
 | F5 Repair Request + Rent Escrow Path | `/v1` repair notice draft route | #32 | not built |
 | F6 Move-out Ghost Overlay + Diff | `/v1` move-out compare route | #27 | not built |
 | F7 Grounded Ask | `/v1` ask route with function calling | #41 | not built |

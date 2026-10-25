@@ -3,7 +3,7 @@
 "Who pays for this?" (spec §4.3 F4, §7.7; #31). Gemma 26B gives a verdict
 with cited reasons; code checks every citation and drops the ones that do
 not resolve; Gemma 31B gives its own verdict before an answer may say
-`high`. The Repairs tab card that shows it is the iOS half of #31.
+`high`. The iOS Repairs tab shows it ([repairs](../../verify-fineprint-ios/features/repairs.md)).
 
 ## Sub-features
 
@@ -68,7 +68,7 @@ not resolve; Gemma 31B gives its own verdict before an answer may say
 
 Repairs tab → New issue → photos and a short description → the result card
 (verdict, category, confidence as text and icon, reasons, what would change
-the answer). The card is the iOS half of #31, not built yet.
+the answer). See the iOS [repairs](../../verify-fineprint-ios/features/repairs.md) feature.
 
 ## Driving it with e2e
 
@@ -110,7 +110,8 @@ responsibility-balance|web|skeptic|POST /v1/rentals/:id/issues with repair stori
 ## Gotchas
 
 - No photo is shown to the model yet: vision and the move-in compare
-  (`pre_existing_unchanged`) are #26 and #27. Until then the move-in
+  (`pre_existing_unchanged`) are #26 and #27. The app sends repair photos
+  as `incident` evidence. Until then the move-in
   shortcut rests on the tenant saying it was there and a cited move-in
   record.
 - The pack has no tenant-obligation rule (§ 55.1-1227); tenant-fault

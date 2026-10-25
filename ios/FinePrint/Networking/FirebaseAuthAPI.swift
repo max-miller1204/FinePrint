@@ -14,6 +14,18 @@ nonisolated enum HTTP {
     static let transport: HTTPTransport = { request in
         try await session.data(for: request)
     }
+
+    /// For model-backed routes, which say nothing until the answer is ready: the responsibility
+    /// check runs triage, Gemma 26B, and Gemma 31B, about a minute in all.
+    static let modelSession: URLSession = {
+        let configuration = URLSessionConfiguration.ephemeral
+        configuration.timeoutIntervalForRequest = 180
+        return URLSession(configuration: configuration)
+    }()
+
+    static let modelTransport: HTTPTransport = { request in
+        try await modelSession.data(for: request)
+    }
 }
 
 /// The server's public sign-in settings, from `GET /.well-known/fineprint-client.json`.

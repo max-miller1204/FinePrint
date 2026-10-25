@@ -15,21 +15,22 @@ feature in spec §4.3 (F1 to F10) gets its own file as its screens land
 | [Rentals and the rental switcher](rentals.md) | Lease tab > house button: pick a rental or Add Rental; the current rental's name under every tab's title (#46) | `tests/ios/rentals.e2e.ts`, `ios/FinePrintTests/DeadlineStoreTests.swift` (scoping) | tested |
 | [Settings, delete everything, and the built-in server URL](settings.md) | Gear > Settings: language, reading level, impact count, Delete Everything and its receipt (#44); the Release default server URL (#78) | `tests/ios/delete-everything.e2e.ts`, `ios/FinePrintTests/DataDeletionTests.swift`, `ios/FinePrintTests/ServerURLTests.swift` | tested; share links (#35) and AI trace (#39) rows not built |
 | [Move-in walkthrough](walkthrough.md) | Evidence tab: Start Move-In Walkthrough, rooms, checklist, Mark No Damage, Seal Move-In Report (#25) | `tests/ios/walkthrough.e2e.ts`, `ios/FinePrintTests/WalkthroughTests.swift` | tested |
+| [Repairs and the responsibility check](repairs.md) | Repairs tab: New Issue (description, room, item, photos), the result card, emergencies (#31) | `tests/ios/repairs.e2e.ts` (heater live with a key), `ios/FinePrintTests/RepairsTests.swift` | tested |
 | [Deadlines and reminders](deadlines.md) | Next-deadline accessory; Evidence tab deadline cards, Remind Me, deposit tracker | `tests/ios/deadlines.e2e.ts`, `ios/FinePrintTests/DeadlineStoreTests.swift` | tested |
 
 ## Planned features (spec §4.3)
 
 Each one gets a file in this folder as its screens land. So far F2 has
 [camera](camera.md), [evidence upload](evidence-upload.md), and the
-[move-in walkthrough](walkthrough.md), and F3 and F6
-share [deadlines](deadlines.md).
+[move-in walkthrough](walkthrough.md), F4 has [repairs](repairs.md), and
+F3 and F6 share [deadlines](deadlines.md).
 
 | Feature | Screen | Board issues | Status |
 | --- | --- | --- | --- |
 | F1 Lease Explainer | Lease tab: scan, redaction review, findings list, key terms card, clause explorer | #17, #18 | not built |
 | F2 Move-in Evidence | Evidence tab: start move-in, rooms, checklist, capture screen, seal | #21 (camera), #22, #23, #25 (walkthrough), #26 | camera (#21), fixture camera (#22), upload queue and seal status pill (#23), walkthrough and seal (#25) built; rest not built |
 | F3 Landlord Report Diff + 5-Day Objection | Evidence tab: landlord report, diff, countdown; Letters tab: objection | #28, #29, #30 | deadlines and the countdown built (#29); rest not built |
-| F4 Responsibility Check | Repairs tab: new issue, result card | #31 | not built |
+| F4 Responsibility Check | Repairs tab: new issue, result card | #31 | built ([repairs](repairs.md)); next actions are #32 and #55 |
 | F5 Repair Request + Rent Escrow Path | Repairs tab: repair notice, tracking, escrow explainer, emergency guidance | #32 | not built |
 | F6 Move-out Ghost Overlay + Diff | Evidence tab: start move-out, ghost overlay camera, compare, deposit tracker | #27, #29 | deposit tracker and 45-day clock built (#29); rest not built |
 | F7 Grounded Ask | Ask tab | #41 | not built |
