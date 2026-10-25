@@ -16,6 +16,8 @@ final class AppConfiguration {
     let fixtureCameraDirectory: URL?
     /// Set with `-FinePrintFixtureLease`: a PDF that stands in for the document camera and the file picker.
     let fixtureLeaseFile: URL?
+    /// Set with `-FinePrintStubFindings`: Check My Lease plays a made-up check with this many findings.
+    let stubFindingCount: Int?
     #endif
 
     var isDeveloperMenuUnlocked: Bool {
@@ -28,6 +30,7 @@ final class AppConfiguration {
         #if DEBUG
         fixtureCameraDirectory = launchOptions.fixtureCameraDirectory.map { URL(fileURLWithPath: $0, isDirectory: true) }
         fixtureLeaseFile = launchOptions.fixtureLeaseFile.map { URL(fileURLWithPath: $0, isDirectory: false) }
+        stubFindingCount = launchOptions.stubFindingCount
         #endif
         storedServerURL = defaults.string(forKey: Self.storedServerURLKey)
         // `-FinePrintDeveloperMenu` applies to this launch only. One assignment, so `didSet` never

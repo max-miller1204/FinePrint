@@ -48,6 +48,20 @@ nonisolated struct LeaseScan: Codable, Hashable, Identifiable, Sendable {
     }
 }
 
+/// Which lease on the server holds a rental's reviewed scan: IDs only, no lease text. A new review
+/// changes what would be sent, so a record from an earlier review no longer counts.
+nonisolated struct LeaseAnalysisRecord: Codable, Equatable, Sendable {
+    var rentalID: UUID
+    /// The review the sent text came from.
+    var reviewedAt: Date
+    var rentalServerID: String
+    var leaseID: String
+
+    func matches(_ scan: LeaseScan) -> Bool {
+        scan.rentalID == rentalID && scan.reviewedAt == reviewedAt
+    }
+}
+
 /// Keeps each rental's lease on the device with complete file protection (spec §6.3, §9.2):
 /// `<root>/<rentalId>/lease.json` holds the text and the redaction map, and `original.pdf` the
 /// imported or scanned pages. Nothing here is uploaded.
@@ -102,6 +116,31 @@ nonisolated struct LeaseStore: Sendable {
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.sortedKeys]
         try encoder.encode(scan).write(to: scanURL(for: scan.rentalID), options: [.atomic, .completeFileProtection])
+    }
+
+    func analysisURL(for rentalID: UUID) -> URL {
+        directory(for: rentalID).appending(path: "analysis.json")
+    }
+
+    /// The lease sent for the rental's reviewed scan, if one was sent.
+    @concurrent
+    func loadAnalysis(rentalID: UUID) async throws -> LeaseAnalysisRecord? {
+        let url = analysisURL(for: rentalID)
+        guard FileManager.default.fileExists(atPath: url.path(percentEncoded: false)) else { return nil }
+        return try JSONDecoder().decode(LeaseAnalysisRecord.self, from: Data(contentsOf: url))
+    }
+
+    /// Saves which lease the server has. The scan must be saved first: the record lives in its folder.
+    @concurrent
+    func saveAnalysis(_ record: LeaseAnalysisRecord) async throws {
+        try JSONEncoder().encode(record).write(to: analysisURL(for: record.rentalID), options: [.atomic, .completeFileProtection])
+    }
+
+    @concurrent
+    func deleteAnalysis(rentalID: UUID) async throws {
+        let url = analysisURL(for: rentalID)
+        guard FileManager.default.fileExists(atPath: url.path(percentEncoded: false)) else { return }
+        try FileManager.default.removeItem(at: url)
     }
 
     /// Removes the rental's lease, its original pages, and its redaction map.

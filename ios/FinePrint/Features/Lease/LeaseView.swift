@@ -4,10 +4,11 @@ import UniformTypeIdentifiers
 import VisionKit
 
 /// The Lease tab (spec §4.3 F1): scan or import the current rental's lease, read it on the phone,
-/// and review what is hidden before anything is sent.
+/// review what is hidden before anything is sent, then check it against Virginia law and read the
+/// findings.
 ///
-/// Nothing here is presented or pushed from inside the tab: the review replaces the summary in
-/// place, questions are inline rows, and the file picker and document camera are `SystemPicker`s
+/// Nothing here is presented or pushed from inside the tab: the review, a finding, and the clause
+/// explorer replace the summary in place, questions are inline rows, and the file picker and document camera are `SystemPicker`s
 /// that `RootTabView` presents. A sheet, alert, or dialog from inside a tab while the deadline
 /// accessory shows sends SwiftUI into an AttributeGraph update cycle whenever accessibility is on
 /// (VoiceOver, UI automation), and so did popping a pushed review (#99).
@@ -15,13 +16,27 @@ struct LeaseView: View {
     @Environment(\.leaseStore) private var store
     @Environment(AppConfiguration.self) private var configuration
     @Environment(AppNavigation.self) private var navigation
+    @Environment(AuthSession.self) private var auth
+    @Environment(UserSettings.self) private var settings
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Query(sort: \Rental.createdAt) private var rentals: [Rental]
     @State private var model = LeaseModel()
+    @State private var analysis = LeaseAnalysisModel()
     @State private var isScannerUnavailable = false
-    /// What Gets Sent, shown in place of the summary.
-    @State private var isShowingSent = false
+    /// What shows in place of the summary.
+    @State private var screen: LeaseScreen = .summary
+    /// The finding the tenant last opened, so the summary scrolls back to it.
+    @State private var lastFindingID: String?
 
     private var currentRentalID: UUID? { Rental.current(in: rentals)?.id }
+
+    /// The reviewed lease the check works on.
+    private var readyScan: LeaseScan? {
+        if case .ready(let scan) = model.phase, model.reviewing == nil { return scan }
+        return nil
+    }
+
+    private var client: APIClient { APIClient(auth: auth, serverURL: configuration.serverURL) }
 
     var body: some View {
         content
@@ -31,9 +46,23 @@ struct LeaseView: View {
             .settingsToolbar()
             .rentalSwitcher()
             .task(id: currentRentalID) {
-                isShowingSent = false
+                screen = .summary
+                lastFindingID = nil
                 await model.load(rentalID: currentRentalID, store: store)
             }
+            .task(id: readyScan) {
+                #if DEBUG
+                analysis.stubFindingCount = configuration.stubFindingCount
+                #endif
+                await analysis.load(scan: readyScan, store: store, client: client)
+            }
+            .onChange(of: reduceMotion, initial: true) { _, reduceMotion in
+                analysis.reduceMotion = reduceMotion
+            }
+            .onChange(of: settings.language, initial: true) { _, language in
+                analysis.language = language.rawValue
+            }
+            .sensoryFeedback(.warning, trigger: analysis.unenforceableCount) { old, new in new > old }
             .onChange(of: navigation.systemPickerResult?.id) {
                 guard let result = navigation.systemPickerResult, navigation.selectedTab == .lease else { return }
                 navigation.systemPickerResult = nil
@@ -54,13 +83,49 @@ struct LeaseView: View {
                 Task { await model.finishReview(reviewed, store: store) }
             }
             .id(reviewing.id)
-        } else if isShowingSent, case .ready(let scan) = model.phase {
-            LeaseSentTextView(scan: scan) {
-                isShowingSent = false
+        } else if case .ready(let scan) = model.phase {
+            switch screen {
+            case .summary:
+                phaseContent
+            case .sent:
+                LeaseSentTextView(scan: scan) {
+                    screen = .summary
+                }
+            case .finding(let id):
+                // A reset (a new review, another rental) can take the finding away.
+                if let finding = analysis.finding(id: id) {
+                    FindingDetailView(
+                        finding: finding,
+                        language: analysis.language,
+                        onClose: { screen = .summary },
+                        onShowInLease: analysis.sentText == nil ? nil : { screen = .explorer(focus: finding.quoteSpan) }
+                    )
+                    .id(id)
+                } else {
+                    phaseContent
+                }
+            case .explorer(let focus):
+                if let text = analysis.sentText {
+                    ClauseExplorerView(
+                        text: text,
+                        findings: analysis.findings,
+                        language: analysis.language,
+                        focus: focus,
+                        onClose: { screen = lastFindingID.map(LeaseScreen.finding) ?? .summary },
+                        onOpenFinding: open
+                    )
+                } else {
+                    phaseContent
+                }
             }
         } else {
             phaseContent
         }
+    }
+
+    private func open(_ finding: LeaseFinding) {
+        lastFindingID = finding.id
+        screen = .finding(finding.id)
     }
 
     @ViewBuilder
@@ -75,12 +140,24 @@ struct LeaseView: View {
         case .failed(let failure):
             failed(failure)
         case .ready(let scan):
-            LeaseSummaryView(scan: scan) {
+            LeaseSummaryView(scan: scan, analysis: analysis, returnToFindingID: lastFindingID) {
                 model.reviewing = scan
             } onShowSent: {
-                isShowingSent = true
+                screen = .sent
             } onRemove: {
-                Task { await model.removeLease(store: store) }
+                Task {
+                    await analysis.forget(store: store, rentalID: scan.rentalID)
+                    await model.removeLease(store: store)
+                }
+            } onAnalyze: {
+                analysis.analyze(rentals: rentals, settings: settings, store: store, client: client)
+            } onRetry: {
+                analysis.retry(rentals: rentals, settings: settings, store: store, client: client)
+            } onOpenFinding: { finding in
+                open(finding)
+            } onShowInLease: { focus in
+                lastFindingID = nil
+                screen = .explorer(focus: focus)
             }
         }
     }
@@ -258,9 +335,16 @@ struct LeaseCard<Content: View>: View {
 /// would be sent.
 struct LeaseSummaryView: View {
     let scan: LeaseScan
+    let analysis: LeaseAnalysisModel
+    /// The finding the tenant came back from, to scroll to.
+    let returnToFindingID: String?
     let onReview: () -> Void
     let onShowSent: () -> Void
     let onRemove: () -> Void
+    let onAnalyze: () -> Void
+    let onRetry: () -> Void
+    let onOpenFinding: (LeaseFinding) -> Void
+    let onShowInLease: (TextSpan?) -> Void
     @State private var isConfirmingRemove = false
 
     var body: some View {
@@ -282,6 +366,16 @@ struct LeaseSummaryView: View {
                     }
                     .disabled(!scan.isReviewed)
                     .accessibilityIdentifier("lease.sentPreview")
+                }
+
+                if scan.isReviewed {
+                    LeaseFindingsSection(
+                        analysis: analysis,
+                        onAnalyze: onAnalyze,
+                        onRetry: onRetry,
+                        onOpenFinding: onOpenFinding,
+                        onShowInLease: onShowInLease
+                    )
                 }
 
                 LeaseCard(title: "Your Lease") {
@@ -340,6 +434,10 @@ struct LeaseSummaryView: View {
             guard isConfirming else { return }
             withAnimation { proxy.scrollTo(Self.removeCardID, anchor: .bottom) }
         }
+        .onAppear {
+            // Back from a finding: show its row again, not the top of the list.
+            if let returnToFindingID { proxy.scrollTo(LeaseFindingsSection.rowID(returnToFindingID), anchor: .center) }
+        }
         }
     }
 
@@ -352,7 +450,7 @@ struct LeaseSummaryView: View {
                 VStack(alignment: .leading, spacing: 4) {
                     Text("Personal details hidden")
                         .font(.headline)
-                    Text("Only the text with them hidden will be sent. Checking it against Virginia law is the next step and isn't available yet.")
+                    Text("Only the text with them hidden is sent when you check your lease.")
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
                 }
@@ -389,10 +487,23 @@ struct LeaseSummaryView: View {
     }
 }
 
+/// What the Lease tab shows in place of the summary. Each one is swapped in, never pushed or
+/// presented (see `LeaseView`).
+enum LeaseScreen: Hashable {
+    case summary
+    /// What Gets Sent.
+    case sent
+    case finding(String)
+    /// The clause explorer, starting at a quote.
+    case explorer(focus: TextSpan?)
+}
+
 #Preview {
     NavigationStack { LeaseView() }
         .environment(AppConfiguration.preview())
         .environment(DeadlineStore(launchOptions: LaunchOptions()))
         .environment(AppNavigation())
+        .environment(AuthSession.preview())
+        .environment(UserSettings())
         .modelContainer(for: [Rental.self, Deadline.self], inMemory: true)
 }

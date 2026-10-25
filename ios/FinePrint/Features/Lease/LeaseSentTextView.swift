@@ -28,7 +28,7 @@ struct LeaseSentTextView: View {
                 if let sent {
                     Text("^[\(sent.pageCount) page](inflect: true)")
                         .font(.subheadline.weight(.semibold))
-                    Text(verbatim: sent.redactedText)
+                    Text(verbatim: sent.text)
                         .font(.body.monospaced())
                         .textSelection(.enabled)
                         .frame(maxWidth: .infinity, alignment: .leading)

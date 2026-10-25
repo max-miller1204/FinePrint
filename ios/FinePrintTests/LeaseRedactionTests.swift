@@ -296,21 +296,21 @@ struct FixtureLeaseTests {
         #expect(upload.body.pageCount == 2)
         let json = try #require(String(data: try upload.encodedBody(), encoding: .utf8))
         let body = try JSONDecoder().decode(LeaseUpload.Body.self, from: try upload.encodedBody())
-        // Only these three fields go to the server.
+        // Only these fields go to the server.
         let keys = try #require(try JSONSerialization.jsonObject(with: upload.encodedBody()) as? [String: Any]).keys
-        #expect(Set(keys) == ["redactedText", "pageCount", "ocrConfidence"])
+        #expect(Set(keys) == ["text", "locale", "readingLevel", "pageCount", "ocrConfidence"])
 
         for detail in fixture.details {
-            #expect(!mentions(body.redactedText, detail), "\(detail) is in the upload")
+            #expect(!mentions(body.text, detail), "\(detail) is in the upload")
             #expect(!json.contains(detail), "\(detail) is in the JSON")
         }
         // The text layer wraps lines, so compare with whitespace collapsed.
-        let flattened = body.redactedText.split(whereSeparator: \.isWhitespace).joined(separator: " ")
+        let flattened = body.text.split(whereSeparator: \.isWhitespace).joined(separator: " ")
         for term in fixture.kept {
             #expect(flattened.contains(term), "\(term) was hidden")
         }
-        #expect(body.redactedText.contains("[TENANT_1]"))
-        #expect(body.redactedText.contains("[SSN_1]"))
+        #expect(body.text.contains("[TENANT_1]"))
+        #expect(body.text.contains("[SSN_1]"))
     }
 
     @Test func `the upload is only for the current rental's reviewed lease`() async throws {

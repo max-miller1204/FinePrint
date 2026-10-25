@@ -2,9 +2,9 @@
 
 The first half of F1 Lease Explainer (spec §4.3 F1, §9.2, #17): the tenant
 adds the current rental's lease, the phone reads it and hides personal
-details, and the tenant reviews what is hidden. Nothing is uploaded yet: the
-lease route (#16) does not exist, so the app builds the upload body and shows
-it, and stops there.
+details, and the tenant reviews what is hidden. Nothing leaves the phone
+until the tenant taps Check My Lease; that half is
+[lease findings](lease-findings.md) (#18).
 
 ## Sub-features
 
@@ -53,10 +53,11 @@ it, and stops there.
   enabled once reviewed), and Remove Lease (`lease.remove`, then an
   inline question: `lease.remove.confirm` or `lease.remove.cancel`).
 - What Gets Sent (in place of the summary, Back is `lease.sent.close`) shows
-  the upload body's `redactedText` (`lease.sentText`), built by `LeaseUpload.body(for:)`. `LeaseUpload.make`
+  the upload body's `text` (`lease.sentText`), built by `LeaseUpload.body(for:)`. `LeaseUpload.make`
   only builds an upload for the current rental's reviewed lease once the
-  rental has a server ID; the body is `{redactedText, pageCount,
-  ocrConfidence}` and nothing else.
+  rental has a server ID; the body is `{text, locale, readingLevel,
+  pageCount, ocrConfidence}` and nothing else (`text` is the redacted text,
+  trimmed as the server trims it).
 - Each rental has its own lease (`Rental.current(in:)`). The original PDF or
   scan and `lease.json` (text plus the redaction map) live in Application
   Support/Leases/<rentalId>/ with complete file protection, excluded from
@@ -92,7 +93,7 @@ What Gets Sent.
 
 The sent text contains `[TENANT_1]`, `[SSN_1]`, `[HIDDEN_1]` and the lease
 terms ($1,450.00, 55.1-1226), and none of the fixture's names, numbers, or
-addresses. The server log has no lease request.
+addresses. The server log has no lease request until Check My Lease.
 
 ## Charters
 

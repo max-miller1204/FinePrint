@@ -161,7 +161,7 @@ handles are stable:
   `deposit.inspection`, `deposit.moveOutCard`, `deposit.addMoveOutDate`,
   `dayEntry.save`, `dayEntry.cancel`. Walkthrough: `walkthrough.*` and
   `camera.markNoDamage`, `camera.progress` (see [walkthrough](features/walkthrough.md)). Rentals: `rentalSwitcher`,
-  `rentalSwitcher.add`, `addRental.cancel` (see [rentals](features/rentals.md)). Lease: `lease.*` (see [lease scan](features/lease-scan.md)). iOS 26 lists a toolbar button twice
+  `rentalSwitcher.add`, `addRental.cancel` (see [rentals](features/rentals.md)). Lease: `lease.*` (see [lease scan](features/lease-scan.md) and [lease findings](features/lease-findings.md)). iOS 26 lists a toolbar button twice
   (its container and the button), so drive toolbar buttons such as
   `dayEntry.save` by role and name: `getByRole('button', { name: 'Start Clock' })`.
 - Empty-state titles: "No lease yet", "No move-in photos yet".

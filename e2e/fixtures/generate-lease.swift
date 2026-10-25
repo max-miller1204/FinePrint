@@ -28,7 +28,7 @@ Premises: 1427 Example Lane, Apt 3B, Richmond, VA 23220
 1. Term. The term begins on September 1, 2026 and ends on August 31, 2027.
 2. Rent. Tenant shall pay $1,450.00 per month, due on the 1st. A grace period of five days applies.
 3. Security Deposit. Tenant shall pay a security deposit of $2,900.00, as allowed by Va. Code § 55.1-1226.
-4. Late Fee. A late fee of 10% of the monthly rent is charged after the 5th.
+4. Late Fee. A late fee of 15% of the monthly rent is charged after the 5th.
 5. Payments. Pay online at https://portal.harborpoint-example.com or by bank transfer to account number 000123456789, routing number 123456780.
 6. Contact. Call Marisol at (804) 555-0134 or email marisol.qv@harborpoint-example.com. Harbor Point answers within two business days.
 7. Entry. Landlord may enter the Premises with 24 hours' notice, as the Virginia Residential Landlord and Tenant Act allows.

@@ -21,6 +21,7 @@ crash report, and the gate (`scripts/ios-gate/gate.ts`) won't rerun it.
 | [Settings, delete everything, and the built-in server URL](settings.md) | Gear > Settings: language, reading level, impact count, Delete Everything and its receipt (#44); the Release default server URL (#78) | `tests/ios/delete-everything.e2e.ts`, `ios/FinePrintTests/DataDeletionTests.swift`, `ios/FinePrintTests/ServerURLTests.swift` | existing flow tested; iOS 26 dialog anchor fix awaits TestFlight device verification (no iOS e2e on Linux); share links (#35) and AI trace (#39) rows not built |
 | [Move-in walkthrough](walkthrough.md) | Evidence tab: Start Move-In Walkthrough, rooms, checklist, Mark No Damage, Seal Move-In Report (#25) | `tests/ios/walkthrough.e2e.ts`, `ios/FinePrintTests/WalkthroughTests.swift` | tested |
 | [Lease scan, OCR, and redaction review](lease-scan.md) | Lease tab: Scan Lease or Import PDF, redaction review, What Gets Sent; DEBUG fixture lease `-FinePrintFixtureLease <pdf>` (#17) | `tests/ios/lease.e2e.ts`, `ios/FinePrintTests/LeaseRedactionTests.swift` | tested |
+| [Lease findings, key terms, and clause explorer](lease-findings.md) | Lease tab after the review: Check My Lease, streamed findings, key terms card, finding detail, clause explorer with a Findings rotor; DEBUG stub `-FinePrintStubFindings <n>` (#18) | `tests/ios/lease-findings.e2e.ts`, `ios/FinePrintTests/LeaseFindingsTests.swift` | built; awaiting the first simulator run (written on Windows) |
 | [Deadlines and reminders](deadlines.md) | Next-deadline accessory; Evidence tab deadline cards, Remind Me, deposit tracker | `tests/ios/deadlines.e2e.ts`, `ios/FinePrintTests/DeadlineStoreTests.swift` | tested |
 | [TestFlight distribution](testflight.md) | No screen: the build testers install from TestFlight (#53) | `.github/workflows/testflight.yml` (archive, server URL check, upload) | tested by the workflow; not on a device here |
 
@@ -33,7 +34,7 @@ share [deadlines](deadlines.md).
 
 | Feature | Screen | Board issues | Status |
 | --- | --- | --- | --- |
-| F1 Lease Explainer | Lease tab: scan, redaction review, findings list, key terms card, clause explorer | #17, #18 | scan, OCR, and redaction review built (#17, [lease scan](lease-scan.md)); upload and findings not built |
+| F1 Lease Explainer | Lease tab: scan, redaction review, findings list, key terms card, clause explorer | #17, #18 | scan, OCR, and redaction review built (#17, [lease scan](lease-scan.md)); upload, streamed findings, key terms, and clause explorer built (#18, [lease findings](lease-findings.md)) |
 | F2 Move-in Evidence | Evidence tab: start move-in, rooms, checklist, capture screen, seal | #21 (camera), #22, #23, #25 (walkthrough), #26 | camera (#21), fixture camera (#22), upload queue and seal status pill (#23), walkthrough and seal (#25) built; rest not built |
 | F3 Landlord Report Diff + 5-Day Objection | Evidence tab: landlord report, diff, countdown; Letters tab: objection | #28, #29, #30 | deadlines and the countdown built (#29); rest not built |
 | F4 Responsibility Check | Repairs tab: new issue, result card | #31 | not built |
