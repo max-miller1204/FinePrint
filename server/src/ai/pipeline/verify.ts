@@ -3,6 +3,7 @@
 // every rule it cites exists in the pack and has a version in force during
 // the lease term. Claims that fail are dropped, never repaired.
 
+import type { Logger } from '../../log.js';
 import type { ResolvedRule } from '../../rules/resolve.js';
 import type { RulePack } from '../../rules/types.js';
 import type { Mapping } from '../schemas/lease.js';
@@ -21,6 +22,7 @@ export interface VerifyContext {
   absent?: readonly string[];
   model: string;
   fallback: boolean;
+  log?: Logger;
 }
 
 export function verifyMappings(mappings: readonly Mapping[], ctx: VerifyContext, drops: Drop[]): VerifiedMapping[] {
@@ -36,6 +38,10 @@ export function verifyMappings(mappings: readonly Mapping[], ctx: VerifyContext,
     }
     const span = locateQuote(clause.verbatim, mapping.leaseQuote);
     if (!span) {
+      ctx.log?.warn('mapping quote rejected', {
+        clauseId: clause.id, ruleIds: mapping.ruleIds.join(','),
+        matchingClauseIds: [...ctx.clauses.values()].filter((candidate) => locateQuote(candidate.verbatim, mapping.leaseQuote)).map((candidate) => candidate.id).join(','),
+      });
       drops.push({ stage: 'S6', reason: 'lease_quote_not_in_clause', ref: clause.id });
       continue;
     }

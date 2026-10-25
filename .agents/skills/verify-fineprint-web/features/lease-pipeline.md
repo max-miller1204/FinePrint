@@ -207,3 +207,16 @@ no additional changes. A fresh full web run passed smoke and all affected
 lease tests together: 51 passed, two live-model skips, exit 0
 (`.e2e/proof/110-post-dev/`). The PR remains draft for the live accuracy
 failures and is left for the separate integration thread to merge.
+
+## Accuracy repair candidate 1 (#110)
+
+S5 now receives opaque batch-local `mapping_AA` document ids, constrained by
+an enum for that batch. Validated aliases are translated back to the public
+`cN` ids before S6; S6 still rejects every mismatched quote. Planning reserves
+both the alias schema and longer document/task ids. The mapping prompt asks
+for every clause to be considered against all rules, distinguishes explicit
+compliance from hypothetical exceptions, and compares charges in like units.
+Quote rejection logs contain only claimed ids, rule ids, and matching ids
+within the batch, never lease text. The max-40 packing guard is unchanged.
+The previous failed runs remain evidence; this candidate requires its own
+live smoke and eval before readiness can change.

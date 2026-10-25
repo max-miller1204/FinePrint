@@ -14,6 +14,7 @@ import {
   chunkText,
   detectInjection,
   mappingOutputCap,
+  mappingDocumentId,
   mappingOverheadTokens,
   MAX_CALLS,
   MAX_REQUEST_TOKENS,
@@ -604,7 +605,11 @@ describe('analyzeLease', () => {
       expect(documents(request)).toHaveLength(31);
       expect(estimateInputTokens(request.systemInstruction, request.parts)).toBeLessThanOrEqual(MAX_REQUEST_TOKENS);
     }
-    expect(mapping.flatMap(documents).map((d) => d.id)).toEqual(['c0', ...Array.from({ length: 30 }, (_, i) => `c${i + 1}`)]);
+    expect(mapping.flatMap(documents).map((d) => d.id)).toEqual(Array.from({ length: 31 }, (_, i) => mappingDocumentId(i)));
+    for (const request of mapping) {
+      expect(request.systemInstruction).toContain(JSON.stringify(documents(request).map((d) => d.id)));
+      expect(request.systemInstruction).toContain('never the section number');
+    }
     // Both lease stages think (json mode) and cap their answers.
     expect(provider.requests.filter((r) => ['segment', 'mapping'].includes(stageOf(r))).map((r) => [r.thinking, r.maxOutputTokens])).toEqual([
       ['high', segmentOutputCap(LEASE.length)],
@@ -675,7 +680,7 @@ describe('analyzeLease', () => {
     expect(analysis.checks.filter((c) => c.outcome === 'violates')).toHaveLength(3);
     // Every clause went to exactly one mapping call.
     const mapped = provider.requests.filter((r) => stageOf(r) === 'mapping').flatMap(documents);
-    expect(mapped.map((d) => d.id)).toEqual(analysis.clauses.map((c) => c.id));
+    expect(mapped.map((d) => d.text)).toEqual(analysis.clauses.map((c) => c.verbatim));
   });
 });
 
@@ -1028,6 +1033,16 @@ describe('budget planning', () => {
     expect(mappingOutputCap(10)).toBe(4_096);
     expect(mappingOutputCap(25)).toBe(10_000);
     expect(mappingOutputCap(100)).toBe(16_384);
+  });
+
+  it('constrains mapping output to opaque document ids rather than printed section numbers', () => {
+    const schema = mappingSchema(['VA_NO_RIGHTS_WAIVER'], ['mapping_AA', 'mapping_AB']);
+    const claim = { clauseId: 'mapping_AB', ruleIds: ['VA_NO_RIGHTS_WAIVER'], assessment: 'violates', leaseQuote: 'Tenant waives all rights', reasoning: 'A waiver.' };
+    expect(schema.safeParse({ mappings: [claim] }).success).toBe(true);
+    expect(schema.safeParse({ mappings: [{ ...claim, clauseId: 'c19' }] }).success).toBe(false);
+    expect(schema.safeParse({ mappings: [{ ...claim, clauseId: 'mapping_AC' }] }).success).toBe(false);
+    expect(mappingDocumentId(0)).toBe('mapping_AA');
+    expect(mappingDocumentId(39)).toBe('mapping_BN');
   });
 
   it('counts schema, escaped document framing, and long ids near the input cap', () => {

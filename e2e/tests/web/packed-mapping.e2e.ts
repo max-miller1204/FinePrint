@@ -47,7 +47,10 @@ test('packed S5 maps the synthetic lease once and persists its verified finding'
     const requests = await (await fetch(new URL('/batch-proof/requests', baseUrl))).json();
     expect(requests).toHaveLength(1);
     expect(requests[0].model).toBe('gemma-4-26b-a4b-it');
-    expect(requests[0].ids).toEqual(lease.clauses.map((c: { id: string }) => c.id));
+    expect(requests[0].ids).toHaveLength(lease.clauses.length);
+    expect(new Set(requests[0].ids).size).toBe(lease.clauses.length);
+    expect(requests[0].ids.every((id: string) => /^mapping_[A-Z]{2}$/.test(id))).toBe(true);
+    expect(lease.clauses.every((c: { id: string }) => /^c[0-9]+$/.test(c.id))).toBe(true);
     expect(requests[0].inputTokens).toBeLessThanOrEqual(12_000);
     expect(requests[0].outputCap).toBe(31 * 400);
   } finally {

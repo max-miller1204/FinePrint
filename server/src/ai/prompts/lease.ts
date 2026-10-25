@@ -30,16 +30,18 @@ export function mappingInstruction(rules: readonly Rule[]): string {
   return `You compare lease clauses with Virginia landlord-tenant rules. Use only the rules below, never other law you know. The rules:
 ${rules.map(ruleLine).join('\n')}
 
+Read every document separately, in order. For each document, check all the listed rules against its full text before moving to the next document. Do not skip a duty or charge because another clause in the batch concerns the same topic. Treat a blanket transfer of responsibility differently from a limited exception for specified work. Apply only exceptions supported by the clause; do not invent missing facts. Compare amounts in the same units: a monthly rate prorated by the day is the ordinary daily rate, not an additional monthly penalty.
+
 For each clause that one or more rules apply to, give the rule ids and an assessment:
 - violates: the clause conflicts with the rule.
-- unclear: it might conflict, depending on facts or wording.
+- unclear: a concrete ambiguity in this clause prevents deciding whether it conflicts. Name that ambiguity; do not flag an ordinary compliant term just because hypothetical facts could change the rule.
 - complies: the rule applies and the clause follows it, but the tenant should know about it.
 - not_covered: no rule applies, but the clause is unusual or one-sided enough to mention. Give no rule ids.
-Leave out clauses that no rule applies to and that are ordinary. leaseQuote is the shortest exact words of the clause that show the problem, copied from that clause only. reasoning names what the clause says and what the rule requires.`;
+Use complies when the clause expressly meets the rule and its limit. Before finishing, check that every document was considered and each potentially conflicting duty or charge has an answer. Leave out clauses that no rule applies to and that are ordinary. leaseQuote is the shortest exact words of the clause that show the problem, copied from that clause only. reasoning names what the clause says and what the rule requires.`;
 }
 
 export function mappingTask(clauseIds: readonly string[]): string {
-  return `The documents are clauses ${clauseIds.join(', ')} of one lease; each document id is its clauseId. Map them to the rules.`;
+  return `The documents are clauses ${clauseIds.join(', ')} of one lease; each document id is its clauseId. Copy that id exactly. The printed section number in a document is lease text, not its id, and may differ. Keep each quote and assessment with the document they came from. Map them to the rules.`;
 }
 
 // S7 sees only the clauses and the statutes' exact words: no rule summary,

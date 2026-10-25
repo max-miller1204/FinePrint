@@ -29,7 +29,7 @@ import type { IsoDate, RulePack } from '../../rules/types.js';
 import { DOCUMENT_RULE, documentParts, type TextDocument } from '../documents.js';
 import { estimateInputTokens, JSON_RULE, type GemmaClient, type GemmaEvent, type GenerateResult } from '../gemma.js';
 import { mappingInstruction, mappingTask, SEGMENT_INSTRUCTION, segmentTask } from '../prompts/lease.js';
-import { mappingSchema, SegmentationSchema, type DocumentType, type Mapping } from '../schemas/lease.js';
+import { mappingSchema, SegmentationSchema, type DocumentType } from '../schemas/lease.js';
 import type { Triage, TriageCategory, TriageDecision } from '../triage/index.js';
 import { assessInjection, notALease, withInjectionFinding, type Injection } from './adversarial.js';
 import { clampOutput, MAX_OUTPUT_TOKENS, MAX_REQUEST_TOKENS } from './budget.js';
@@ -64,6 +64,13 @@ export function segmentOutputCap(chunkChars: number): number {
 }
 
 const MAPPING_TOKENS_PER_CLAUSE = 400;
+const MAX_MAPPING_CLAUSES = Math.floor(MAX_OUTPUT_TOKENS / MAPPING_TOKENS_PER_CLAUSE);
+
+// S5-only aliases cannot be confused with the lease's printed section numbers.
+// Public clause ids stay unchanged through S3, S6, storage, and the API.
+export function mappingDocumentId(index: number): string {
+  return `mapping_${String.fromCharCode(65 + Math.floor(index / 26))}${String.fromCharCode(65 + index % 26)}`;
+}
 
 export function mappingOutputCap(clauses: number): number {
   return clampOutput(clauses * MAPPING_TOKENS_PER_CLAUSE);
@@ -157,7 +164,8 @@ export function planBatches(clauses: readonly Clause[], overheadTokens: number):
   const base = used;
   for (const clause of clauses) {
     // Include escaped document tags and the id repeated in mappingTask.
-    const cost = estimateInputTokens('', documentParts([{ id: clause.id, text: clause.verbatim }], '')) + Math.ceil((clause.id.length + 2) / 4);
+    const id = clause.id.length > mappingDocumentId(0).length ? clause.id : mappingDocumentId(0);
+    const cost = estimateInputTokens('', documentParts([{ id, text: clause.verbatim }], '')) + Math.ceil((id.length + 2) / 4);
     const outputFits = (batch.length + 1) * MAPPING_TOKENS_PER_CLAUSE <= MAX_OUTPUT_TOKENS;
     if (batch.length > 0 && (used + cost > MAX_REQUEST_TOKENS || !outputFits)) {
       batches.push(batch);
@@ -291,28 +299,32 @@ export async function analyzeLease(input: LeaseInput, deps: LeaseDeps, { signal,
   const rules = resolved.map((r) => r.rule);
   const mappings: VerifiedMapping[] = [];
   if (rules.length > 0 && clauses.length > 0) {
-    const schema = mappingSchema(rules.map((r) => r.id) as [string, ...string[]]);
+    const ruleIds = rules.map((r) => r.id) as [string, ...string[]];
+    // Reserve the largest alias enum; the actual schema contains only this batch.
+    const schema = mappingSchema(ruleIds, Array.from({ length: MAX_MAPPING_CLAUSES }, (_, i) => mappingDocumentId(i)) as [string, ...string[]]);
     const instruction = mappingInstruction(rules);
     const batches = planBatches(clauses, mappingOverheadTokens(instruction, schema));
     const answers = await Promise.all(
       batches.map(async (batch) => {
-        const docs: TextDocument[] = batch.map((c) => ({ id: c.id, text: c.verbatim }));
+        const docs: TextDocument[] = batch.map((c, i) => ({ id: mappingDocumentId(i), text: c.verbatim }));
+        const aliases = new Map(docs.map((doc, i) => [doc.id, batch[i]!.id]));
+        const batchSchema = mappingSchema(ruleIds, docs.map((doc) => doc.id) as [string, ...string[]]);
         const result = track(
-          await gemma.generate('mapping', schema, docs, {
-            task: mappingTask(batch.map((c) => c.id)),
+          await gemma.generate('mapping', batchSchema, docs, {
+            task: mappingTask(docs.map((doc) => doc.id)),
             instruction,
             maxOutputTokens: mappingOutputCap(batch.length),
             ...common,
           }),
         );
-        return { batch, result: result as GenerateResult<{ mappings: Mapping[] }> };
+        return { batch, result, mappings: result.data.mappings.map((mapping) => ({ ...mapping, clauseId: aliases.get(mapping.clauseId) ?? mapping.clauseId })) };
       }),
     );
     stage('S6', 'Checking every citation', 0.75);
-    for (const { batch, result } of answers) {
+    for (const { batch, result, mappings: claims } of answers) {
       mappings.push(
         ...verifyMappings(
-          result.data.mappings,
+          claims,
           {
             clauses: new Map(batch.map((c) => [c.id, c])),
             pack,
@@ -321,6 +333,7 @@ export async function analyzeLease(input: LeaseInput, deps: LeaseDeps, { signal,
             absent: absences.map((a) => a.ruleId),
             model: result.model,
             fallback: result.fallback,
+            log,
           },
           drops,
         ),
