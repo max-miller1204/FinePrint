@@ -25,9 +25,15 @@ machine with the Google Cloud CLI:
 
 ```sh
 gcloud auth login
-./deploy.sh                    # prompts for the project, region (us-east4), and Gemini API key
+./deploy.sh                    # prompts for the project and region (us-east4)
 ./deploy.sh --destroy          # removes it all, after you type the project ID
 ```
+
+The Gemini API key comes from `GEMINI_API_KEY` in the environment. Load it
+with 1Password (`op run --env-file ~/.config/fineprint/.env -- ./deploy.sh`)
+or the macOS Keychain (`scripts/with-gemini-key.sh ./deploy.sh`); see
+[CONTRIBUTING.md](CONTRIBUTING.md). In Cloud Shell, with neither, the script
+asks for it with hidden input.
 
 Run it again any time: it skips what exists and ships a new revision. It
 prints the server URL to set in the iOS app. The budget alerts are in US
