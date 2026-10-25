@@ -13,6 +13,7 @@ struct SafetyGuidance: View {
             } icon: {
                 Image(systemName: Severity.unenforceable.symbolName)
                     .foregroundStyle(Severity.unenforceable.color)
+                    .accessibilityHidden(true)
             }
             .font(.title2.weight(.semibold))
             .accessibilityAddTraits(.isHeader)

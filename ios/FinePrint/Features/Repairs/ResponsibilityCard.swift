@@ -33,12 +33,14 @@ struct ResponsibilityCard: View {
         VStack(alignment: .leading, spacing: 10) {
             Label {
                 Text(result.verdict.title)
+                    .accessibilityIdentifier("issue.verdict")
             } icon: {
+                // The symbol repeats the verdict, and VoiceOver would read its own name for it.
                 Image(systemName: result.verdict.symbolName)
+                    .accessibilityHidden(true)
             }
             .font(.title2.weight(.semibold))
             .accessibilityAddTraits(.isHeader)
-            .accessibilityIdentifier("issue.verdict")
 
             Text(result.category.title)
                 .font(.headline)

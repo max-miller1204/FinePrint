@@ -87,6 +87,7 @@ test('a broken heater in January gets a cited answer, with a photo of it', { pla
   await expect(screen.getByText('Legal information, not legal advice.')).toBeVisible();
   const received = logLines('evidence received');
   const created = logLines('issue created');
+  const createdWithPhoto = logLines('issue created', '"photos":1');
 
   await screen.getByTestId('repairs.newIssue').tap();
   // Nothing to check yet, and photos need a room.
@@ -128,7 +129,7 @@ test('a broken heater in January gets a cited answer, with a photo of it', { pla
   await expect(screen.getByText('Virginia law', { exact: false })).toBeVisible();
   await screen.scrollUntilVisible(screen.getByTestId('issue.change.0'));
   await expect(screen.getByTestId('issue.change.0')).toBeVisible();
-  await expect.poll(() => logLines('issue created', '"photos":1'), { timeout: 15_000 }).toBe(1);
+  await expect.poll(() => logLines('issue created', '"photos":1'), { timeout: 15_000 }).toBe(createdWithPhoto + 1);
   expect(logLines('issue created')).toBe(created + 1);
 
   // Saved on the rental: Done goes back to the list, which shows it.
