@@ -183,6 +183,15 @@ and non-lease uploads end to end.
 Run `pnpm smoke:lease --packed-single` in `server/` with `GEMINI_API_KEY`
 provided by the secret manager and a fresh Gemma quota window. It checks one
 successful S5 request, all planted findings, no limiter waits, and no invalid
-outputs. Compare the #20 eval on baseline and packed code before merging;
-see [the comparison procedure](../../../../docs/s5-batching.md). Live accuracy,
-truncation, and timing remain unverified without the key and quota.
+outputs. For the HTTP stream, run smoke plus the English live lease test with
+`E2E_PACKED_LEASE_TIMING=1`; this additionally asserts no wait/error events,
+one successful 26B mapping request, and no invalid outputs. An isolated
+emulator run can set `E2E_FIRESTORE_EMULATOR_HOST` for the lease tests' direct
+Firestore checks.
+
+Measured 2026-10-25: baseline eval passed 8/8 plants; packed eval retained
+7/8, missing `VA_LANDLORD_MAINTAIN_FIT`, and added one clean-alt false
+positive. The short-fixture smoke retained only 2/5 semantic plants. The
+HTTP timing proof passed in 89 seconds with one S5 request and no waits or
+invalid outputs. PR #118 remains draft for the failed accuracy gate. See
+[the live comparison and reproduction steps](../../../../docs/s5-batching.md).

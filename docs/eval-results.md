@@ -4,33 +4,34 @@
 
 The lease eval sets (spec §12, #20), run against the real model. How to run them and what each set means: `docs/ai-pipeline.md`, "Lease eval sets".
 
-**PASS**
+**FAIL**
 
-Run 2026-10-25, 25.1 min. Models that answered: gemma-4-26b-a4b-it, gemma-4-31b-it. Output modes: extraction json, mapping json, verification json, explanation json.
+Run 2026-10-25, 17.8 min. Models that answered: gemma-4-26b-a4b-it, gemma-4-31b-it. Output modes: extraction json, mapping json, verification json, explanation json.
 
 | Set | Metric | Result | Gate |
 | --- | --- | --- | --- |
-| `lease-synthetic` | Recall | 100.0% (8/8) | >= 0.9 pass |
-| `lease-synthetic` | Precision | 100.0% (8/8) | >= 0.85 pass |
-| `lease-synthetic` | Severity accuracy | 100.0% (8/8) | report |
+| `lease-synthetic` | Recall | 87.5% (7/8) | >= 0.9 **fail** |
+| `lease-synthetic` | Precision | 87.5% (7/8) | >= 0.85 pass |
+| `lease-synthetic` | Severity accuracy | 100.0% (7/7) | report |
 | `clauses-golden` | Recall | 100.0% | report |
 | `clauses-golden` | Precision | 100.0% | report |
-| `clauses-golden` | Verifier agrees on violations | 40/40 | report |
+| `clauses-golden` | Verifier agrees on violations | 39/40 | report |
 | `clauses-golden` | Verifier agrees on look-alikes | 0/0 | report |
-| `citations` | Findings that resolve | 100.0% (136/136) | 100% pass |
+| `citations` | Findings that resolve | 100.0% (107/107) | 100% pass |
 
 ### lease-synthetic
 
 | Lease | Status | Calls | Seconds | Unverified | TP | FP | FN |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| `planted` | analyzed | 10 | 413 | 0 | 8 | 0 | 0 |
-| `clean` | analyzed | 10 | 362 | 0 | 0 | 0 | 0 |
-| `clean-alt` | analyzed | 10 | 316 | 0 | 0 | 0 | 0 |
+| `planted` | analyzed | 7 | 225 | 0 | 7 | 0 | 1 |
+| `clean` | analyzed | 7 | 263 | 0 | 0 | 0 | 0 |
+| `clean-alt` | analyzed | 7 | 220 | 0 | 0 | 1 | 0 |
 
 | Rule | TP | FP | FN |
 | --- | --- | --- | --- |
 | `VA_DEPOSIT_CAP` | 1 | 0 | 0 |
-| `VA_LANDLORD_MAINTAIN_FIT` | 1 | 0 | 0 |
+| `VA_HOLDOVER_PENALTY_CAP` | 0 | 1 | 0 |
+| `VA_LANDLORD_MAINTAIN_FIT` | 0 | 0 | 1 |
 | `VA_LATE_FEE_CAP` | 1 | 0 | 0 |
 | `VA_NO_CONFESSION_OF_JUDGMENT` | 1 | 0 | 0 |
 | `VA_NO_EXCULPATION_INDEMNITY` | 1 | 0 | 0 |
@@ -38,10 +39,12 @@ Run 2026-10-25, 25.1 min. Models that answered: gemma-4-26b-a4b-it, gemma-4-31b-
 | `VA_NO_RIGHTS_WAIVER` | 1 | 0 | 0 |
 | `VA_ROUTINE_MAINTENANCE_NOTICE_72H` | 1 | 0 | 0 |
 
+- Missed on `planted`: `VA_LANDLORD_MAINTAIN_FIT`
+- False positive on `clean-alt`: `VA_HOLDOVER_PENALTY_CAP` ask (mapping) in 69. HOLDING OVER.
 
 ### clauses-golden
 
-60 excerpts, 7 calls, 2 S6 or S7 drops.
+60 excerpts, 7 calls, 3 S6 or S7 drops.
 
 | Rule | TP | FN | FP | TN |
 | --- | --- | --- | --- | --- |

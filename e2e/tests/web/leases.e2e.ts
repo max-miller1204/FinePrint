@@ -77,7 +77,8 @@ async function curlStream(baseUrl: string, path: string, idToken: string, timeou
 
 // The stored lease, read from the Firestore emulator in ../firebase.json.
 async function storedDocs(path: string): Promise<{ documents?: { name: string; fields: Record<string, Record<string, unknown>> }[]; fields?: Record<string, Record<string, unknown>> }> {
-  const res = await fetch(`http://127.0.0.1:8090/v1/projects/demo-fineprint/databases/(default)/documents/${path}?pageSize=300`, {
+  const host = process.env.E2E_FIRESTORE_EMULATOR_HOST ?? '127.0.0.1:8090';
+  const res = await fetch(`http://${host}/v1/projects/demo-fineprint/databases/(default)/documents/${path}?pageSize=300`, {
     headers: { Authorization: 'Bearer owner' },
   });
   expect(res.status).toBe(200);
@@ -129,11 +130,26 @@ describe('Lease API and SSE stream', { platforms: ['web'] }, () => {
     const { idToken } = await signUpAnonymously(app.baseUrl);
     const { rentalId, leaseId, stream } = await rentalWithLease(app.baseUrl, idToken, LEASE);
 
+    const logPath = join(import.meta.dirname, '..', '..', '.e2e', 'logs', 'server.log');
+    const logStart = process.env.E2E_PACKED_LEASE_TIMING === '1' ? readFileSync(logPath, 'utf8').length : 0;
+    const started = Date.now();
     const { events } = await curlStream(app.baseUrl, stream, idToken, 880_000);
+    const seconds = Math.round((Date.now() - started) / 1000);
     expect(events.map((e) => e.id)).toEqual(events.map((_, i) => String(i + 1)));
     // Rate limit and busy-model waits are `error` events with retryInMs; the stream goes on.
     const waits = events.filter((e) => e.event === 'error');
     for (const wait of waits) expect(wait.data).toMatchObject({ code: expect.stringMatching(/^(RATE_LIMITED|DEPENDENCY_UNAVAILABLE)$/), retryInMs: expect.any(Number) });
+    if (process.env.E2E_PACKED_LEASE_TIMING === '1') {
+      expect(waits).toEqual([]);
+      const calls = readFileSync(logPath, 'utf8').slice(logStart)
+        .split('\n').filter((line) => line.startsWith('{')).map((line) => JSON.parse(line))
+        .filter((line) => line.message === 'model call');
+      const mapping = calls.filter((line) => line.stage === 'mapping');
+      expect(mapping).toHaveLength(1);
+      expect(mapping[0]).toMatchObject({ model: 'gemma-4-26b-a4b-it', outcome: 'ok' });
+      expect(calls.filter((line) => line.outcome === 'invalid_output')).toEqual([]);
+      console.log(JSON.stringify({ check: 'packed-single-lease', seconds, mappingCalls: mapping.length, mappingInputTokens: mapping[0].promptTokens, mappingOutputTokens: mapping[0].outputTokens, mappingThoughtTokens: mapping[0].thoughtTokens, rateLimitedEvents: 0, invalidOutputs: 0 }));
+    }
     const kinds = events.filter((e) => e.event !== 'error').map((e) => (e.event === 'stage' ? `stage:${e.data.stage}` : e.event));
     const findings = events.filter((e) => e.event === 'finding');
     expect(kinds).toEqual([
