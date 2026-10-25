@@ -1,0 +1,24 @@
+{
+  "id": "VA_DEPOSIT_PLUS_INSURANCE_CAP",
+  "jurisdiction": "VA",
+  "citation": "Va. Code § 55.1-1208(A)(7)",
+  "sourceUrl": "https://law.lis.virginia.gov/vacode/title55.1/chapter12/section55.1-1208/",
+  "versions": [
+    {
+      "effectiveFrom": "2019-10-01",
+      "effectiveUntil": null,
+      "statuteQuote": "Agrees to the payment of a security deposit, insurance premiums for damage insurance, and insurance premiums for renter's insurance prior to the commencement of the tenancy that exceed the amount of two months' periodic rent",
+      "snapshotFile": "snapshots/55.1-1208@2026-10-25.txt"
+    }
+  ],
+  "checkType": "deterministic",
+  "deterministic": { "fn": "depositPlusInsuranceCap", "inputs": ["securityDeposit", "damageInsurancePremium", "monthlyRent", "renterInsurancePremium"] },
+  "summaryForModel": "The security deposit, damage insurance premiums, and renter's insurance premiums paid before the tenancy starts cannot together exceed two months' rent.",
+  "paraphraseExamples": [
+    "Tenant shall pay a security deposit of $2,800 and a damage waiver premium of $300 prior to move-in.",
+    "Resident must purchase the community's renter's insurance and prepay the annual premium at lease signing, in addition to a two-month deposit."
+  ],
+  "tenantExplanation": "Virginia caps what you pay up front for the deposit plus damage and renter's insurance at two months' rent combined.",
+  "action": "You can ask your landlord to lower the deposit or insurance charges so the total is two months' rent or less.",
+  "severityIfViolated": "unenforceable"
+}

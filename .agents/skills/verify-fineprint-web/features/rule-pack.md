@@ -23,9 +23,10 @@ through `server/src/rules/`. How to add a state:
   check is unknown or its inputs are wrong. `verifiedThrough` is the oldest
   `verifiedAt`, or `null` while any rule is unverified.
 - Check registry: `server/src/rules/checks.ts`: `lateFeeCap`,
-  `securityDepositCap`, `depositPlusInsuranceCap`,
-  `maintenanceNoticeHours`. Pure functions on verified key terms, money in
-  integer cents. Each returns `violates`, `complies`, or
+  `securityDepositCap`, `depositPlusInsuranceCap` (adds the optional
+  `renterInsurancePremium`, which § 55.1-1208(A)(7) counts since its 2026
+  amendment), `maintenanceNoticeHours`. Pure functions on verified key
+  terms, money in integer cents. Each returns `violates`, `complies`, or
   `insufficient_input` (missing, negative, or NaN), with `limit` and
   `actual`.
 - Resolver: `server/src/rules/resolve.ts`. `versionsForTerm(rule, { start,
@@ -39,9 +40,16 @@ through `server/src/rules/`. How to add a state:
   paragraphs), `NEW` (a version on the page with no snapshot), or `GONE`.
   It exits 1 when anything differs. `--write` writes new dated files and
   names the rules to re-check. `--add <url> <state>` snapshots a new section.
-- Pack today: `VA_LATE_FEE_CAP` (§ 55.1-1204(E)) with both versions, before
-  and after July 1, 2027. It is unverified; #13 adds the rest of the
-  rules and a person's verification.
+- Pack today (#13): 16 VA rules over 9 snapshots (§§ 55.1-1204, -1208,
+  -1214, -1220, -1226, -1229, -1244). Deterministic: `VA_LATE_FEE_CAP`,
+  `VA_DEPOSIT_CAP`, `VA_DEPOSIT_PLUS_INSURANCE_CAP`,
+  `VA_ROUTINE_MAINTENANCE_NOTICE_72H`. Informational:
+  `VA_RENT_ESCROW_PROCESS`. The rest are semantic. Two sections have a
+  future version: § 55.1-1204 (July 1, 2027; `VA_LATE_FEE_CAP` and
+  `VA_TENANT_RIGHTS_STATEMENT`, same quote in both) and § 55.1-1244
+  (January 1, 2027; the escrow payment moves from B 2 to C, so the quote
+  changes). `verifiedBy` and `verifiedAt` are set only after a person
+  checks every quote and subsection letter against its snapshot.
 
 ## How to get to it (user POV)
 
@@ -53,7 +61,9 @@ against the lease dates.
 ## Driving it with e2e
 
 No e2e test until a route reads the pack. `server/test/rules.test.ts`
-covers it under `pnpm test`: it loads the real packs, checks the resolver
+covers it under `pnpm test`: it loads the real packs (all 16 VA rule ids,
+and both § 55.1-1244 versions with `quoteChanged: true` for an October 2026
+lease), checks the resolver
 (both § 55.1-1204 versions for an October 2026 to October 2027 lease, the
 exclusive and inclusive boundaries, open-ended terms, gaps, bad dates), runs
 every check (including the cent that tips 10% over), breaks a scratch copy
@@ -63,10 +73,10 @@ a two-version law.lis.virginia.gov page.
 
 ## Proof
 
-`pnpm check:jurisdictions` prints `jurisdictions: 3 JSON file(s) parse, 2
-rule(s) valid with quotes in their snapshots` and exits 0 (the VA rule and
-the TEMPLATE example). `node scripts/refresh-snapshots.ts` prints `ok` for
-both 55.1-1204 snapshots and exits 0 while the site's text is unchanged.
+`pnpm check:jurisdictions` prints `jurisdictions: 18 JSON file(s) parse, 17
+rule(s) valid with quotes in their snapshots` and exits 0 (the 16 VA rules
+and the TEMPLATE example). `node scripts/refresh-snapshots.ts` prints `ok`
+for all 9 VA snapshots and exits 0 while the site's text is unchanged.
 
 ## Charters
 

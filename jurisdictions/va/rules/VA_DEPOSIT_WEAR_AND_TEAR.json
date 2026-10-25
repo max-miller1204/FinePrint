@@ -1,0 +1,24 @@
+{
+  "id": "VA_DEPOSIT_WEAR_AND_TEAR",
+  "jurisdiction": "VA",
+  "citation": "Va. Code § 55.1-1226(A)",
+  "sourceUrl": "https://law.lis.virginia.gov/vacode/title55.1/chapter12/section55.1-1226/",
+  "versions": [
+    {
+      "effectiveFrom": "2019-10-01",
+      "effectiveUntil": null,
+      "statuteQuote": "(ii) the payment of the amount of damages that the landlord has suffered by reason of the tenant's noncompliance with § 55.1-1227, less reasonable wear and tear",
+      "snapshotFile": "snapshots/55.1-1226@2026-10-25.txt"
+    }
+  ],
+  "checkType": "semantic",
+  "summaryForModel": "Deposit deductions for damage must exclude reasonable wear and tear. A lease that charges the tenant for normal wear and tear (such as routine repainting, carpet wear, or minor scuffs) conflicts with this.",
+  "paraphraseExamples": [
+    "Tenant will be charged for repainting and carpet replacement upon move-out regardless of condition.",
+    "Normal wear and tear will be deducted from the security deposit.",
+    "A cleaning and carpet fee of $400 will be withheld from the deposit."
+  ],
+  "tenantExplanation": "Your landlord can't take money from your deposit for normal wear from everyday living, only for damage beyond that.",
+  "action": "You can ask your landlord to remove automatic move-out charges for normal wear. Take dated move-in photos to show what was already there.",
+  "severityIfViolated": "unenforceable"
+}

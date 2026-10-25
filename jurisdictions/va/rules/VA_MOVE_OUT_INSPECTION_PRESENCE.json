@@ -1,0 +1,23 @@
+{
+  "id": "VA_MOVE_OUT_INSPECTION_PRESENCE",
+  "jurisdiction": "VA",
+  "citation": "Va. Code § 55.1-1226(G)",
+  "sourceUrl": "https://law.lis.virginia.gov/vacode/title55.1/chapter12/section55.1-1226/",
+  "versions": [
+    {
+      "effectiveFrom": "2019-10-01",
+      "effectiveUntil": null,
+      "statuteQuote": "Upon request by the landlord to a tenant to vacate, or within five days after receipt of notice by the landlord of the tenant's intent to vacate, the landlord shall provide written notice to the tenant of the tenant's right to be present at the landlord's inspection of the dwelling unit for the purpose of determining the amount of security deposit to be returned.",
+      "snapshotFile": "snapshots/55.1-1226@2026-10-25.txt"
+    }
+  ],
+  "checkType": "semantic",
+  "summaryForModel": "The tenant has a right to be present at the landlord's move-out inspection, and the landlord must tell the tenant of this right in writing. If the tenant asks in writing to attend, the inspection must happen within 72 hours of delivery of possession. A lease that denies or waives this right conflicts with it.",
+  "paraphraseExamples": [
+    "Move-out inspections are conducted by management without the resident present.",
+    "Tenant waives any right to attend the final inspection."
+  ],
+  "tenantExplanation": "You have the right to be there when your landlord inspects the unit at move-out to decide your deposit. Ask in writing to attend.",
+  "action": "When you give notice to move out, also tell your landlord in writing that you want to be present at the move-out inspection.",
+  "severityIfViolated": "unenforceable"
+}

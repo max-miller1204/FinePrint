@@ -1,0 +1,23 @@
+{
+  "id": "VA_MOVE_IN_REPORT_5_DAYS",
+  "jurisdiction": "VA",
+  "citation": "Va. Code § 55.1-1214(A)",
+  "sourceUrl": "https://law.lis.virginia.gov/vacode/title55.1/chapter12/section55.1-1214/",
+  "versions": [
+    {
+      "effectiveFrom": "2019-10-01",
+      "effectiveUntil": null,
+      "statuteQuote": "The landlord shall, within five days after occupancy of a dwelling unit, submit a written report to the tenant itemizing damages to the dwelling unit existing at the time of occupancy, and the report shall be deemed correct unless the tenant objects to it in writing within five days after receipt of the report.",
+      "snapshotFile": "snapshots/55.1-1214@2026-10-25.txt"
+    }
+  ],
+  "checkType": "semantic",
+  "summaryForModel": "Within five days after the tenant moves in, the landlord must give the tenant a written report of existing damage. The report is deemed correct unless the tenant objects in writing within five days of receiving it. A lease that says the tenant accepts the unit as undamaged, or shortens the objection window, conflicts with this.",
+  "paraphraseExamples": [
+    "Tenant accepts the premises in good condition and acknowledges no existing damage.",
+    "Tenant must report any pre-existing damage within 48 hours of move-in or it will be deemed tenant-caused."
+  ],
+  "tenantExplanation": "Your landlord must give you a written list of existing damage within five days of move-in. You then have five days to object in writing, or the list is treated as correct.",
+  "action": "Ask for the move-in report if you don't get it within five days. Check it against your own photos and send any objections in writing within five days.",
+  "severityIfViolated": "ask"
+}

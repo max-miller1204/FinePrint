@@ -1,0 +1,24 @@
+{
+  "id": "VA_LANDLORD_MAINTAIN_FIT",
+  "jurisdiction": "VA",
+  "citation": "Va. Code § 55.1-1220(A)(4)",
+  "sourceUrl": "https://law.lis.virginia.gov/vacode/title55.1/chapter12/section55.1-1220/",
+  "versions": [
+    {
+      "effectiveFrom": "2019-10-01",
+      "effectiveUntil": null,
+      "statuteQuote": "Maintain in good and safe working order and condition all electrical, plumbing, sanitary, heating, ventilating, air-conditioning, and other facilities and appliances, including elevators, supplied or required to be supplied by him",
+      "snapshotFile": "snapshots/55.1-1220@2026-10-25.txt"
+    }
+  ],
+  "checkType": "semantic",
+  "summaryForModel": "The landlord must keep the electrical, plumbing, sanitary, heating, ventilating, and air-conditioning systems and supplied appliances in good and safe working order. A lease that shifts repair of these major systems to the tenant conflicts with this, unless it is a good-faith written agreement for specified repairs under § 55.1-1220(D).",
+  "paraphraseExamples": [
+    "Tenant is responsible for all repairs to the HVAC system, water heater, and plumbing.",
+    "Resident shall maintain and repair all appliances at Resident's expense.",
+    "Tenant accepts the premises as-is and is responsible for all maintenance."
+  ],
+  "tenantExplanation": "Virginia makes your landlord keep heating, cooling, plumbing, electrical, and supplied appliances working. A lease generally can't hand those repairs to you.",
+  "action": "You can ask your landlord to change this so major system and appliance repairs stay with them, unless you caused the damage.",
+  "severityIfViolated": "ask"
+}

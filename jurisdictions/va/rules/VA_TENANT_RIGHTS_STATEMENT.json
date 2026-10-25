@@ -1,0 +1,29 @@
+{
+  "id": "VA_TENANT_RIGHTS_STATEMENT",
+  "jurisdiction": "VA",
+  "citation": "Va. Code § 55.1-1204(B)",
+  "sourceUrl": "https://law.lis.virginia.gov/vacode/title55.1/chapter12/section55.1-1204/",
+  "versions": [
+    {
+      "effectiveFrom": "2019-10-01",
+      "effectiveUntil": "2027-07-01",
+      "statuteQuote": "A landlord shall offer a prospective tenant a written rental agreement containing the terms governing the rental of the dwelling unit and setting forth the terms and conditions of the landlord-tenant relationship and shall provide with it the statement of tenant rights and responsibilities developed by the Department of Housing and Community Development and posted on its website pursuant to § 36-139.",
+      "snapshotFile": "snapshots/55.1-1204@2026-10-25.txt"
+    },
+    {
+      "effectiveFrom": "2027-07-01",
+      "effectiveUntil": null,
+      "statuteQuote": "A landlord shall offer a prospective tenant a written rental agreement containing the terms governing the rental of the dwelling unit and setting forth the terms and conditions of the landlord-tenant relationship and shall provide with it the statement of tenant rights and responsibilities developed by the Department of Housing and Community Development and posted on its website pursuant to § 36-139.",
+      "snapshotFile": "snapshots/55.1-1204~2027-07-01@2026-10-25.txt"
+    }
+  ],
+  "checkType": "semantic",
+  "summaryForModel": "The landlord must offer a written lease and provide with it the Virginia DHCD Statement of Tenant Rights and Responsibilities. Both parties sign a DHCD form acknowledging the tenant received it. Flag a lease that does not mention or attach the statement.",
+  "paraphraseExamples": [
+    "Attached as Exhibit C: Statement of Tenant Rights and Responsibilities.",
+    "Tenant acknowledges receipt of the Virginia Statement of Tenant Rights and Responsibilities."
+  ],
+  "tenantExplanation": "Your landlord must give you Virginia's official Statement of Tenant Rights and Responsibilities with your lease. It explains your rights in plain language.",
+  "action": "If it isn't attached, ask your landlord for the Statement of Tenant Rights and Responsibilities before you sign.",
+  "severityIfViolated": "ask"
+}
