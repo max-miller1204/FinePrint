@@ -33,6 +33,10 @@ export interface GenerateOptions {
   task: string;
   // Stage rules added to the system instruction, after the document rule.
   instruction?: string;
+  // Caps the answer, thinking included. Gemma 4 sometimes loops in schema
+  // mode until the API's limit, which takes many minutes; capped, the loop
+  // ends as invalid output and is retried.
+  maxOutputTokens?: number;
   signal?: AbortSignal;
   // Progress for the SSE stream and the AI trace overlay (#39).
   onEvent?: (event: GemmaEvent) => void;
@@ -155,7 +159,7 @@ export function createGemma({
   };
 
   return {
-    async generate(stage, schema, docs, { task, instruction, signal, onEvent, log = baseLog }) {
+    async generate(stage, schema, docs, { task, instruction, maxOutputTokens, signal, onEvent, log = baseLog }) {
       const { role, thinking, output } = stages[stage];
       const chain = fallbackChain(role, config);
       const responseSchema = output === 'schema' ? responseSchemaFor(schema) : undefined;
@@ -212,6 +216,7 @@ export function createGemma({
               parts,
               thinking,
               ...(responseSchema ? { responseSchema } : {}),
+              ...(maxOutputTokens ? { maxOutputTokens } : {}),
               ...(signal ? { signal } : {}),
             });
           } catch (err) {

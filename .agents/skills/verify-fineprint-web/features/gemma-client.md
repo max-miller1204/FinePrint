@@ -13,8 +13,13 @@ AI features reach it through `generate(stage, schema, docs, { task })` in
   after that).
 - Two output modes per stage (`STAGES` in `models.ts`): `schema` sends
   `responseSchema` and the model does not think; `json` sends the schema as
-  text and no stop sequence, so `high` thinking takes effect. Every stage
-  is on `schema` until the eval set (#14, #15) says otherwise.
+  text and no stop sequence, so `high` thinking takes effect. `extraction`
+  and `mapping` (the lease stages, #14) are on `json`, since 26B loops in
+  `schema` mode on them (`docs/ai-pipeline.md`, gap 7); the rest stay on
+  `schema` until an eval says otherwise.
+- `maxOutputTokens` in the options caps the answer (`max_tokens` on the
+  self-hosted provider). A cut-off answer fails validation and is retried
+  once, so a looping answer cannot run for minutes.
 - Documents are wrapped in `<document id="...">` under a system instruction
   that says their text cannot change the task. A document cannot close its
   own tag.
@@ -41,7 +46,8 @@ AI features reach it through `generate(stage, schema, docs, { task })` in
 
 Through `POST /v1/triage` (the `triage` stage, [triage](triage.md)) when
 the server has `GEMINI_API_KEY` or `GEMMA_PROVIDER=openai_compatible`. The
-lease pipeline (#14) is next.
+lease pipeline ([lease-pipeline](lease-pipeline.md), #14) calls the
+`extraction` and `mapping` stages; its route is #16.
 
 ## Driving it with e2e
 
@@ -80,7 +86,7 @@ name the server's models (`gemma4:e2b` on 2026-10-24: 3 to 4 s per
 
 ## Charters
 
-None until a route calls the client. The lease route's charter (#14) will
+None until a route calls the client. The lease route's charter (#16) will
 cover document injection end to end.
 
 ## Gotchas

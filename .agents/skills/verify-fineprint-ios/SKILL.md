@@ -105,7 +105,8 @@ handles are stable:
   `deadline.remindMe`, `deadline.remindersOn`, `deadline.openSettings`,
   `deadline.reportReceived`, `deposit.forwardingAddress`,
   `deposit.inspection`, `deposit.moveOutCard`, `deposit.addMoveOutDate`,
-  `dayEntry.save`, `dayEntry.cancel`. Rentals: `rentalSwitcher`,
+  `dayEntry.save`, `dayEntry.cancel`. Walkthrough: `walkthrough.*` and
+  `camera.markNoDamage`, `camera.progress` (see [walkthrough](features/walkthrough.md)). Rentals: `rentalSwitcher`,
   `rentalSwitcher.add`, `addRental.cancel` (see [rentals](features/rentals.md)). Lease: `lease.*` (see [lease scan](features/lease-scan.md)). iOS 26 lists a toolbar button twice
   (its container and the button), so drive toolbar buttons such as
   `dayEntry.save` by role and name: `getByRole('button', { name: 'Start Clock' })`.
@@ -150,7 +151,7 @@ value. On macOS without 1Password, keep the key in the login keychain
 - placeholder screens on every tab except onboarding and the Evidence
   deadline cards
 - the sample deadline in DEBUG builds when no real deadline is due
-- "Sealed" never shows: sealing is #24
+- "Sealed" shows only after Seal Move-In Report in a walkthrough, never for Developer Options photos
 
 There is one simulator, so iOS charters run **one at a time**, never
 fanned out in parallel.

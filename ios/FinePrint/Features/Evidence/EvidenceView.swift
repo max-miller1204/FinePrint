@@ -1,24 +1,36 @@
 import SwiftUI
 
+/// The Evidence tab: running clocks, then the move-in walkthrough (spec §4.3 F2).
 struct EvidenceView: View {
     @Environment(DeadlineStore.self) private var deadlines
+    @Environment(AppNavigation.self) private var navigation
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
-        if !deadlines.visibleDeadlines.isEmpty || deadlines.needsMoveOutDate {
-            EvidenceDeadlinesScreen()
-        } else {
-            placeholder
+        ScrollViewReader { proxy in
+            ScrollView {
+                VStack(spacing: 16) {
+                    if deadlines.needsMoveOutDate, let rental = deadlines.currentRental {
+                        MoveOutDateCard(rental: rental)
+                    }
+                    ForEach(deadlines.visibleDeadlines) { deadline in
+                        DeadlineCard(deadline: deadline)
+                            .id(deadline.id)
+                    }
+                    MoveInWalkthroughSection(rental: deadlines.currentRental)
+                }
+                .padding()
+            }
+            .onChange(of: navigation.focusedDeadlineID, initial: true) { _, id in
+                guard let id else { return }
+                withAnimation(reduceMotion ? nil : .smooth) { proxy.scrollTo(id, anchor: .top) }
+                navigation.focusedDeadlineID = nil
+            }
         }
-    }
-
-    private var placeholder: some View {
-        PlaceholderScreen(
-            navigationTitle: "Evidence",
-            title: "No move-in photos yet",
-            systemImage: "camera.viewfinder",
-            description: "In Virginia, you have 5 days after you get your landlord's move-in report to object to it in writing, so take your photos early.",
-            showsLegalFooter: false
-        )
+        .background(Color(.systemBackground))
+        .navigationTitle("Evidence")
+        .rentalSubtitle()
+        .settingsToolbar()
     }
 }
 

@@ -199,6 +199,21 @@ final class DeadlineStore {
         await enableReminders(now: now)
     }
 
+    /// The move-in report is sealed: the landlord's 5-day report clock runs from occupancy
+    /// (spec §4.3 F2, Va. Code § 55.1-1214(A)). A rental that already has the clock, running or
+    /// closed, keeps it. Otherwise it starts on `occupancy`, the rental's occupancy date, or the day
+    /// the walkthrough began when the rental has none. Never asks for notification permission:
+    /// the clock's card offers Remind Me.
+    @discardableResult
+    func startMoveInReportClock(for rental: Rental, occupancyFallback: CalendarDay, now: Date = .now) -> Deadline {
+        if let existing = deadline(.moveInReport, for: rental) { return existing }
+        let created = Deadline(kind: .moveInReport, startDay: rental.occupancyDate ?? occupancyFallback, createdAt: now)
+        insert(created, for: rental)
+        save()
+        sync(now: now)
+        return created
+    }
+
     /// The tenancy ends (or ended) on `day`: the 45-day deposit clock starts (spec §4.3 F6).
     /// An in-app action, so it may ask for permission.
     func setTenancyEnd(_ day: CalendarDay, for rental: Rental, now: Date = .now) async {
@@ -211,6 +226,18 @@ final class DeadlineStore {
     /// schedules every active deadline's reminders.
     func requestReminders(now: Date = .now) async {
         await enableReminders(now: now)
+    }
+
+    /// "Delete everything": cancels every reminder and deletes every rental with its deadlines.
+    /// Returns how many rentals went.
+    @discardableResult
+    func eraseAll() -> Int {
+        scheduler.cancel(identifiers: deadlines.flatMap(\.reminderIdentifiers))
+        guard let context else { return 0 }
+        let all = (try? context.fetch(FetchDescriptor<Rental>())) ?? []
+        for rental in all { context.delete(rental) }
+        save()
+        return all.count
     }
 
     func remove(_ deadline: Deadline, now: Date = .now) {

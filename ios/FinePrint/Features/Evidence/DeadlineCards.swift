@@ -1,44 +1,6 @@
 import SwiftUI
 import UIKit
 
-/// Evidence with running clocks: one card per deadline, then the move-in empty state.
-struct EvidenceDeadlinesScreen: View {
-    @Environment(DeadlineStore.self) private var deadlines
-    @Environment(AppNavigation.self) private var navigation
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-
-    var body: some View {
-        ScrollViewReader { proxy in
-            ScrollView {
-                VStack(spacing: 16) {
-                    if deadlines.needsMoveOutDate, let rental = deadlines.currentRental {
-                        MoveOutDateCard(rental: rental)
-                    }
-                    ForEach(deadlines.visibleDeadlines) { deadline in
-                        DeadlineCard(deadline: deadline)
-                            .id(deadline.id)
-                    }
-                    ContentUnavailableView {
-                        Label("No move-in photos yet", systemImage: "camera.viewfinder")
-                    } description: {
-                        Text("In Virginia, you have 5 days after you get your landlord's move-in report to object to it in writing, so take your photos early.")
-                    }
-                }
-                .padding()
-            }
-            .onChange(of: navigation.focusedDeadlineID, initial: true) { _, id in
-                guard let id else { return }
-                withAnimation(reduceMotion ? nil : .smooth) { proxy.scrollTo(id, anchor: .top) }
-                navigation.focusedDeadlineID = nil
-            }
-        }
-        .background(Color(.systemBackground))
-        .navigationTitle("Evidence")
-        .rentalSubtitle()
-        .settingsToolbar()
-    }
-}
-
 /// One clock: what it is, when it ends, what the tenant can do, and its reminders.
 /// Content sits on a solid background; glass stays on the navigation layer.
 struct DeadlineCard: View {
@@ -194,7 +156,7 @@ private struct ReminderControl: View {
 }
 
 /// Shown while moving out with no end date yet, so the 45-day clock can start.
-private struct MoveOutDateCard: View {
+struct MoveOutDateCard: View {
     let rental: Rental
     @Environment(DeadlineStore.self) private var deadlines
     @State private var isSheetPresented = false

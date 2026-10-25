@@ -13,7 +13,8 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run --exclude 'test/emulator/**'",
     "test:emulator": "firebase emulators:exec --only auth,firestore,storage --project demo-fineprint \"vitest run --dir test/emulator\"",
-    "smoke:gemma": "tsx scripts/gemma-live.ts"
+    "smoke:gemma": "tsx scripts/gemma-live.ts",
+    "smoke:lease": "tsx scripts/lease-live.ts"
   },
   "dependencies": {
     "@google-cloud/kms": "^6.3.0",
@@ -22,6 +23,7 @@
     "ajv": "^8.20.0",
     "ajv-formats": "^3.0.1",
     "firebase-admin": "^14.5.0",
+    "google-auth-library": "^10.9.1",
     "hono": "^4.13.13",
     "zod": "^4.6.7"
   },

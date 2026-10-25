@@ -1,0 +1,17 @@
+// Base configuration for every build configuration (spec §15.1 step 6, §15.3).
+//
+// FINEPRINT_SERVER_URL is the server the app talks to when no launch argument
+// and no developer-menu value is set. It reaches the app as the
+// FinePrintServerURL key in Info.plist (ServerURL.swift reads it).
+//
+// A xcconfig value cannot hold "//" (it starts a comment), so write it as
+// "/$()/": https:/$()/example.run.app.
+//
+// Debug builds use a server on this Mac.
+FINEPRINT_SERVER_URL = http:/$()/localhost:8080
+
+// Release builds (TestFlight, App Store) use the deployed server. ./deploy.sh
+// prints the line to paste into ios/Config/Server.xcconfig. Copy
+// Server.example.xcconfig to Server.xcconfig first. That file stays out of git:
+// it names one organization's server.
+#include? "Server.xcconfig"

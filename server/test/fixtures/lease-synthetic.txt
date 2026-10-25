@@ -1,0 +1,68 @@
+RESIDENTIAL LEASE AGREEMENT
+Commonwealth of Virginia
+
+This Residential Lease Agreement ("Lease") is made on October 15, 2026, between Blue Ridge Property Management, LLC, as agent for the owner ("Landlord"), and [TENANT_NAME] ("Tenant"), for the dwelling unit described below.
+
+1. PREMISES. Landlord leases to Tenant, and Tenant leases from Landlord, the dwelling unit located at [ADDRESS], Apartment 3B, Richmond, Virginia (the "Premises"), together with the appliances listed in the Move-In Inspection Report: refrigerator, range, dishwasher, and stacked washer and dryer.
+
+2. TERM. The term of this Lease begins on November 1, 2026 and ends on October 31, 2027. Unless either party gives written notice of termination at least sixty (60) days before the end of the term, this Lease will continue month to month on the same terms.
+
+3. RENT. Tenant shall pay monthly rent of $1,500.00, in advance, on or before the first (1st) day of each month, without demand. Rent for any partial month will be prorated by the day. Rent may be paid by check, money order, or through the Landlord's online resident portal.
+
+4. LATE CHARGES. If rent is not received by 5:00 p.m. on the fifth (5th) day of the month, Tenant shall pay a late charge equal to fifteen percent (15%) of the monthly rent. Late charges are additional rent. A charge of $35.00 will also apply to any check returned by the bank for any reason.
+
+5. SECURITY DEPOSIT. Before moving in, Tenant shall pay a security deposit of $4,500.00 (three months' rent). The security deposit secures Tenant's performance of every obligation under this Lease. The security deposit is not a limit on Tenant's liability and may not be used by Tenant as the last month's rent.
+
+6. RETURN OF DEPOSIT. Within forty-five (45) days after the termination of the tenancy and delivery of possession, Landlord will send Tenant, at the forwarding address Tenant provides in writing, an itemized list of any deductions from the security deposit together with any balance due to Tenant.
+
+7. USE AND OCCUPANCY. The Premises shall be used only as a private residence for Tenant and the following occupants: [OCCUPANT_NAMES]. No other person may live in the Premises for more than fourteen (14) days in any six-month period without Landlord's written consent.
+
+8. UTILITIES. Tenant shall place the electric and gas accounts in Tenant's name before the start of the term and pay those charges directly to the provider. Landlord pays for water, sewer, and trash collection. Tenant shall keep the heat on at a temperature of at least 55 degrees during cold weather to prevent frozen pipes.
+
+9. MOVE-IN INSPECTION. Within five (5) days after Tenant moves in, Landlord will give Tenant a written report of any visible damage to the Premises. The report will be deemed correct unless Tenant objects to it in writing within five (5) days after receiving it.
+
+10. MAINTENANCE AND REPAIRS. Tenant shall keep the Premises clean and sanitary and shall promptly notify Landlord in writing of any condition that needs repair. Tenant shall be responsible for all repairs to the heating, ventilation, and air-conditioning systems, including service calls, parts, and replacement of any unit that fails during the term, regardless of the cause.
+
+11. ENTRY BY LANDLORD. Tenant shall allow Landlord and its contractors to enter the Premises at reasonable times. Landlord may enter the Premises to perform routine maintenance upon twenty-four (24) hours' notice to Tenant. In an emergency, Landlord may enter at any time without notice.
+
+12. ALTERATIONS. Tenant shall not paint, wallpaper, install fixtures, change locks, or make any other alteration to the Premises without Landlord's prior written consent. Any approved alteration becomes the property of Landlord unless the parties agree otherwise in writing.
+
+13. PETS. No animals of any kind are permitted on the Premises without a signed Pet Addendum, except assistance animals as required by law. Tenant is responsible for any damage caused by an animal on the Premises.
+
+14. SMOKING. Smoking of any substance is not permitted inside the Premises or on any balcony or patio.
+
+15. PARKING. Tenant is assigned one (1) parking space, number 14. Vehicles that are inoperable or unregistered may be towed at the owner's expense after forty-eight (48) hours' notice posted on the vehicle.
+
+16. NOISE AND CONDUCT. Tenant, occupants, and guests shall not disturb other residents. Quiet hours are from 10:00 p.m. to 7:00 a.m.
+
+17. LIABILITY. Landlord shall not be liable to Tenant, occupants, or guests for any injury, loss, or damage to persons or property, from any cause whatsoever, including the negligence of Landlord or its agents, and Tenant shall indemnify and hold Landlord harmless from all such claims.
+
+18. RENTER'S INSURANCE. Tenant is encouraged to obtain renter's insurance covering Tenant's personal property and liability. Landlord's insurance does not cover Tenant's belongings.
+
+19. WAIVER OF RIGHTS. Tenant waives all rights and remedies Tenant may have under the Virginia Residential Landlord and Tenant Act, including any right to a jury trial, to the fullest extent this waiver is allowed.
+
+20. CONFESSION OF JUDGMENT. Tenant hereby authorizes any attorney chosen by Landlord to appear for Tenant in any court and confess judgment against Tenant for all rent, charges, and damages due under this Lease, without notice to Tenant.
+
+21. ATTORNEY FEES. Tenant shall pay all of Landlord's attorney fees, court costs, and collection costs incurred in connection with this Lease or Tenant's occupancy, whether or not a lawsuit is filed and whatever its outcome.
+
+22. ASSIGNMENT AND SUBLETTING. Tenant shall not assign this Lease or sublet any part of the Premises without Landlord's prior written consent, which Landlord will not unreasonably withhold.
+
+23. MILITARY PERSONNEL. A Tenant who is a member of the armed forces of the United States or the Virginia National Guard may terminate this Lease as provided in Virginia Code § 55.1-1235 and the Servicemembers Civil Relief Act by giving written notice with a copy of the official orders.
+
+24. ABANDONMENT. If Tenant is absent from the Premises for seven (7) days or more while rent is due and unpaid, Landlord may send written notice as required by Virginia law, and if Tenant does not respond within the time stated in that notice, the Premises may be treated as abandoned.
+
+25. MOVE-OUT. Tenant shall return all keys, remotes, and access cards on or before the last day of the tenancy. Tenant has the right to be present at Landlord's inspection of the Premises for determining deductions from the security deposit; Tenant may request in writing to be present.
+
+26. HOLDING OVER. If Tenant remains in possession after the end of the term without Landlord's written consent, Tenant shall pay rent for the holdover period at the monthly rate stated in this Lease, prorated by the day.
+
+27. NOTICES. Notices to Landlord shall be delivered in writing to Blue Ridge Property Management, LLC, [LANDLORD_ADDRESS], or by email to the address on the resident portal. Notices to Tenant may be delivered to the Premises or by email.
+
+28. STATEMENT OF TENANT RIGHTS. Tenant acknowledges receiving the Virginia Statement of Tenant Rights and Responsibilities prepared by the Department of Housing and Community Development, and both parties have signed the acknowledgment form attached to this Lease.
+
+29. ENTIRE AGREEMENT. This Lease, its addenda, and the Move-In Inspection Report are the entire agreement between the parties. Any change must be in writing and signed by both parties.
+
+30. SEVERABILITY. If any provision of this Lease is held invalid, the remaining provisions remain in effect.
+
+LANDLORD: Blue Ridge Property Management, LLC, by [AGENT_NAME], Property Manager
+TENANT: [TENANT_NAME]
+Date: October 15, 2026

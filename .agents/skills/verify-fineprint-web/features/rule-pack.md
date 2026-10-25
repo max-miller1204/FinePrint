@@ -64,15 +64,17 @@ through `server/src/rules/`. How to add a state:
   `verifiedThrough` is 2026-10-24.
 - Golden cases: `eval/datasets/clauses-golden.jsonl` holds 45 clause
   excerpts for the 15 rules added in #43 and #93: two that break each rule
-  (`match`) and one benign look-alike (`no_match`). The runner and cases
-  for the first 16 rules come with #20.
+  (`match`) and one benign look-alike (`no_match`). `pnpm verifier` in
+  `eval/` runs them through the S7 verifier ([lease-pipeline](lease-pipeline.md));
+  the S5 runner and cases for the first 16 rules come with #20.
 
 ## How to get to it (user POV)
 
-Not reachable from a route yet. The first caller is `POST
-/v1/rentals/:id/leases` (#14): S4 runs the registry, S5 puts every rule's
-`summaryForModel` in the prompt, and S6 checks each cited rule version
-against the lease dates.
+Not reachable from a route yet. The lease pipeline
+([lease-pipeline](lease-pipeline.md), #14) reads it: S4 runs the registry,
+S5 puts every rule's `summaryForModel` and `paraphraseExamples` in the
+prompt, and S6 checks each cited rule against the lease dates with
+`resolveRules`. The route, `POST /v1/rentals/:id/leases`, is #16.
 
 ## Driving it with e2e
 
@@ -98,4 +100,4 @@ for all 19 VA snapshots and exits 0 while the site's text is unchanged.
 
 ## Charters
 
-None until a route reads the pack. The lease route's charter (#14) covers it.
+None until a route reads the pack. The lease route's charter (#16) covers it.

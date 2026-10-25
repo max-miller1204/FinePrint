@@ -9,7 +9,7 @@ nonisolated enum SealStatus: Hashable, Sendable {
     /// The server has the photo and checked its size and SHA-256. It is not in a signed manifest
     /// yet: sealing (#24) does that.
     case received
-    /// In a signed manifest. Nothing sets this until sealing (#24) lands.
+    /// In a signed manifest: the tenant sealed the move-in report (#25).
     case sealed
     /// The server refused the photo, for example because the stored bytes did not match the hash.
     case rejected
@@ -23,6 +23,8 @@ nonisolated struct UploadItem: Codable, Equatable, Sendable {
         /// `at` is the server's `receivedAtServer`.
         case received(at: String)
         case rejected(Rejection)
+        /// In the signed manifest `manifestID`.
+        case sealed(manifestID: String)
     }
 
     enum Rejection: String, Codable, Sendable {
@@ -51,6 +53,7 @@ nonisolated struct UploadItem: Codable, Equatable, Sendable {
         case .waiting: .waiting
         case .received: .received
         case .rejected: .rejected
+        case .sealed: .sealed
         }
     }
 }
@@ -152,6 +155,17 @@ final class UploadQueue {
         resume()
     }
 
+    /// The server signed a manifest that holds these photos. Only photos the server received
+    /// change; a photo still waiting is not in the manifest.
+    func markSealed(_ itemIDs: some Sequence<UUID>, manifestID: String) {
+        for id in itemIDs {
+            guard var item = items[id], case .received = item.state else { continue }
+            item.state = .sealed(manifestID: manifestID)
+            items[id] = item
+            persist(item)
+        }
+    }
+
     /// The tenant kept the photo. From here the queue owns it: it is saved, then uploaded when it can be.
     func enqueue(_ photo: CapturedPhoto) {
         enqueue(photo.record, original: photo.files.original)
@@ -164,6 +178,14 @@ final class UploadQueue {
         persist(item)
         Self.logger.info("Queued \(record.itemID, privacy: .public)")
         if isStarted { resume() }
+    }
+
+    /// Forgets every item and stops retrying. "Delete everything" calls it before the photos' files
+    /// are removed, so a pass in flight finds nothing to save.
+    func removeAll() {
+        wake?.cancel()
+        wake = nil
+        items = [:]
     }
 
     /// Reconnect or return to the foreground: whatever is waiting is due now, backoff or not.

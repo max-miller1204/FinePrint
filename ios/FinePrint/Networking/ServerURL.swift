@@ -19,7 +19,24 @@ nonisolated enum ServerURLError: Error, Equatable, Sendable {
 /// Validation and precedence rules for the FinePrint server address.
 nonisolated enum ServerURL {
     /// Where a local Hono server listens during development.
-    static let defaultURL = URL(string: "http://localhost:8080")!
+    static let localURL = URL(string: "http://localhost:8080")!
+
+    /// The Info.plist key that carries the built-in default. `ios/Config/Shared.xcconfig` sets
+    /// `FINEPRINT_SERVER_URL` per configuration: localhost for Debug, the deployed server for Release
+    /// once `ios/Config/Server.xcconfig` names it (spec §15.1 step 6).
+    static let infoPlistKey = "FinePrintServerURL"
+
+    /// The default this build ships with: the Info.plist value, else `localURL` when the key is
+    /// missing, empty, or not a valid address.
+    static let defaultURL = builtInDefault()
+
+    /// Reads the default from an Info.plist dictionary, so tests can pass their own.
+    static func builtInDefault(infoDictionary: [String: Any]? = Bundle.main.infoDictionary) -> URL {
+        guard let text = infoDictionary?[infoPlistKey] as? String, let url = try? validate(text) else {
+            return localURL
+        }
+        return url
+    }
 
     enum Source: Equatable, Sendable {
         case launchArgument
@@ -50,13 +67,13 @@ nonisolated enum ServerURL {
 
     /// Launch argument beats the developer-menu value, which beats the built-in default.
     /// Invalid values are skipped rather than trusted.
-    static func resolve(launchArgument: String?, stored: String?) -> (url: URL, source: Source) {
+    static func resolve(launchArgument: String?, stored: String?, builtInDefault: URL = defaultURL) -> (url: URL, source: Source) {
         if let launchArgument, let url = try? validate(launchArgument) {
             return (url, .launchArgument)
         }
         if let stored, let url = try? validate(stored) {
             return (url, .developerMenu)
         }
-        return (defaultURL, .builtInDefault)
+        return (builtInDefault, .builtInDefault)
     }
 }
