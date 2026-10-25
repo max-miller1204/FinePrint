@@ -21,7 +21,10 @@ in Cloud Shell, who has created a project and linked billing.
   [delete-purge.md](delete-purge.md)); the service gets
   `PURGE_CALLER_EMAIL` to match.
 - Least privilege for `fineprint-api`: `datastore.user` on the project,
-  `storage.objectAdmin` on the bucket, `cloudkms.signerVerifier` on the key,
+  `firebaseauth.admin` on the project (Delete Everything removes the user;
+  without it `DELETE /v1/me` is 503), `storage.objectAdmin` on the bucket,
+  `cloudkms.signerVerifier` and `cloudkms.viewer` on the key (the server lists
+  the key's versions; without `viewer`, sealing and the key URL are 503),
   `secretmanager.secretAccessor` on the secret, and
   `iam.serviceAccountTokenCreator` on itself only, so it can sign evidence
   upload and read URLs through IAM `signBlob` (Cloud Run has no key file).
