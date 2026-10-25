@@ -444,6 +444,11 @@ describe('POST /v1/rentals/:id/issues', () => {
       createdAt: expect.any(String),
       triage: { escalate: false, category: 'none', model: { status: 'off' } },
     });
+    // The AI trace overlay (#39): both model calls, with timings and tokens, and no content.
+    expect(body.trace).toEqual([
+      { stage: 'responsibility', model: GEMMA_26B, ms: expect.any(Number), inputTokens: expect.any(Number), outputTokens: expect.any(Number), fallback: false },
+      { stage: 'responsibility_verify', model: GEMMA_31B, ms: expect.any(Number), inputTokens: expect.any(Number), outputTokens: expect.any(Number), fallback: false },
+    ]);
     expect(body.reasons.map((r: { citation: { kind: string; ref: string } }) => [r.citation.kind, r.citation.ref])).toEqual([
       ['rule', 'VA_LANDLORD_MAINTAIN_FIT'],
       ['lease', 'c7'],
@@ -461,7 +466,7 @@ describe('POST /v1/rentals/:id/issues', () => {
     const { post, memory, calls } = await route();
     const res = await post({ description: 'There is a gas leak in the kitchen.' });
     expect(res.status).toBe(200);
-    expect(await res.json()).toMatchObject({ status: 'escalated', triage: { escalate: true, category: 'immediate_danger', model: { status: 'off' } } });
+    expect(await res.json()).toMatchObject({ status: 'escalated', triage: { escalate: true, category: 'immediate_danger', model: { status: 'off' } }, trace: [] });
     expect(memory.issues.size).toBe(0);
     expect(calls).toEqual([]);
   });

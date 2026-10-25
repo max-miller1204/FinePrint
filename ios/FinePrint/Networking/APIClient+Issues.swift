@@ -122,6 +122,8 @@ nonisolated struct ResponsibilityResult: Codable, Equatable, Sendable {
     var escrowEligible: Bool
     var verification: ResponsibilityVerification
     var downgraded: Bool
+    /// The model calls behind the answer, for the AI trace overlay (#39). Nil from older servers.
+    var trace: [AITraceStep]?
 }
 
 /// The server's triage categories (spec §7.9).

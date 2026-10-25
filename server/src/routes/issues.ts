@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { Hono } from 'hono';
 import type { GemmaClient } from '../ai/gemma.js';
-import { GemmaOutputError, GemmaUnavailableError } from '../ai/gemma.js';
+import { GemmaOutputError, GemmaUnavailableError, traced } from '../ai/gemma.js';
 import { checkResponsibility, moveInRecords } from '../ai/pipeline/responsibility.js';
 import type { Triage } from '../ai/triage/index.js';
 import type { AuthEnv } from '../auth.js';
@@ -51,6 +51,9 @@ export function createIssues(store: Store, deps: IssueDeps, now: () => Date = ()
     const [lease, moveIn] = await guard(Promise.all([store.latestLease(rentalId), room === null ? [] : store.listEvidence(rentalId, 'move_in')]));
     const at = now();
 
+    // The model calls this request made, for the AI trace overlay (#39).
+    const run = deps.gemma ? traced(deps.gemma) : null;
+    const trace = run?.trace ?? [];
     let result: Awaited<ReturnType<typeof checkResponsibility>>;
     try {
       result = await checkResponsibility(
@@ -61,7 +64,7 @@ export function createIssues(store: Store, deps: IssueDeps, now: () => Date = ()
           lease,
           moveIn: moveInRecords(moveIn, room, checklistItem),
         },
-        { gemma: deps.gemma, pack: deps.packs().get(rental.jurisdiction) ?? null, triage: deps.triage, log },
+        { gemma: run?.gemma ?? null, pack: deps.packs().get(rental.jurisdiction) ?? null, triage: deps.triage, log },
         { signal: c.req.raw.signal },
       );
     } catch (err) {
@@ -73,7 +76,7 @@ export function createIssues(store: Store, deps: IssueDeps, now: () => Date = ()
       throw err;
     }
 
-    if (result.status === 'escalated') return c.json({ status: 'escalated', triage: result.triage });
+    if (result.status === 'escalated') return c.json({ status: 'escalated', triage: result.triage, trace });
 
     const issue = Issue.parse({
       id: randomUUID(),
@@ -96,7 +99,7 @@ export function createIssues(store: Store, deps: IssueDeps, now: () => Date = ()
     });
     await guard(store.createIssue(rentalId, issue));
     log.info('issue created', { rentalId, issueId: issue.id, photos: photoIds.length });
-    return c.json({ ...issueJson(issue), triage: result.triage }, 201);
+    return c.json({ ...issueJson(issue), triage: result.triage, trace }, 201);
   });
 
   return issues;

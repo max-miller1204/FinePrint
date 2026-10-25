@@ -21,6 +21,8 @@ nonisolated struct AskReply: Decodable, Sendable {
     var outOfScope: Bool
     var message: String?
     var resources: [Resource]
+    /// The model calls behind the answer, for the AI trace overlay (#39). Nil from older servers.
+    var trace: [AITraceStep]?
 }
 
 nonisolated struct AskHistoryTurn: Encodable, Sendable {
@@ -33,6 +35,7 @@ nonisolated struct AskHistoryTurn: Encodable, Sendable {
 struct AskView: View {
     @Environment(AppConfiguration.self) private var configuration
     @Environment(AuthSession.self) private var auth
+    @Environment(UserSettings.self) private var settings: UserSettings?
     @Query(sort: \Rental.createdAt) private var rentals: [Rental]
     @State private var sessions: [UUID: [Exchange]] = [:]
     @State private var question = ""
@@ -135,6 +138,9 @@ struct AskView: View {
             if let message = exchange.reply.message { Text(message) }
             ForEach(exchange.reply.resources, id: \.url) { resource in
                 Link(resource.label, destination: resource.url).frame(minHeight: 44)
+            }
+            if settings?.showsAITrace == true, let trace = exchange.reply.trace, !trace.isEmpty {
+                AITraceView(steps: trace)
             }
         }
         .padding()

@@ -26,6 +26,7 @@ final class UserSettings {
 
     static let readingLevelKey = "FinePrint.readingLevel"
     static let impactOptInKey = "FinePrint.impactOptIn"
+    static let showsAITraceKey = "FinePrint.showsAITrace"
 
     @ObservationIgnored private let defaults: UserDefaults
 
@@ -43,11 +44,17 @@ final class UserSettings {
         didSet { defaults.set(impactOptIn, forKey: Self.impactOptInKey) }
     }
 
+    /// Developer option (#39): show each answer's model calls under it. Off until turned on.
+    var showsAITrace: Bool {
+        didSet { defaults.set(showsAITrace, forKey: Self.showsAITraceKey) }
+    }
+
     init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
         language = AppLanguage.stored(in: defaults) ?? .deviceDefault()
         readingLevel = defaults.string(forKey: Self.readingLevelKey).flatMap(ReadingLevel.init(rawValue:)) ?? .standard
         impactOptIn = defaults.bool(forKey: Self.impactOptInKey)
+        showsAITrace = defaults.bool(forKey: Self.showsAITraceKey)
     }
 
     /// Back to a fresh install's choices, and forgets the saved ones. "Delete everything" calls it.
@@ -55,7 +62,8 @@ final class UserSettings {
         language = .deviceDefault()
         readingLevel = .standard
         impactOptIn = false
-        for key in [AppLanguage.storedKey, Self.readingLevelKey, Self.impactOptInKey] {
+        showsAITrace = false
+        for key in [AppLanguage.storedKey, Self.readingLevelKey, Self.impactOptInKey, Self.showsAITraceKey] {
             defaults.removeObject(forKey: key)
         }
     }

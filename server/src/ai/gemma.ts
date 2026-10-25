@@ -256,6 +256,41 @@ export function createGemma({
   };
 }
 
+// One answered model call, for the AI trace overlay (#39). No prompts and no
+// content: what ran, on which model, how long it took, and its token counts.
+export interface TraceStep {
+  stage: Stage;
+  model: string;
+  ms: number;
+  inputTokens: number;
+  outputTokens: number;
+  fallback: boolean;
+}
+
+// Wraps a client so a request can return the calls it made. `ms` is the whole
+// generate() call: rate-limit waits and retries included.
+export function traced(gemma: GemmaClient, clock: Pick<Clock, 'now'> = systemClock): { gemma: GemmaClient; trace: TraceStep[] } {
+  const trace: TraceStep[] = [];
+  return {
+    trace,
+    gemma: {
+      async generate(stage, schema, docs, options) {
+        const started = clock.now();
+        const result = await gemma.generate(stage, schema, docs, options);
+        trace.push({
+          stage,
+          model: result.model,
+          ms: clock.now() - started,
+          inputTokens: result.promptTokens,
+          outputTokens: result.outputTokens,
+          fallback: result.fallback,
+        });
+        return result;
+      },
+    },
+  };
+}
+
 // The production client: models from GEMMA_* env vars, the Gemini API key
 // from GEMINI_API_KEY. Logs the model IDs so a run on the wrong model shows.
 export function gemmaFromEnv(deps: Omit<GemmaDeps, 'provider' | 'config'>, env: NodeJS.ProcessEnv = process.env): GemmaClient {
