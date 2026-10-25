@@ -26,10 +26,22 @@ Then `npx e2e run ... --target ios` does the rest:
 
 - The runner boots the **iPhone 17 Pro** simulator (iOS 26) through
   agent-device. The first boot takes about 2 minutes. Later runs take a few
-  seconds. If another session or `xcodebuild test` is using that simulator,
-  pick another with `E2E_IOS_DEVICE='iPhone 17'` and change
-  `E2E_IOS_SERVER_PORT` too. Otherwise the boot fails with `ENGINE_FAILURE`
-  "Daemon request timed out".
+  seconds. Only one job uses the simulator at a time: run builds, unit tests,
+  and e2e through the gate (see [Gate](#gate)), which queues every worktree
+  on one lock.
+- `ENGINE_FAILURE` "Daemon request timed out" (often with `LAUNCH_TIMEOUT`
+  or `CLEANUP_TIMEOUT`) has two causes, and the frozen app is the common one:
+  - **The app's main thread is frozen.** The driver reads the screen through
+    accessibility, so a hung app times out every request. This is what
+    stalled #25 and #17 for hours (#99). Every launch runs the app's
+    watchdog (`-FinePrintHangWatchdog`, see `ios/README.md`), which stops a
+    frame frozen for 10 s, and the test then fails with `APP_HANG` and the
+    path of a crash report holding the main thread's stack. Don't rerun:
+    fix the screen.
+  - **The driver wedged**, usually after a simulator shutdown or when
+    another session drives the same simulator. With no `APP_HANG` and no
+    `app-hangs.log` line, run `../scripts/ios-gate/reset-driver.sh` and run
+    once more. The gate does this for you.
 - It starts the Hono server (`node --import tsx src/index.ts` in `server/`)
   inside the Firebase Auth, Firestore, and Storage emulators
   (`firebase emulators:exec`, config `firebase.ios.json`: Auth **9199**,
@@ -82,6 +94,46 @@ npx e2e run tests/ios/smoke.e2e.ts --target ios       # installs, launches, all 
   Run `pnpm build:ios`.
 - `APP_UNREACHABLE`: the server died on boot. Read
   `.e2e/logs/server-ios.log`.
+
+## Gate
+
+`scripts/ios-gate/gate.ts` runs one verification cycle: build (for the
+booted simulator's architecture only), unit tests, and e2e files, in one
+turn of the shared lock. Use it for every heavy run, while iterating and
+for the final check before a PR:
+
+```bash
+node scripts/ios-gate/gate.ts walkthrough                         # one file while iterating
+node scripts/ios-gate/gate.ts --only-testing FinePrintTests/RoomTests   # one unit suite
+node scripts/ios-gate/gate.ts --unit smoke capture deadlines walkthrough   # before a PR
+```
+
+Run it from the repo root of your worktree. What it does for you:
+
+- **One simulator for every worktree.** `scripts/ios-gate/heavy.sh` queues
+  jobs first come, first served (`HEAVY_PRIORITY=0` goes first, without
+  interrupting a running job). The simulator stays booted while another job
+  waits and shuts down when the queue is empty. `tail -f
+  "$(git rev-parse --git-common-dir)/fineprint-heavy/heavy.log"` shows who
+  has it.
+- **Skips what already passed.** A step is cached by the content of its
+  inputs, uncommitted files included: unit tests by `ios/`, an e2e file by
+  `ios/`, `server/`, `e2e/` (other test files left out), and that file. So
+  editing `walkthrough.e2e.ts` reruns only the walkthrough, and a Swift edit
+  reruns everything. A passing final check reuses the passes you already
+  have. `--no-cache` runs everything.
+- **Names the failure** for each file: `APP_HANG` (do not rerun),
+  `APP_FAIL` (an assertion, a locator, a covered tap: read the trace),
+  `SETUP` (the server never answered: read `.e2e/logs/server-ios.log`,
+  and after a rebase run `pnpm install`), or `INFRA` (driver or simulator:
+  the gate resets the driver and runs those files once more on its own).
+- **Won't repeat a failure.** A step whose inputs haven't changed since it
+  failed is refused (exit 4) until you change something, or pass `--force`.
+  The same failure twice in a row prints `STOP`: diagnose before another run.
+
+Exit codes: 0 pass, 1 `APP_FAIL`, 2 `APP_HANG`, 3 `INFRA` twice, 4 refused,
+5 `SETUP`. History is in `e2e/.e2e/gate/history.jsonl` and each run's
+traces in `e2e/.e2e/gate/<run>/`.
 
 ## Drive
 

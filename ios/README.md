@@ -29,6 +29,7 @@ Pass these with `xcrun simctl launch booted org.fineprint.FinePrint <args>`, or 
 | `-FinePrintSeedDeadline move_in_report` / `objection` / `deposit_itemization` | DEBUG builds only. Starts that clock today on a new "Sample rental", the way onboarding seeds one, so it never asks for notification permission. For e2e. |
 | `-FinePrintDeveloperMenu` | DEBUG builds only. Shows the developer menu for this launch without the five taps, for UI tests. |
 | `-FinePrintSkipOnboarding` | DEBUG builds only. Starts at the tabs with a default Virginia rental (Richmond, living there), created on the server like an onboarded one. For UI tests that are not about onboarding. |
+| `-FinePrintHangWatchdog <file>` | DEBUG builds only. Appends a line to `<file>` (an absolute path) whenever the main thread stalls for 2 s, and stops the app after 10 s so the crash report holds the main thread's stack. e2e turns it on for every launch. |
 | `-FinePrintFixtureCamera <dir>` | DEBUG builds only. Feeds the jpg, heic, and png files in `<dir>` (an absolute path), in file name order and wrapping around, through the capture pipeline in place of the camera. Compiled out of Release. |
 
 ## Developer menu

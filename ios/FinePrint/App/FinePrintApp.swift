@@ -16,6 +16,11 @@ struct FinePrintApp: App {
 
     init() {
         let options = LaunchOptions.current
+        #if DEBUG
+        if let hangWatchdogFile = options.hangWatchdogFile {
+            HangWatchdog.start(reportingTo: hangWatchdogFile)
+        }
+        #endif
         let configuration = AppConfiguration(launchOptions: options)
         _configuration = State(initialValue: configuration)
         let auth = AuthSession(

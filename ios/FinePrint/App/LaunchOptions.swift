@@ -12,6 +12,8 @@ import Foundation
 ///   pipeline in place of the camera, for simulator e2e (spec §12.1).
 /// - `-FinePrintSkipOnboarding` (DEBUG builds) starts at the tabs with a default Virginia rental, so
 ///   UI tests that are not about onboarding need not walk through it.
+/// - `-FinePrintHangWatchdog <file>` (DEBUG builds) records main-thread stalls in `<file>` and stops the
+///   app after 10 s, so a frozen screen fails e2e fast with a stack (`HangWatchdog`).
 nonisolated struct LaunchOptions: Equatable, Sendable {
     enum DeadlineStub: String, Equatable, Sendable {
         case present
@@ -25,6 +27,7 @@ nonisolated struct LaunchOptions: Equatable, Sendable {
     #if DEBUG
     static let fixtureCameraArgument = "-FinePrintFixtureCamera"
     static let skipOnboardingArgument = "-FinePrintSkipOnboarding"
+    static let hangWatchdogArgument = "-FinePrintHangWatchdog"
     #endif
 
     var serverURLOverride: String?
@@ -36,16 +39,19 @@ nonisolated struct LaunchOptions: Equatable, Sendable {
     var fixtureCameraDirectory: String?
     /// Read in DEBUG builds only.
     var skipsOnboarding: Bool
+    /// Read in DEBUG builds only. Where `HangWatchdog` records main-thread stalls.
+    var hangWatchdogFile: String?
     /// Unit tests host the app; it must not sign in to a server while they run.
     var isRunningTests: Bool
 
-    init(serverURLOverride: String? = nil, usesInMemoryStore: Bool = false, deadlineStub: DeadlineStub? = nil, showsDeveloperMenu: Bool = false, fixtureCameraDirectory: String? = nil, skipsOnboarding: Bool = false, isRunningTests: Bool = false) {
+    init(serverURLOverride: String? = nil, usesInMemoryStore: Bool = false, deadlineStub: DeadlineStub? = nil, showsDeveloperMenu: Bool = false, fixtureCameraDirectory: String? = nil, skipsOnboarding: Bool = false, hangWatchdogFile: String? = nil, isRunningTests: Bool = false) {
         self.serverURLOverride = serverURLOverride
         self.usesInMemoryStore = usesInMemoryStore
         self.deadlineStub = deadlineStub
         self.showsDeveloperMenu = showsDeveloperMenu
         self.fixtureCameraDirectory = fixtureCameraDirectory
         self.skipsOnboarding = skipsOnboarding
+        self.hangWatchdogFile = hangWatchdogFile
         self.isRunningTests = isRunningTests
     }
 
@@ -67,9 +73,11 @@ nonisolated struct LaunchOptions: Equatable, Sendable {
         #if DEBUG
         fixtureCameraDirectory = Self.value(after: Self.fixtureCameraArgument, in: arguments)
         skipsOnboarding = arguments.contains(Self.skipOnboardingArgument)
+        hangWatchdogFile = Self.value(after: Self.hangWatchdogArgument, in: arguments)
         #else
         fixtureCameraDirectory = nil
         skipsOnboarding = false
+        hangWatchdogFile = nil
         #endif
     }
 
