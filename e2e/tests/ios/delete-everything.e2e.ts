@@ -98,7 +98,10 @@ test('Delete Everything removes an uploaded photo from the server and the device
   await expect.poll(() => logLines('evidence received').length, { timeout: 30_000 }).toBe(received + 1);
   await expect.poll(photoObjects, { timeout: 15_000 }).toBe(stored + 1);
 
-  // Back to Settings, then delete.
+  // Back to Settings, then delete. Wait for the camera to finish closing first: a tap on Back
+  // during its dismissal lands on the navigation bar instead.
+  await expect(screen.getByTestId('camera.hash')).toBeHidden();
+  await expect(screen.getByTestId('developer.openCamera')).toBeVisible();
   await screen.getByRole('button', { name: 'Settings' }).first().tap();
   const deleteRow = screen.getByTestId('settings.deleteEverything');
   await expect(deleteRow).toBeVisible({ timeout: 15_000 });

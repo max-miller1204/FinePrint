@@ -24,6 +24,8 @@ export function classify(error: ReportError | undefined, secondary: ReportError[
   if (all.some((item) => item.message?.includes('APP_HANG'))) return 'APP_HANG';
   if (!error) return 'APP_FAIL';
   if (['APP_UNREACHABLE', 'INSTALL_FAILED'].includes(error.code ?? '')) return 'SETUP';
+  // Installing on a simulator that is still cold-booting can outlast the step's budget.
+  if (/device\.installApp exceeded its timeout/.test(error.message ?? '')) return 'INFRA';
   const tooling = error.category === 'infrastructure' && (['LAUNCH_TIMEOUT', 'CLEANUP_TIMEOUT'].includes(error.code ?? '') || infraPattern.test(error.message ?? ''));
   if (tooling) return hungDuringRun ? 'APP_HANG' : 'INFRA';
   return 'APP_FAIL';

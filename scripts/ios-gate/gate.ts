@@ -155,6 +155,16 @@ function lastRun(entries: HistoryEntry[], step: string): HistoryEntry | undefine
   return entries.findLast((entry) => entry.step === step);
 }
 
+/** Which tests failed and how (class, code, title), without messages that vary run to run. */
+function signature(result: StepResult): string {
+  const tests = result.detail
+    .split('\n')
+    .map((line) => /^\s*(\S+ \S*)(?: at line \d+)?: "(.*?)":/.exec(line))
+    .filter((match) => match !== null)
+    .map((match) => `${match[1]} "${match[2]}"`);
+  return `${result.outcome} ${tests.length > 0 ? tests.join(' | ') : result.detail.split('\n')[0]}`;
+}
+
 function record(step: Step, result: StepResult, branch: string) {
   mkdirSync(gateDir, { recursive: true });
   const previous = lastRun(history(), step.name);
@@ -163,7 +173,7 @@ function record(step: Step, result: StepResult, branch: string) {
     step: step.name,
     key: step.key,
     outcome: result.outcome,
-    signature: result.outcome === 'PASS' ? '' : `${result.outcome} ${result.detail.split('\n')[0]}`,
+    signature: result.outcome === 'PASS' ? '' : signature(result),
   };
   appendFileSync(historyFile, `${JSON.stringify(entry)}\n`);
   if (result.outcome === 'PASS') {
