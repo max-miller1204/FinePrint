@@ -29,16 +29,33 @@ a {
   color:var(--accent);
   text-underline-offset:.2em;
 }
-a,summary {
+a,summary,button {
   touch-action:manipulation;
 }
-a:active,summary:active {
+a:active,summary:active,button:active {
   background:var(--line);
 }
 :focus-visible {
   outline:3px solid var(--accent);
   outline-offset:4px;
 }
+.verification button {
+  font:inherit;
+  font-weight:600;
+  color:var(--accent);
+  background:var(--paper);
+  border:1px solid var(--accent);
+  border-radius:8px;
+  min-height:44px;
+  max-width:100%;
+  padding:.5rem .85rem;
+  cursor:pointer;
+  user-select:none;
+  -webkit-user-select:none;
+}
+.verification button:active { background:var(--line); }
+.verification button[aria-disabled="true"] { cursor:progress; }
+.verification [role="status"] { margin-top:.75rem; }
 .skip {
   position:absolute;
   top:-10rem;
@@ -392,7 +409,7 @@ footer {
   h2 {
     font-size:16pt;
   }
-  nav,.skip,.fixture-controls {
+  nav,.skip,.fixture-controls,.verification,noscript {
     display:none!important;
   }
   section {
