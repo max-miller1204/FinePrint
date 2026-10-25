@@ -10,8 +10,10 @@
 // Debug builds use a server on this Mac.
 FINEPRINT_SERVER_URL = http:/$()/localhost:8080
 
-// Release builds (TestFlight, App Store) use the deployed server. ./deploy.sh
-// prints the line to paste into ios/Config/Server.xcconfig. Copy
-// Server.example.xcconfig to Server.xcconfig first. That file stays out of git:
-// it names one organization's server.
+// Release builds (TestFlight, App Store) use the project's deployed server,
+// committed in DeployedServer.xcconfig. To use your own server instead, copy
+// Server.example.xcconfig to Server.xcconfig and paste the line ./deploy.sh
+// prints. That file stays out of git (it names one organization's server) and
+// is included last, so it wins.
+#include "DeployedServer.xcconfig"
 #include? "Server.xcconfig"

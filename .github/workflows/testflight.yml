@@ -1,0 +1,111 @@
+# Archives the iOS app, signs it with cloud-managed automatic signing, and
+# uploads it to TestFlight (#53, spec §15.3). Runs on every push to main that
+# touches ios/, and by hand from the Actions tab or `gh workflow run testflight.yml`.
+#
+# One-time setup (docs/testflight.md):
+#   secrets   ASC_KEY_ID, ASC_ISSUER_ID, ASC_KEY_P8 (the App Store Connect API key)
+#   variable  APPLE_TEAM_ID
+name: TestFlight
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - ios/**
+      - .github/workflows/testflight.yml
+
+permissions:
+  contents: read
+
+# Never cancel a run that may be halfway through an upload.
+concurrency:
+  group: testflight
+  cancel-in-progress: false
+
+jobs:
+  upload:
+    runs-on: macos-26
+    timeout-minutes: 60
+    env:
+      ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+      ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+      ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
+      APPLE_TEAM_ID: ${{ vars.APPLE_TEAM_ID }}
+      # Unique for every upload, and increasing: run 41 is 41.1, its re-run 41.2.
+      BUILD_NUMBER: ${{ github.run_number }}.${{ github.run_attempt }}
+      ARCHIVE: ${{ runner.temp }}/FinePrint.xcarchive
+      EXPORT_DIR: ${{ runner.temp }}/export
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Check the setup
+        run: |
+          missing=()
+          for name in ASC_KEY_ID ASC_ISSUER_ID ASC_KEY_P8 APPLE_TEAM_ID; do
+            [[ -n ${!name} ]] || missing+=("$name")
+          done
+          if (( ${#missing[@]} )); then
+            echo "::error::Missing ${missing[*]}. See docs/testflight.md."
+            exit 1
+          fi
+          if grep -q PENDING ios/Config/DeployedServer.xcconfig; then
+            echo "::error::ios/Config/DeployedServer.xcconfig has no server URL yet."
+            exit 1
+          fi
+
+      - name: Select Xcode 26
+        run: |
+          xcode=$(ls -d /Applications/Xcode_26*.app | sort -V | tail -n 1)
+          sudo xcode-select -s "$xcode"
+          xcodebuild -version
+
+      - name: Write the API key
+        run: |
+          key="$RUNNER_TEMP/AuthKey_$ASC_KEY_ID.p8"
+          printf '%s\n' "$ASC_KEY_P8" > "$key"
+          chmod 600 "$key"
+          echo "ASC_KEY_PATH=$key" >> "$GITHUB_ENV"
+
+      - name: Archive
+        run: |
+          xcodebuild archive -quiet \
+            -project ios/FinePrint.xcodeproj -scheme FinePrint -configuration Release \
+            -destination 'generic/platform=iOS' -archivePath "$ARCHIVE" \
+            -allowProvisioningUpdates \
+            -authenticationKeyPath "$ASC_KEY_PATH" \
+            -authenticationKeyID "$ASC_KEY_ID" \
+            -authenticationKeyIssuerID "$ASC_ISSUER_ID" \
+            DEVELOPMENT_TEAM="$APPLE_TEAM_ID" \
+            CURRENT_PROJECT_VERSION="$BUILD_NUMBER"
+
+      - name: Check the archived app
+        run: |
+          plist="$ARCHIVE/Products/Applications/FinePrint.app/Info.plist"
+          server=$(/usr/libexec/PlistBuddy -c 'Print :FinePrintServerURL' "$plist")
+          version=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$plist")
+          build=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "$plist")
+          echo "FinePrint $version ($build) talks to $server"
+          [[ $build == "$BUILD_NUMBER" ]] || { echo "::error::Build number is $build, expected $BUILD_NUMBER"; exit 1; }
+          [[ $server == https://* && $server != *localhost* ]] || { echo "::error::Release server is $server"; exit 1; }
+          {
+            echo "### FinePrint $version ($build)"
+            echo "Server: $server"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Export and upload to TestFlight
+        run: |
+          options="$RUNNER_TEMP/ExportOptions.plist"
+          cp ios/Config/ExportOptions.plist "$options"
+          plutil -insert teamID -string "$APPLE_TEAM_ID" "$options"
+          xcodebuild -exportArchive \
+            -archivePath "$ARCHIVE" -exportPath "$EXPORT_DIR" -exportOptionsPlist "$options" \
+            -allowProvisioningUpdates \
+            -authenticationKeyPath "$ASC_KEY_PATH" \
+            -authenticationKeyID "$ASC_KEY_ID" \
+            -authenticationKeyIssuerID "$ASC_ISSUER_ID"
+          echo "Uploaded. App Store Connect processes the build for 5 to 30 minutes before it shows in TestFlight." >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Remove the API key
+        if: always()
+        run: rm -f "$RUNNER_TEMP"/AuthKey_*.p8

@@ -1,0 +1,9 @@
+// The project's deployed server (#53). Release builds (TestFlight, App Store)
+// use it, so a clean checkout ships a build that works without setup.
+//
+// To point a build at another organization's server, copy
+// Server.example.xcconfig to Server.xcconfig. Shared.xcconfig includes that
+// file after this one, so its value wins.
+//
+// Write "//" as "/$()/", or the rest of the line is a comment.
+FINEPRINT_SERVER_URL[config=Release] = https:/$()/DEPLOYED_SERVER_URL_PENDING
