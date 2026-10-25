@@ -1,0 +1,30 @@
+{
+  "id": "VA_LATE_FEE_CAP",
+  "jurisdiction": "VA",
+  "citation": "Va. Code § 55.1-1204(E)",
+  "sourceUrl": "https://law.lis.virginia.gov/vacode/title55.1/chapter12/section55.1-1204/",
+  "versions": [
+    {
+      "effectiveFrom": "2019-10-01",
+      "effectiveUntil": "2027-07-01",
+      "statuteQuote": "No such late charge shall exceed the lesser of 10 percent of the periodic rent or 10 percent of the remaining balance due and owed by the tenant.",
+      "snapshotFile": "snapshots/55.1-1204@2026-10-25.txt"
+    },
+    {
+      "effectiveFrom": "2027-07-01",
+      "effectiveUntil": null,
+      "statuteQuote": "No such late charge shall exceed the lesser of 10 percent of the periodic rent or 10 percent of the remaining balance due and owed by the tenant.",
+      "snapshotFile": "snapshots/55.1-1204~2027-07-01@2026-10-25.txt"
+    }
+  ],
+  "checkType": "deterministic",
+  "deterministic": { "fn": "lateFeeCap", "inputs": ["lateFee", "monthlyRent"] },
+  "summaryForModel": "Late fees are capped at 10% of monthly rent (or 10% of the remaining balance if lower), and a landlord can charge one only if the written lease provides for it.",
+  "paraphraseExamples": [
+    "A late charge of $150 will be assessed on rent received after the 5th.",
+    "Tenant shall pay 15% of the monthly installment as a late penalty."
+  ],
+  "tenantExplanation": "Virginia limits late fees to 10% of your rent. A higher fee can't be enforced.",
+  "action": "You can ask your landlord to change this to 10% or less before you sign.",
+  "severityIfViolated": "unenforceable"
+}

@@ -1,0 +1,6 @@
+Source: https://example.gov/code/section1-101/
+Fetched: 2026-10-25
+Heading: § 1-101. Example section heading.
+---
+A. This placeholder stands in for the statute text, copied verbatim, one paragraph per line.
+B. No late charge shall exceed five percent of the periodic rent.

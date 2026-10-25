@@ -271,11 +271,8 @@ describe('model config', () => {
     expect(fallbackChain('verifier', config)).toEqual([FLASH]);
   });
 
-  it('rejects an unknown provider and the unbuilt openai_compatible one', () => {
+  it('rejects an unknown provider', () => {
     expect(() => modelConfigFromEnv({ GEMMA_PROVIDER: 'ollama' })).toThrow(/GEMMA_PROVIDER/);
-    const config = modelConfigFromEnv({ GEMMA_PROVIDER: 'openai_compatible', GEMMA_BASE_URL: 'http://localhost:11434/v1' });
-    expect(config.baseUrl).toBe('http://localhost:11434/v1');
-    expect(() => providerFromConfig(config, {})).toThrow(/not built yet/);
   });
 
   it('needs a Gemini key for the gemini provider', () => {

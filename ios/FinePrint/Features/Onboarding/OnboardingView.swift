@@ -10,10 +10,20 @@ struct OnboardingView: View {
 
     /// Called once with the finished draft. The caller saves the rental and shows the tabs.
     let onFinish: (OnboardingDraft) -> Void
+    /// Onboarding starts at the welcome. Adding another rental starts at the place (`AddRentalView`).
+    private let firstStep: Step
+    private let finishTitle: LocalizedStringKey
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @State private var step = Step.welcome
+    @State private var step: Step
     @State private var draft = OnboardingDraft()
+
+    init(firstStep: Step = .welcome, finishTitle: LocalizedStringKey = "Get started", onFinish: @escaping (OnboardingDraft) -> Void) {
+        self.firstStep = firstStep
+        self.finishTitle = finishTitle
+        self.onFinish = onFinish
+        _step = State(initialValue: firstStep)
+    }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -53,7 +63,7 @@ struct OnboardingView: View {
                 Button {
                     onFinish(draft)
                 } label: {
-                    Text("Get started").frame(maxWidth: .infinity)
+                    Text(finishTitle).frame(maxWidth: .infinity)
                 }
                 .disabled(!draft.canFinish)
                 .accessibilityIdentifier("onboarding.finish")
@@ -66,9 +76,9 @@ struct OnboardingView: View {
                 .disabled(step == .place && draft.place == nil)
                 .accessibilityIdentifier("onboarding.continue")
             }
-            if step != .welcome {
+            if step != firstStep {
                 Button("Back") {
-                    go(to: Step(rawValue: step.rawValue - 1) ?? .welcome)
+                    go(to: Step(rawValue: step.rawValue - 1) ?? firstStep)
                 }
                 .controlSize(.large)
                 .accessibilityIdentifier("onboarding.back")

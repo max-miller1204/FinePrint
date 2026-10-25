@@ -35,9 +35,11 @@ function rentalPrefix(rentalId: string) {
 }
 
 // A V4 URL the app PUTs the bytes to. The upload must send the same
-// Content-Type and, when `sha256` is given, `x-goog-content-sha256`: it is
-// signed as the payload hash, so Cloud Storage refuses a body that hashes to
-// anything else (spec §5.3).
+// Content-Type and, when `sha256` is given, `x-goog-content-sha256`: both
+// are signed, so a request without them is refused. Cloud Storage does not
+// hash the body against that header on a signed-URL PUT (checked on Cloud
+// Run, tests/deployed/evidence.e2e.ts), so `complete` hashing the stored
+// bytes is what rejects other bytes (spec §5.3).
 export async function signedUploadUrl(bucket: Bucket, path: string, contentType: string, now = Date.now(), sha256?: string): Promise<string> {
   const [url] = await bucket.file(path).getSignedUrl({
     version: 'v4',

@@ -1,4 +1,4 @@
-// Live check of the Gemma client (#9) against the Gemini API: one primary
+// Live check of the Gemma client (#9) against a real model: one primary
 // stage and one verifier stage through `generate()`, with a document that
 // tries to override the task, in both output modes. `json` mode must think
 // (thoughtTokens > 0); `schema` mode does not (docs/ai-pipeline.md, gap 6).
@@ -7,6 +7,8 @@
 //
 // Usage (from server/):
 //   op run --env-file ../.env -- pnpm smoke:gemma
+//   GEMMA_PROVIDER=openai_compatible GEMMA_BASE_URL=http://127.0.0.1:11434/v1 \
+//     GEMMA_PRIMARY=gemma4:26b GEMMA_VERIFIER=gemma4:31b pnpm smoke:gemma   # self-hosted (docs/self-hosting.md)
 //
 // Exit codes: 0 every call returned schema-valid output and every `json` call
 // thought, 1 a call failed, 2 setup error. A fallback to another model passes but is printed, since

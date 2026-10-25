@@ -1,0 +1,22 @@
+{
+  "id": "XX_EXAMPLE_LATE_FEE_CAP",
+  "jurisdiction": "XX",
+  "citation": "XX Code § 1-101(B)",
+  "sourceUrl": "https://example.gov/code/section1-101/",
+  "versions": [
+    {
+      "effectiveFrom": "2020-01-01",
+      "effectiveUntil": null,
+      "statuteQuote": "No late charge shall exceed five percent of the periodic rent.",
+      "snapshotFile": "snapshots/1-101@2026-10-25.txt"
+    }
+  ],
+  "checkType": "semantic",
+  "summaryForModel": "One sentence a model can match lease clauses against, in plain words.",
+  "paraphraseExamples": [
+    "Lease wording this rule covers, as a landlord would write it."
+  ],
+  "tenantExplanation": "What the law says, at a 7th-grade reading level.",
+  "action": "One thing the tenant can do about it.",
+  "severityIfViolated": "ask"
+}

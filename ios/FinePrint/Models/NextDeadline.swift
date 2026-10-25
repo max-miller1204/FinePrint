@@ -106,9 +106,13 @@ final class DeadlineStore {
 
     var activeDeadlines: [Deadline] { deadlines.filter(\.isActive) }
 
-    /// Active deadlines that are ahead, or passed within `pastDueWindow` days: what Evidence lists.
+    /// The current rental's active deadlines that are ahead, or passed within `pastDueWindow` days:
+    /// what Evidence lists and the accessory picks from. Reminders still cover every rental.
     var visibleDeadlines: [Deadline] {
-        activeDeadlines.filter { $0.dueDay.days(until: today) <= Self.pastDueWindow }
+        let rentalID = currentRental?.id
+        return activeDeadlines.filter { deadline in
+            (rentalID == nil || deadline.rental?.id == rentalID) && deadline.dueDay.days(until: today) <= Self.pastDueWindow
+        }
     }
 
     /// What the accessory shows, or nil to hide it.
@@ -142,8 +146,8 @@ final class DeadlineStore {
         NextDeadline(title: deadline.kind.title, dueDay: deadline.dueDay, kind: deadline.kind, deadlineID: deadline.id)
     }
 
-    /// The newest rental, until the rental switcher lands (spec §4.1).
-    var currentRental: Rental? { rentals.max(by: { $0.createdAt < $1.createdAt }) }
+    /// The rental picked in the switcher (spec §4.1).
+    var currentRental: Rental? { Rental.current(in: rentals) }
 
     /// True when the tenant is moving out but has not said when, so the 45-day clock cannot start.
     var needsMoveOutDate: Bool {
