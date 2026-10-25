@@ -110,3 +110,10 @@ export function leaseJson({ redactedText: _, startedAt: _s, analyzedAt, createdA
     findings,
   };
 }
+
+// The newest analyzed lease, with its clauses in lease order: what the
+// responsibility check may cite.
+export interface AnalyzedLease {
+  id: string;
+  clauses: Clause[];
+}

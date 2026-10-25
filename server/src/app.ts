@@ -38,12 +38,14 @@ export interface AppDeps {
   objects?: EvidenceObjects;
   // Null: sealing and the key set answer 503.
   signer?: Signer | null;
-  // The one model client, so triage and the lease pipeline share its rate
-  // limiter. Null without a key: the lease stream stops after S1.
+  // The one model client, so triage, the lease pipeline, and the
+  // responsibility check share its rate limiter. Null without a key: the lease
+  // stream stops after S1 and the responsibility check answers 503.
   gemma?: GemmaClient | null;
   // Gemma plus the keyword backstop, or the backstop alone without a key.
   triage?: Triage;
-  // The rule packs the lease pipeline checks against; loaded on first use.
+  // The rule packs the lease pipeline and the responsibility check use;
+  // loaded on first use.
   packs?: () => ReadonlyMap<string, RulePack>;
   accounts?: Accounts;
   // Null: /internal/purge answers 404.

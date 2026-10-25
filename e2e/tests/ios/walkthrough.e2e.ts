@@ -36,6 +36,9 @@ async function goBack(screen: Screen, previousTitle: string) {
 async function openEvidence(screen: Screen) {
   await expect(screen.getByText('No lease yet')).toBeVisible();
   for (let attempt = 0; attempt < 3; attempt++) {
+    // At the largest text sizes Evidence can take longer than one wait to draw, and the tab bar then
+    // lists its tabs as buttons: check before tapping again.
+    if (attempt > 0 && (await screen.getByTestId('walkthrough.start').isVisible())) return;
     await screen.getByRole('tab', { name: 'Evidence' }).tap();
     try {
       await expect(screen.getByTestId('walkthrough.start')).toBeVisible({ timeout: 4_000 });

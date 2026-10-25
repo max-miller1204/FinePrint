@@ -5,7 +5,8 @@ import { LedgerEntry, type LedgerHead } from '../integrity/ledger.js';
 import { Manifest } from '../integrity/manifest.js';
 import type { Clause, Finding } from '../ai/pipeline/types.js';
 import { Evidence, type EvidenceSession } from '../models/evidence.js';
-import { Lease } from '../models/lease.js';
+import { Issue } from '../models/issue.js';
+import { Lease, type AnalyzedLease } from '../models/lease.js';
 import { Rental } from '../models/rental.js';
 import { User } from '../models/user.js';
 
@@ -41,6 +42,11 @@ export interface Store {
   // that land with it. A concurrent append makes the transaction retry, so
   // `build` may run more than once and must not write anything itself.
   appendLedger(rentalId: string, build: (head: LedgerHead | null) => Promise<LedgerAppend>): Promise<LedgerAppend>;
+  // The newest lease whose status is `analyzed`, with its clauses in lease
+  // order. Null when no lease was analyzed.
+  latestLease(rentalId: string): Promise<AnalyzedLease | null>;
+  // Creates `rentals/{rentalId}/issues/{issue.id}`.
+  createIssue(rentalId: string, issue: Issue): Promise<void>;
   // The ids of every rental the user owns.
   rentalIdsOwnedBy(uid: string): Promise<string[]>;
   // Up to `limit` ids of rentals whose `purgeAfter` is at or before `now`.
@@ -93,6 +99,7 @@ export function firestoreStore(connect: () => Firestore = () => getFirestore(fir
   const ledger = (rentalId: string) => collections().rentals.doc(rentalId).collection('ledger');
   const manifests = (rentalId: string) => collections().rentals.doc(rentalId).collection('manifests');
   const leases = (rentalId: string) => collections().rentals.doc(rentalId).collection('leases');
+  const issues = (rentalId: string) => collections().rentals.doc(rentalId).collection('issues');
 
   return {
     async createRental(owner, build) {
@@ -199,6 +206,25 @@ export function firestoreStore(connect: () => Firestore = () => getFirestore(fir
         for (const { itemId, fields } of append.items ?? []) tx.update(evidence(rentalId).doc(itemId), toFirestore(fields));
         return append;
       });
+    },
+
+    async latestLease(rentalId) {
+      // Escalated and not-a-lease results have an `analyzedAt` too, so the
+      // newest few are checked for one that was analyzed.
+      const newest = await leases(rentalId).orderBy('analyzedAt', 'desc').limit(10).get();
+      const lease = newest.docs.find((doc) => doc.get('status') === 'analyzed');
+      if (!lease) return null;
+      const snapshot = await lease.ref.collection('clauses').orderBy('order').get();
+      const clauses = snapshot.docs.map((doc) => {
+        const { order: _, ...fields } = doc.data();
+        return { ...fields, id: doc.id } as Clause;
+      });
+      return { id: lease.id, clauses };
+    },
+
+    async createIssue(rentalId, issue) {
+      const { id, ...fields } = Issue.parse(issue);
+      await issues(rentalId).doc(id).create(toFirestore(fields));
     },
 
     async rentalIdsOwnedBy(uid) {
