@@ -585,7 +585,7 @@ describe('analyzeLease', () => {
     expect(analysis.findings[7]!.verifier).toBeNull();
     expect(events.filter((e) => e.type === 'finding').map((e) => e.type === 'finding' && e.finding.id)).toEqual(analysis.findings.map((f) => f.id));
     expect(events.find((e) => e.type === 'keyterms')).toMatchObject({ keyTerms: expect.arrayContaining([expect.objectContaining({ name: 'lateFee' })]) });
-    expect(analysis.injection).toEqual({ detected: false, model: false, pattern: false });
+    expect(analysis.injection).toEqual({ detected: false, model: false, pattern: false, finding: null });
   });
 
   it('sends lease text only inside document tags and every rule summary in the mapping prompt', async () => {
@@ -612,7 +612,7 @@ describe('analyzeLease', () => {
   it('stops at S1 when triage escalates, before any lease call', async () => {
     const { provider, gemma, triage } = setup({ triage: { category: 'eviction_or_court', confidence: 0.95 } });
     const analysis = await analyzeLease({ leaseId: 'lease1', text: LEASE, locale: 'en' }, { gemma, pack: PACK, triage, log: quiet });
-    expect(analysis).toMatchObject({ status: 'escalated', triage: { escalate: true, category: 'eviction_or_court' }, usage: { calls: 1 } });
+    expect(analysis).toMatchObject({ status: 'escalated', by: 'triage', triage: { escalate: true, category: 'eviction_or_court' }, usage: { calls: 1 } });
     expect(provider.requests).toHaveLength(1);
   });
 

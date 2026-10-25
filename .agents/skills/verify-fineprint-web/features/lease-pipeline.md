@@ -14,9 +14,10 @@ translation. Gemma interprets; code verifies. No route of its own yet:
   `server/src/ai/pipeline/lease.ts`. `input` is `{ leaseId, text, locale,
   readingLevel?, term?, today? }` (the redacted text; `readingLevel` is
   `standard` or `simpler`). Returns `status: "escalated"` with
-  the triage decision, `"not_a_lease"` with the `documentType`, or
+  `by` (`triage` or `document_type`) and the triage decision, `"not_a_lease"` with the `documentType` and the not-a-lease `message`, or
   `"analyzed"` with `term`, `clauses`, `keyTerms`, `checks`, `mappings`,
-  `findings`, `injection`, `drops`, and `usage`.
+  `findings`, `injection` (with its `info` finding,
+  [adversarial-input](adversarial-input.md)), `drops`, and `usage`.
 - S1: `triage.check({ source: "lease" })`; escalation stops before any lease call.
 - S2: the `extraction` stage (26B, `json` mode, output cap of half the chunk's characters in tokens, 4,096 to 16,384),
   per chunk of at most 40,000 characters: `documentType`, `aiInstructions`,
