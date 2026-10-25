@@ -186,4 +186,8 @@ makes the next run fast. To shut it down, run
 - `pnpm build:ios` builds the app.
 - `pnpm test:e2e` runs everything on both targets.
 - `pnpm test:e2e:ios` runs the iOS target only.
-- Unit tests: `xcodebuild ... test` (see `ios/README.md`).
+- Unit tests: `xcodebuild ... test` (see `ios/README.md`). On an 8 GB Mac,
+  keep one simulator up: run them on `iPhone 17 Pro` with
+  `-parallel-testing-enabled NO` (otherwise Xcode boots a "Clone 1 of ..."
+  device next to it), never while an e2e run is going, and shut down any
+  simulator you booted when you are done.
