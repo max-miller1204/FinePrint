@@ -18,7 +18,7 @@ app shows on `escalate: true` is #38.
   `immediate_danger`, `self_harm`: the model's when it fired, else the
   backstop's.
 - `model` is `{ status: "ok", category, confidence }`, `{ status: "off" }`
-  (no `GEMINI_API_KEY`), or `{ status: "unavailable" }` (every model in the
+  (no `GEMINI_API_KEY`, and `GEMMA_PROVIDER` is not `openai_compatible`), or `{ status: "unavailable" }` (every model in the
   chain failed or answered off schema; logged as `triage model unavailable`).
   The backstop decides alone in the last two cases. The model reads the
   first 8,000 characters; the backstop reads all of it.

@@ -52,7 +52,7 @@ export interface TriageOptions {
 }
 
 // Spec §7.9. Other providers (OpenAI Decisions, TypeSafe Jev) would implement
-// this too; see docs/ai-pipeline.md, "Triage".
+// this too; see docs/triage-providers.md.
 export interface TriageProvider {
   readonly name: string;
   classify(input: TriageInput, options?: TriageOptions): Promise<TriageResult>;

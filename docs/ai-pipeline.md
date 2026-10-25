@@ -146,7 +146,7 @@ const { escalate, category, model, keywords } = await triage.check({ source: 'le
 | `server/src/ai/prompts/triage.ts` | The instruction (about 300 tokens) and a per-source note: a lease clause about default is `none`, a summons uploaded as a lease is not |
 | `server/src/routes/triage.ts` | `POST /v1/triage`, for the app to call before a model-backed flow. The lease, Ask, repair, and landlord report routes call `triage.check` themselves when they land |
 
-- **Failure:** if Gemma throws (every model down, invalid output twice, a 400), the decision reports `model: { status: "unavailable" }` and the backstop decides alone. Without `GEMINI_API_KEY` it reports `off`.
+- **Failure:** if Gemma throws (every model down, invalid output twice, a 400), the decision reports `model: { status: "unavailable" }` and the backstop decides alone. With no model configured (no `GEMINI_API_KEY`, and `GEMMA_PROVIDER` is not `openai_compatible`) it reports `off`.
 - **Gate:** `server/test/triage.test.ts` (CI) requires the backstop alone to catch all 40 high-stakes cases in `eval/datasets/escalation.jsonl`, so the combined recall holds when Gemma misses or is down. `eval/runners/escalation.ts` scores Gemma, the backstop, and the combined decision live, and fails on any combined miss or any case Gemma could not answer.
 - **Alternatives:** other `TriageProvider`s (OpenAI Decisions, TypeSafe Jev) and their trade-offs are for `docs/triage-providers.md` (#56).
 

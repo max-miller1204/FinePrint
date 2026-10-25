@@ -1,4 +1,5 @@
 import { serve } from '@hono/node-server';
+import { triageModelConfigured } from './ai/triage/from-env.js';
 import { createApp } from './app.js';
 import { createLogger } from './log.js';
 
@@ -12,8 +13,8 @@ if (!process.env.KMS_SIGNING_KEY) {
   log.warn(process.env.FIRESTORE_EMULATOR_HOST ? 'signing with a local key that lasts until the server stops' : 'KMS_SIGNING_KEY is not set: sealing is off');
 }
 
-if (!process.env.GEMINI_API_KEY && !process.env.GOOGLE_API_KEY) {
-  log.warn('GEMINI_API_KEY is not set: triage runs on the keyword backstop alone');
+if (!triageModelConfigured()) {
+  log.warn('no model configured (GEMINI_API_KEY or GEMMA_PROVIDER=openai_compatible): triage runs on the keyword backstop alone');
 }
 
 const server = serve({ fetch: createApp().fetch, port }, (info) => {

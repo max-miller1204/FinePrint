@@ -3,10 +3,11 @@ import { describe, expect, it } from 'vitest';
 import { createApp } from '../src/app.js';
 import type { VerifyIdToken } from '../src/auth.js';
 import { InvalidTokenError } from '../src/auth.js';
-import { createGemma, GemmaUnavailableError } from '../src/ai/gemma.js';
+import { createGemma, GemmaUnavailableError, type gemmaFromEnv } from '../src/ai/gemma.js';
 import { GEMMA_26B, modelConfigFromEnv } from '../src/ai/models.js';
 import type { ModelProvider, ProviderRequest } from '../src/ai/provider.js';
 import { TRIAGE_INSTRUCTION } from '../src/ai/prompts/triage.js';
+import { triageFromEnv, triageModelConfigured } from '../src/ai/triage/from-env.js';
 import { gemmaTriageProvider, MODEL_TEXT_CHARS } from '../src/ai/triage/gemma.js';
 import {
   createTriage,
@@ -185,6 +186,37 @@ describe('createTriage', () => {
   it('runs the backstop alone with no model', async () => {
     const triage = createTriage({ model: null, keywords: keywordBackstop() });
     expect(await triage.check(summons)).toMatchObject({ escalate: true, category: 'eviction_or_court', model: { status: 'off' } });
+  });
+});
+
+describe('triageFromEnv', () => {
+  // Records the env the Gemma factory saw, and answers like a model that fired.
+  function factory() {
+    const seen: NodeJS.ProcessEnv[] = [];
+    const makeGemma: typeof gemmaFromEnv = (_deps, env = {}) => {
+      seen.push(env);
+      return { generate: async () => ({ data: { category: 'retaliation', confidence: 0.6 }, model: 'gemma', fallback: false, promptTokens: 0, outputTokens: 0 }) } as never;
+    };
+    return { seen, makeGemma };
+  }
+  const ask: TriageInput = { source: 'ask', text: 'When is rent due?', locale: 'en' };
+
+  it('turns the model on for a self-hosted provider with no Gemini key', async () => {
+    const env = { GEMMA_PROVIDER: 'openai_compatible', GEMMA_BASE_URL: 'http://127.0.0.1:11434/v1' };
+    expect(triageModelConfigured(env)).toBe(true);
+    const { seen, makeGemma } = factory();
+    const decision = await triageFromEnv(lines().log, env, makeGemma).check(ask);
+    expect(decision.model).toEqual({ status: 'ok', category: 'retaliation', confidence: 0.6 });
+    expect(seen).toEqual([env]);
+  });
+
+  it('turns the model on with a Gemini key, and off with neither', async () => {
+    expect(triageModelConfigured({ GEMINI_API_KEY: 'k' })).toBe(true);
+    expect(triageModelConfigured({ GOOGLE_API_KEY: 'k' })).toBe(true);
+    expect(triageModelConfigured({ GEMMA_PROVIDER: 'gemini' })).toBe(false);
+    const { seen, makeGemma } = factory();
+    expect((await triageFromEnv(lines().log, {}, makeGemma).check(ask)).model).toEqual({ status: 'off' });
+    expect(seen).toEqual([]);
   });
 });
 
