@@ -85,7 +85,7 @@ S1 to S9, and `done.injection` has the Spanish title (#104).
 ```bash
 cd e2e
 npx e2e run tests/web/leases.e2e.ts --target web                          # no model
-op run --env-file ../.env -- npx e2e run tests/web/leases.e2e.ts --target web   # live Gemma
+../scripts/with-secrets.sh npx e2e run tests/web/leases.e2e.ts --target web   # live Gemma
 pnpm --filter @fineprint/server test                                      # server/test/leases.test.ts
 ```
 
@@ -109,7 +109,7 @@ The `curl` output: `event: stage` lines S1 to S8 in order, `event:
 keyterms` after S3, one `event: finding` per finding, `event: done` last,
 `id:` counting up from 1, and `event: error` lines with `"retryInMs"` when
 the minute's quota runs out. The GET body's `findings` equal the streamed
-ones. 2026-10-25, `op run ... npx e2e run --target web`: 31 passed, 1
+ones. 2026-10-25, the historical password-manager-backed web run: 31 passed, 1
 skipped (the no-model test), exit 0, 202 s. The live lease made 8 model calls
 (29,340 input and 4,564 output tokens), 31
 clauses, 6 key terms, 14 findings (7 `unenforceable`, 1 `ask`, 6 `info`,

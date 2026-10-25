@@ -72,3 +72,22 @@ Final Linux proof: `.e2e/proof/issue-35-final/`, all 12 web files, 46 tests
 passed, 2 live-model tests skipped without a configured model, exit 0.
 Server unit suite: 446 passed. Typecheck, lint and jurisdiction checks pass.
 The macOS CI build is separate from this Linux evidence.
+
+## Integration after #123 and #124
+
+Merged `origin/main` at `8f00684`. Preserve the self-hosted Verify route and
+script/connect CSP while allowing same-origin PIN form submission. Verify
+fetches send credentials only to the report origin so PIN-protected originals
+work; cross-origin downloads never receive cookies. The photo test now drives
+Verify report with a real PIN grant, then revokes the link and proves another
+Verify fails instead of reusing the previous success.
+
+Reverification: `.e2e/proof/issue-35-main-merge/`, 13 web files, 52 passed,
+2 live-model skips (no configured model), exit 0 in one run including smoke,
+all sharing and browser verification tests. Unit tests: 447 passed. The
+Secret Manager wrapper's 13 synthetic checks passed without fetching a real
+secret. Typecheck, lint and jurisdiction checks passed. Screenshots and run
+metadata are saved in `docs/evidence/issue-35/`.
+
+Waiting on: iOS e2e by @maddoxrjohnson. The PR remains blocked on the Mac
+runtime evidence and review; Linux results do not satisfy that gate.

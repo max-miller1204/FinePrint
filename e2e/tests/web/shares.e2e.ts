@@ -213,8 +213,19 @@ describe('Share links', { platforms: ['web'] }, () => {
     const other = await tenant(app.baseUrl!);
     const unrelated = await other.create();
     expect((await fetch(new URL(`${unrelated.path}/photos/${itemId}`, app.baseUrl))).status).toBe(404);
+    // Verify must carry this link's PIN grant to the same-origin original.
+    await app.open(share.path);
+    await screen.getByLabel('PIN', { exact: true }).fill(secrets.get('sharePin'));
+    await screen.getByRole('button', { name: 'Open report' }).tap();
+    await screen.getByRole('button', { name: 'Verify report', exact: true }).tap();
+    await expect(screen.getByRole('status').nth(0)).toContainText('Verified: original SHA-256 and manifest signature match.');
+    await expect(screen.getByRole('status').nth(1)).toContainText('Verified. Originals verified: 1;');
     await owner.api('DELETE', `/v1/shares/${share.id}`);
     expect((await fetch(url, { headers: { cookie } })).status).toBe(410);
+    // An already-open report cannot reuse a prior verification verdict.
+    await screen.getByRole('button', { name: 'Verify report', exact: true }).tap();
+    await expect(screen.getByRole('status').nth(0)).toContainText('Download unavailable');
+    await expect(screen.getByRole('status').nth(1)).toContainText('Verification failed.');
     const expires = await owner.create();
     await expire(expires.id);
     expect((await fetch(new URL(`${expires.path}/photos/${itemId}`, app.baseUrl))).status).toBe(410);

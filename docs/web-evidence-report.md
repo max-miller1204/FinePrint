@@ -3,7 +3,7 @@
 The report is a Hono JSX document at `/r/:token`. It includes a disclaimer,
 city and tenancy dates, chronological events, findings with original quotes
 and citations, numbered exhibits, signed ledger events including deletions,
-and signed manifests. It needs no JavaScript. Use the browser Print menu to
+and signed manifests. Reading and printing need no JavaScript; browser verification uses a self-hosted vanilla script. Use the browser Print menu to
 print or save a PDF. Names and full addresses have no fields in its model.
 
 ## Data boundary
@@ -80,7 +80,7 @@ unrestricted. Safe-area padding and per-scheme theme colors are present.
 Hardware-specific behavior still needs a real phone; Linux emulation cannot
 prove sticky hover, safe areas or touch latency.
 
-Browser verification, share management and axe CI remain #34, #35 and #36.
+
 
 ## Sharing UI review (#35)
 
@@ -103,3 +103,38 @@ is immediate; no transitions delay forms, errors or revocation.
 The fixture toggle stays at `/r/fixture?data=worst` under the emulator-only
 fixture flag. iOS Settings has not been rendered on Linux. The on-device
 checklist is in the [Settings feature map](../.agents/skills/verify-fineprint-ios/features/settings.md).
+
+## Browser verification (#34)
+
+Each exhibit and the report have native Verify buttons, polite atomic status
+messages, visible keyboard focus, and 44px minimum touch targets. Controls
+appear when the script loads, keep focus during work, prevent overlapping runs,
+and hide in print. No animations were added. The fixture toggle exercises the
+same controls in demo, worst-case, empty and one-exhibit states.
+
+| Before | After | Why |
+| --- | --- | --- |
+| Verification hooks only | Native keyboard-operable controls and readable results | Anyone can check an original locally |
+| Unchecked seal badge | SHA-256 plus ES256 verification against published keys | Detect altered bytes, manifests and exhibit associations |
+| Deleted or missing bytes | Explicit incomplete result | A signed record cannot establish that unavailable photo bytes match |
+
+Verification checks canonical manifest bytes, the manifest hash, raw P-256
+signature, key ID, and the exhibit ID/hash/byte length against the signed
+record. It hashes original bytes freshly downloaded by authorized GET, never
+an annotated preview. Whole-report verification covers included originals and
+manifests only. It does not establish report completeness, validate ledger
+history, lease findings, capture times, legal validity or annotations.
+
+For share loaders, optional `ReportExhibit.originalUrl` is an authorized,
+short-lived URL to the original bytes, independent of `imageUrl` preview support
+(including HEIC). Undefined falls back to `imageUrl`; null means unavailable.
+Deleted URLs are omitted. Signed bytes must never be rewritten for a filtered
+report. The storage host must allow CORS GET from the report's origin, with cross-origin credentials omitted. Same-origin original routes receive
+the link-scoped PIN cookie and recheck expiry and revocation on every fetch. Serve reports over HTTPS for WebCrypto.
+CSP allows self-hosted scripts and same-origin/HTTPS fetches; emulator fixtures
+also allow HTTP. No deployment or storage CORS configuration was changed here.
+
+Proof: `e2e/tests/web/report-verify.e2e.ts` and the existing report tests run
+alongside smoke and all other web tests. Linux Chromium emulates phone widths,
+dark mode and 200% text. Real-phone safe areas, touch behavior and Safari
+remain untested on hardware. Share management is implemented in #35; axe CI remains #36.

@@ -71,7 +71,7 @@ phone layouts and actual print/PDF output. The live MCP lane is optional.
 API tests take only `app`, declare `{ platforms: ['web'] }` so the ios target skips
 them, and call `fetch(new URL(path, app.baseUrl))` with value matchers (topic `writing-tests`, "APIs live in the same suite"). The tests
 call no model themselves. The server inherits `GEMINI_API_KEY` and
-`GEMMA_*` (`inheritEnv`), so under `op run` its triage also asks Gemma;
+`GEMMA_*` (`inheritEnv`), so under `scripts/with-secrets.sh` its triage also asks Gemma;
 without them triage runs on the keyword backstop alone. Agent steps (`agent.act`, `agent.assert`) use the Gemini model
 in the config and need the key (see Bug bash). Drive the web report with
 `screen` locators or the live MCP lane (topic `mcp`); the e2e MCP server is
@@ -99,13 +99,11 @@ internal function, and checks the status, the body, and the headers.
 ## Bug bash
 
 The model is Gemini (`gemini-flash-latest` through `@ai-sdk/google`),
-reading `GEMINI_API_KEY`. The worktree's `.env` (gitignored) holds a
-1Password reference, not the key, so run anything that calls the model as
-`op run --env-file ../.env -- <command>` from `e2e/`. Never print the
-value. Tests without agent steps need no key. On macOS without
-1Password, keep the key in the login keychain (service
-`fineprint-gemini-api-key`, see `CONTRIBUTING.md`) and use
-`../scripts/with-gemini-key.sh <command>` in place of `op run ... --`.
+reading `GEMINI_API_KEY`. Run model commands through
+`../scripts/with-secrets.sh <command>` from `e2e/`. It preserves a personal
+key exported in your shell; otherwise it reads Secret Manager using
+`FINEPRINT_PROJECT` or the gcloud project. See `CONTRIBUTING.md` for setup.
+Never print the value.
 
 `e2e/e2e.bugbash.config.ts` is gitignored and local: it spreads
 `e2e.config.ts` and adds the `skeptic` and `fuzzer` personas with a
@@ -119,7 +117,7 @@ charters are in [features/](features/), one block per feature in the
 
 ```bash
 cd e2e
-op run --env-file ../.env -- npx e2e explore '<charter>' \
+../scripts/with-secrets.sh npx e2e explore '<charter>' \
   --config e2e.bugbash.config.ts --target web --agent <persona> --max-steps 3 \
   --output .e2e/bugbash/<slug> --reporter list,markdown
 ```
@@ -140,5 +138,5 @@ the evidence, and all of it is gitignored.
 
 `pnpm test:e2e:web` in `e2e/` runs this target only. Otherwise the e2e
 CLI is the helper. Unit tests: `pnpm --filter server test` (vitest). The
-Gemma client has a live check against the real API, `op run --env-file
-../.env -- pnpm smoke:gemma` from `server/` ([features/gemma-client.md](features/gemma-client.md)).
+Gemma client has a live check against the real API, `../scripts/with-secrets.sh
+pnpm smoke:gemma` from `server/` ([features/gemma-client.md](features/gemma-client.md)).
