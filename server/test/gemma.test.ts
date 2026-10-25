@@ -248,11 +248,11 @@ describe('generate', () => {
     await expect(run()).rejects.toBeInstanceOf(GemmaOutputError);
   });
 
-  it('puts the lease stages on json output and keeps the rest on schema until an eval says otherwise', () => {
+  it('puts the lease stages and the responsibility check on json output and keeps the rest on schema until an eval says otherwise', () => {
     const json = Object.entries(STAGES)
       .filter(([, s]) => s.output === 'json')
       .map(([stage]) => stage);
-    expect(json).toEqual(['extraction', 'mapping']);
+    expect(json).toEqual(['extraction', 'mapping', 'responsibility']);
   });
 
   it('caps the answer when the caller asks', async () => {

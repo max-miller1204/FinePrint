@@ -2,6 +2,8 @@ import type { AuthUser } from '../src/auth.js';
 import { LedgerEntry } from '../src/integrity/ledger.js';
 import { Manifest } from '../src/integrity/manifest.js';
 import { Evidence } from '../src/models/evidence.js';
+import { Issue } from '../src/models/issue.js';
+import type { AnalyzedLease } from '../src/models/lease.js';
 import { Rental } from '../src/models/rental.js';
 import type { Store } from '../src/storage/firestore.js';
 
@@ -15,6 +17,10 @@ export function memoryStore() {
   const ledgers = new Map<string, LedgerEntry[]>();
   // Keyed `rentalId/manifestId`.
   const manifests = new Map<string, Manifest>();
+  // Keyed by rentalId: the analyzed lease latestLease() returns. Tests set it.
+  const leases = new Map<string, AnalyzedLease>();
+  // Keyed `rentalId/issueId`.
+  const issues = new Map<string, Issue>();
   let nextId = 1;
   const store: Store = {
     async createRental(owner, build) {
@@ -65,6 +71,14 @@ export function memoryStore() {
       for (const { itemId, fields } of append.items ?? []) Object.assign(evidence.get(`${rentalId}/${itemId}`)!, fields);
       return structuredClone(append);
     },
+    async latestLease(rentalId) {
+      return structuredClone(leases.get(rentalId) ?? null);
+    },
+    async createIssue(rentalId, issue) {
+      const key = `${rentalId}/${issue.id}`;
+      if (issues.has(key)) throw Object.assign(new Error('6 ALREADY_EXISTS'), { code: 6 });
+      issues.set(key, Issue.parse(issue));
+    },
   };
-  return { store, rentals, users, evidence, ledgers, manifests };
+  return { store, rentals, users, evidence, ledgers, manifests, leases, issues };
 }

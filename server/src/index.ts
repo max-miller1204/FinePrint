@@ -14,7 +14,7 @@ if (!process.env.KMS_SIGNING_KEY) {
 }
 
 if (!triageModelConfigured()) {
-  log.warn('no model configured (GEMINI_API_KEY or GEMMA_PROVIDER=openai_compatible): triage runs on the keyword backstop alone');
+  log.warn('no model configured (GEMINI_API_KEY or GEMMA_PROVIDER=openai_compatible): triage runs on the keyword backstop alone, and the responsibility check answers 503');
 }
 
 const server = serve({ fetch: createApp().fetch, port }, (info) => {

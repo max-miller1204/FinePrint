@@ -41,13 +41,15 @@ export interface StageConfig {
 // `high` only takes effect on a `json` stage. The lease stages (#14) are on
 // `json`: in `schema` mode 26B looped until the output cap on half of the
 // synthetic lease's S2 runs and garbled S5's quotes (docs/ai-pipeline.md, gap 7).
+// `responsibility` (#31) too: in `schema` mode 26B looped to the cap on one
+// of three live cases and repeated a phrase inside a string on another.
 export const STAGES: Record<Stage, StageConfig> = {
   triage: { role: 'primary', thinking: 'minimal', output: 'schema' },
   extraction: { role: 'primary', thinking: 'high', output: 'json' },
   mapping: { role: 'primary', thinking: 'high', output: 'json' },
   verification: { role: 'verifier', thinking: 'high', output: 'schema' },
   vision: { role: 'primary', thinking: 'minimal', output: 'schema' },
-  responsibility: { role: 'primary', thinking: 'high', output: 'schema' },
+  responsibility: { role: 'primary', thinking: 'high', output: 'json' },
   responsibility_verify: { role: 'verifier', thinking: 'high', output: 'schema' },
   ask: { role: 'primary', thinking: 'minimal', output: 'schema' },
   explanation: { role: 'primary', thinking: 'minimal', output: 'schema' },

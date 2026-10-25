@@ -4,6 +4,8 @@ import { firebaseApp } from '../firebase.js';
 import { LedgerEntry, type LedgerHead } from '../integrity/ledger.js';
 import { Manifest } from '../integrity/manifest.js';
 import { Evidence, type EvidenceSession } from '../models/evidence.js';
+import { Issue } from '../models/issue.js';
+import { LeaseClause, type AnalyzedLease } from '../models/lease.js';
 import { Rental } from '../models/rental.js';
 import { User } from '../models/user.js';
 
@@ -39,6 +41,11 @@ export interface Store {
   // that land with it. A concurrent append makes the transaction retry, so
   // `build` may run more than once and must not write anything itself.
   appendLedger(rentalId: string, build: (head: LedgerHead | null) => Promise<LedgerAppend>): Promise<LedgerAppend>;
+  // The newest analyzed lease (`analyzedAt`) with its clauses in lease
+  // order. Null when no lease was analyzed. The lease route (#16) writes them.
+  latestLease(rentalId: string): Promise<AnalyzedLease | null>;
+  // Creates `rentals/{rentalId}/issues/{issue.id}`.
+  createIssue(rentalId: string, issue: Issue): Promise<void>;
 }
 
 export interface LedgerAppend {
@@ -68,6 +75,8 @@ export function firestoreStore(connect: () => Firestore = () => getFirestore(fir
   const evidence = (rentalId: string) => collections().rentals.doc(rentalId).collection('evidence');
   const ledger = (rentalId: string) => collections().rentals.doc(rentalId).collection('ledger');
   const manifests = (rentalId: string) => collections().rentals.doc(rentalId).collection('manifests');
+  const leases = (rentalId: string) => collections().rentals.doc(rentalId).collection('leases');
+  const issues = (rentalId: string) => collections().rentals.doc(rentalId).collection('issues');
 
   return {
     async createRental(owner, build) {
@@ -174,6 +183,21 @@ export function firestoreStore(connect: () => Firestore = () => getFirestore(fir
         for (const { itemId, fields } of append.items ?? []) tx.update(evidence(rentalId).doc(itemId), toFirestore(fields));
         return append;
       });
+    },
+
+    async latestLease(rentalId) {
+      // A lease still being analyzed has no `analyzedAt`, so the order skips it.
+      const newest = await leases(rentalId).orderBy('analyzedAt', 'desc').limit(1).get();
+      const lease = newest.docs[0];
+      if (!lease) return null;
+      const snapshot = await lease.ref.collection('clauses').get();
+      const clauses = snapshot.docs.map((doc) => LeaseClause.parse({ ...doc.data(), id: doc.id })).sort((a, b) => a.charStart - b.charStart);
+      return { id: lease.id, clauses };
+    },
+
+    async createIssue(rentalId, issue) {
+      const { id, ...fields } = Issue.parse(issue);
+      await issues(rentalId).doc(id).create(toFirestore(fields));
     },
   };
 }
