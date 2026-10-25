@@ -1,3 +1,6 @@
+import { bodyLimit } from 'hono/body-limit';
+import { z } from 'zod';
+import { guard, readBody } from './rentals.js';
 import { Hono } from 'hono';
 import type { Accounts } from '../accounts.js';
 import type { AuthEnv } from '../auth.js';
@@ -11,6 +14,13 @@ import type { EvidenceObjects } from '../storage/gcs.js';
 // user, and answers with the receipt the app shows.
 export function createMe(store: Store, objects: EvidenceObjects, accounts: Accounts, now: () => Date = () => new Date()) {
   const me = new Hono<AuthEnv>();
+
+  me.patch('/impact', bodyLimit({ maxSize: 1024, onError: () => { throw new ApiError(413, 'PAYLOAD_TOO_LARGE', 'Request body is too large'); } }), async (c) => {
+    const { impactOptIn } = await readBody(c, z.strictObject({ impactOptIn: z.boolean() }));
+    await guard(store.setImpactOptIn(c.get('user'), impactOptIn));
+    c.header('Cache-Control', 'no-store');
+    return c.json({ impactOptIn });
+  });
 
   me.delete('/', async (c) => {
     const { uid } = c.get('user');

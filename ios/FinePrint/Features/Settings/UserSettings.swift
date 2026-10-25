@@ -18,9 +18,12 @@ nonisolated enum ReadingLevel: String, CaseIterable, Identifiable, Sendable {
 }
 
 /// The choices in Settings (spec §4.1): language, reading level, and the impact counter. They live on
-/// this device, in `UserDefaults`; the server is told nothing about them yet.
+/// this device, in `UserDefaults`; impact consent is also sent to the server.
 @Observable
 final class UserSettings {
+    /// Serializes foreground consent sync with changes in Settings.
+    var isSyncingImpact = false
+
     static let readingLevelKey = "FinePrint.readingLevel"
     static let impactOptInKey = "FinePrint.impactOptIn"
 

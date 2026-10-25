@@ -66,7 +66,7 @@ The built-in default is the `FinePrintServerURL` key in Info.plist, filled from 
 
 ## Settings
 
-The gear opens Settings: language, reading level, the impact-count opt-in (all saved on the device), and **Delete Everything**. Delete Everything calls `DELETE /v1/me`, and only after the server answers erases the rentals, deadlines, reminders, photos, upload queue, saved settings, and sign-in on the device, then shows a receipt. Share links and the AI trace have no rows yet (#35, #39).
+The gear opens Settings: language, reading level, the impact-count opt-in (saved on the device, with impact consent also saved on the server), and **Delete Everything**. Delete Everything calls `DELETE /v1/me`, and only after the server answers erases the rentals, deadlines, reminders, photos, upload queue, saved settings, and sign-in on the device, then shows a receipt. Share links and the AI trace have no rows yet (#35, #39).
 
 ## Sign-in
 

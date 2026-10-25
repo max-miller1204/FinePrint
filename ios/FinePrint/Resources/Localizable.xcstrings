@@ -1,6 +1,16 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
+    "Removes your rentals, photos, and anonymous account from this device and from the server. No personal data is kept. Past anonymous impact totals remain." : {
+      "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Removes your rentals, photos, and anonymous account from this device and from the server. No personal data is kept. Past anonymous impact totals remain." } } }
+    },
+    "Saving your choice…" : {
+      "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Saving your choice…" } } }
+    },
+    "Adds one to a public count of tenants helped. It never includes your name, your rental, or your documents. Off unless you turn it on. Turning it off stops future counts; past anonymous totals remain." : {
+      "comment" : "Impact consent; past aggregate contributions cannot be linked back to an account.",
+      "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Adds one to a public count of tenants helped. It never includes your name, your rental, or your documents. Off unless you turn it on. Turning it off stops future counts; past anonymous totals remain." } } }
+    },
     "%@: %@" : {
       "comment" : "Large Content Viewer text for the deadline accessory: deadline title, then countdown such as “3 days left”.",
       "localizations" : {
