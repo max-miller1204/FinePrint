@@ -63,7 +63,8 @@ can verify without asking the server.
 Upload and complete photos (see [evidence](evidence.md)), then `POST
 .../seal`. A verifier fetches the manifest and the key set, checks
 `sha256` and the signature, and walks the ledger. The web report's
-Verify button (#34) will run the same check in the browser.
+Verify button (#34) checks original hashes and manifest signatures in the
+browser. It explicitly excludes ledger history and report completeness.
 
 ## Driving it with e2e
 

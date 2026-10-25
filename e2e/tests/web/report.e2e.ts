@@ -19,7 +19,7 @@ describe('Web Evidence Report', { platforms: ['web'] }, () => {
     expect(res.headers.get('x-robots-tag')).toContain('noindex');
     const html = await res.text();
     expect(html.toLowerCase()).toContain('<!doctype html>');
-    expect(html).not.toContain('<script');
+    expect(html).toContain('<script src="/r/verify.js" defer');
     await app.open('/r/fixture');
     for (const name of [
       '01 / Timeline',
