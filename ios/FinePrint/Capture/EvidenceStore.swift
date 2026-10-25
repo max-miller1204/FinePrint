@@ -22,8 +22,17 @@ nonisolated struct EvidenceStore: Sendable {
     }
 
     func directory(for record: CaptureRecord) -> URL {
-        root.appending(path: record.rentalID.uuidString, directoryHint: .isDirectory)
-            .appending(path: record.itemID.uuidString, directoryHint: .isDirectory)
+        directory(rentalID: record.rentalID, itemID: record.itemID)
+    }
+
+    func directory(rentalID: UUID, itemID: UUID) -> URL {
+        root.appending(path: rentalID.uuidString, directoryHint: .isDirectory)
+            .appending(path: itemID.uuidString, directoryHint: .isDirectory)
+    }
+
+    /// The 1536 px JPEG made at capture, which is what the damage review shows and sends to Gemma.
+    func modelCopy(rentalID: UUID, itemID: UUID) -> URL {
+        directory(rentalID: rentalID, itemID: itemID).appending(path: "model.jpg")
     }
 
     func save(original: Data, modelCopy: Data, record: CaptureRecord) throws -> StoredCapture {

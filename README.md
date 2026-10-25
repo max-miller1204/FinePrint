@@ -30,7 +30,7 @@ This is a hackathon build. The README describes the code on `main`. Planned work
 | --- | --- | --- |
 | iOS app shell | Tab bar (Lease, Evidence, Repairs, Letters, Ask), the next-deadline accessory, onboarding, settings, the developer menu | The screens for the Lease, Repairs, Letters, and Ask tabs |
 | Deadlines | The move-in report, objection, and deposit itemization clocks, with local reminders | |
-| Evidence capture | In-app camera, SHA-256 at the shutter, GPS removed, on-device quality checks, an encrypted upload queue, direct upload to Cloud Storage | Damage analysis with Gemma, the move-out overlay and diff |
+| Evidence capture | In-app camera, SHA-256 at the shutter, GPS removed, on-device quality checks, an encrypted upload queue, direct upload to Cloud Storage, Gemma damage suggestions the tenant confirms, adjusts, rejects, or adds to (#26) | The move-out overlay and diff (#27) |
 | Evidence integrity | Server hash check, Cloud KMS-signed manifests (RFC 8785 JCS), a hash-chained signed ledger, logged deletion, published public keys | The web report's in-browser verification |
 | Sign-in | Firebase anonymous auth (Identity Platform) | Sign in with Apple |
 | AI | The Gemma 4 client: routing, rate limits, retries, fallback, Zod validation, usage records ([docs/ai-pipeline.md](docs/ai-pipeline.md)) | Every AI stage below, and the rule pack |
@@ -60,7 +60,7 @@ Design rule: **Gemma interprets, code verifies.** Each call returns structured J
 | Lease extraction | 26B | `high` | Pulls clauses and key terms (rent, deposit, dates, fees) from the redacted lease text | Planned (#14) |
 | Rule mapping | 26B | `high` | Maps clauses to VRLTA rules from the rule pack, such as the prohibited provisions in § 55.1-1208 and the late-fee cap in § 55.1-1204 | Planned (#14) |
 | Legal verifier | 31B | `high` | A second, independent opinion on each legal finding: it sees only the clause and the statute's exact words. If 31B is down, the finding is marked "unverified" and reads as "worth asking about". | Built (#15), no route yet |
-| Vision | 26B | `minimal` | Finds damage in evidence photos, proposes an approximate box for the tenant to adjust, and compares move-out photos with move-in photos | Planned |
+| Vision | 26B | `minimal` | Finds damage in evidence photos and proposes approximate boxes the tenant confirms, adjusts, or marks not damage. Possible mold or pests are never named as fact and point to a repair request. Move-out comparison is next. | Built (#26); move-out compare planned (#27) |
 | Landlord report diff | 26B | not set | Compares the landlord's move-in report with the tenant's sealed evidence, then drafts the five-day objection | Planned |
 | Responsibility check | 26B, then 31B | `high` | "Likely the landlord's / likely yours" with reasons, citations, confidence, and what would change the answer. 31B checks the High-confidence verdicts. | Planned |
 | Ask | 26B | `minimal` | Answers questions grounded in the tenant's lease and the rule pack, with function calling | Planned |
@@ -129,6 +129,9 @@ The planned design (spec §5.1) adds on-device OCR (`RecognizeDocumentsRequest`)
 | `POST /v1/rentals/:id/evidence` | ID token | Create evidence items and return signed upload URLs |
 | `POST /v1/rentals/:id/evidence/:itemId/complete` | ID token | Check the stored hash and record the receipt time |
 | `DELETE /v1/rentals/:id/evidence/:itemId` | ID token | Delete the photo and log `evidence_deleted` in the ledger |
+| `POST /v1/rentals/:id/evidence/:itemId/analyze` | ID token | Send the phone's 1536 px JPEG copy to Gemma's vision stage and store its damage proposals |
+| `GET /v1/rentals/:id/evidence/:itemId/damage` | ID token | Read the proposals and the tenant's decisions |
+| `PATCH /v1/rentals/:id/evidence/:itemId` | ID token | Store the tenant's decisions (confirmed, adjusted, rejected, added) apart from the original, whose hash and manifests do not change |
 | `POST /v1/rentals/:id/seal` | ID token | Sign a manifest and append it to the ledger |
 | `GET /v1/rentals/:id/ledger`, `GET /v1/rentals/:id/manifests/:manifestId` | ID token | Read the ledger and the manifests |
 
@@ -215,7 +218,7 @@ The [Gemini API Additional Terms](https://ai.google.dev/gemini-api/terms) (updat
 What FinePrint does about it:
 
 - **Planned:** only lease text that the device has already redacted goes to the model. Original scans never leave the phone.
-- **Planned:** evidence photos go to the model only as 1536 px copies with GPS removed.
+- Evidence photos go to the model only as the 1536 px JPEG copy the phone makes, with GPS removed, and only when the tenant opens the damage review. The server sends that copy to Gemma and does not store it; the original never goes to the model (#26).
 - **Not built:** to keep content off Google's unpaid terms entirely, run Gemma 4 open weights on your own server (`GEMMA_PROVIDER=openai_compatible`).
 - The Gemini Flash fallback is billed, so it falls under the Paid Service terms when the key's project has billing.
 

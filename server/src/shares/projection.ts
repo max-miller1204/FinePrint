@@ -18,7 +18,9 @@ export async function projectReport(share: Share, store: Store, shares: Shares, 
     receivedAtServer: item.receivedAtServer, sealedManifestId: item.sealedManifestId,
     deletedAt: item.deletedAt, source: item.source,
     imageUrl: !item.deletedAt && item.receivedAtServer ? new URL(`/r/${token}/photos/${item.id}`, origin).href : null,
-    annotations: [],
+    // The tenant's decisions only, never Gemma's raw proposals (spec §7.5
+    // step 3). The page drops rejected ones; deleted photos show none.
+    annotations: item.deletedAt ? [] : item.tenantAnnotations.map(a => ({ box: a.box, label: a.label, description: a.description, decision: a.decision })),
   }));
   const findings: EvidenceReport['findings'] = [];
   if (share.scope.includes('lease')) {
