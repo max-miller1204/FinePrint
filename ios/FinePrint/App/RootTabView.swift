@@ -34,6 +34,7 @@ struct RootTabView: View {
         .sheet(isPresented: $navigation.isAddingRental) {
             AddRentalView()
         }
+        .systemPickers(navigation)
         .environment(navigation)
     }
 

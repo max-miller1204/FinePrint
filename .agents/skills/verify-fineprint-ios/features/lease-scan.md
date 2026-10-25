@@ -10,8 +10,10 @@ it, and stops there.
 
 - Lease tab empty state ("No lease yet") with Scan Lease (`lease.scan`,
   VisionKit document camera) and Import PDF (`lease.importPDF`, file picker).
-  Without a document camera (simulators), Scan shows "Scanning needs a
-  camera" with an Import PDF button.
+  Without a document camera (simulators), Scan shows an inline note
+  (`lease.scanUnavailable`) to import a PDF instead. The file picker and the
+  document camera are presented by `RootTabView`, above the tabs
+  (`AppNavigation.systemPicker`, `App/SystemPickers.swift`).
 - Reading: a PDF page's text layer when it has 20 or more letters, otherwise
   Vision OCR (`RecognizeTextRequest`, accurate) of the page rendered at
   1700 px wide. Scanned pages are always OCR'd. Progress (`lease.progress`):
@@ -28,27 +30,28 @@ it, and stops there.
   numbered in text order: `[TENANT_1]`, `[LANDLORD_1]`, `[SSN_1]`, `[HIDDEN_1]`
   for the tenant's own additions. A name's single words and a company name
   without "LLC" are hidden with it, ignoring case and accents.
-- Redaction review sheet (opens by itself after reading; again from Review
-  Hidden Details, `lease.review`): Details / Lease Text segmented control
+- Redaction review screen, pushed onto the Lease tab's stack (opens by itself
+  after reading; again from Review Hidden Details, `lease.review`): Details / Lease Text segmented control
   (`lease.review.mode`). Details lists each detail as one toggle button
   (`lease.redaction.<PLACEHOLDER>`, e.g. `lease.redaction.TENANT_1`; VoiceOver
   value "Hidden" or "Sent as written"), grouped by People, Companies,
   Addresses and Places, Phone, Email, and Web, Numbers and IDs, Added by You.
   The footer counts hidden details (`lease.review.hiddenCount`). Hide More
-  Text (`lease.review.add`) opens a sheet (`lease.hide.field`,
-  `lease.hide.confirm`, `lease.hide.notFound`, `lease.hide.cancel`) that hides
+  Text (`lease.review.add`) opens inline rows (`lease.hide.field`,
+  `lease.hide.confirm`, `lease.hide.notFound`, `lease.hide.cancel`) that hide
   the text everywhere it appears. Lease Text highlights and underlines each
   hidden detail; VoiceOver reads "Jordan Lee, hidden," at each, has a
   "Hidden Details" rotor, and Show/Hide actions per detail. Showing a Social
   Security, account, routing, card, or license number or a date of birth
-  asks first ("Send as Written", `lease.review.confirmShow`, or "Keep
-  Hidden"). Cancel and Done
+  asks first in rows under it ("Send as Written",
+  `lease.review.confirmShow`, or "Keep Hidden", `lease.review.keepHidden`).
+  Cancel and Done
   are toolbar buttons (drive them by role and name).
 - After Done: the summary (`lease.status` "Personal details hidden"), pages,
   how they were read ("Scanned pages", "The PDF's text", or a mix), the
   hidden count (`lease.hiddenCount`), See What Gets Sent (`lease.sentPreview`,
-  enabled once reviewed), and Remove Lease (`lease.remove`, then
-  `lease.remove.confirm`).
+  enabled once reviewed), and Remove Lease (`lease.remove`, then an
+  inline question: `lease.remove.confirm` or `lease.remove.cancel`).
 - What Gets Sent shows the upload body's `redactedText`
   (`lease.sentText`), built by `LeaseUpload.body(for:)`. `LeaseUpload.make`
   only builds an upload for the current rental's reviewed lease once the
@@ -99,6 +102,15 @@ lease-review-worst-case|ios|fuzzer|Import the lease, then in the review hide ver
 ```
 
 ## Gotchas
+
+- No sheet, alert, or dialog may be presented from inside the Lease tab. With
+  the deadline accessory (`tabViewBottomAccessory`) showing and accessibility
+  on (VoiceOver or e2e), one sends SwiftUI into an AttributeGraph cycle: the
+  main thread spins in `print_cycle`, snapshots time out with "Daemon request
+  timed out", and the app never recovers. A host-side bisect (#17) showed
+  that a review sheet stalled, the same screen pushed did not, and removing
+  the accessory removed the stall. Push screens, ask in rows, or present
+  from `RootTabView` (#99).
 
 - `NLTagger` results vary by OS version; the labelled-field detector is what
   makes the fixture deterministic. Fixture names all appear in a labelled

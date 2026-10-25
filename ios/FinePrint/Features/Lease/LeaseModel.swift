@@ -141,15 +141,18 @@ final class LeaseModel {
     func finishReview(_ scan: LeaseScan, store: LeaseStore) async {
         var reviewed = scan
         reviewed.reviewedAt = .now
-        reviewing = nil
         do {
             try await store.save(reviewed)
             setPhase(.ready(reviewed), for: reviewed.rentalID)
-            AccessibilityNotification.Announcement(String(localized: "Review saved.")).post()
         } catch {
             Self.logger.error("Review failed to save: \(error.localizedDescription, privacy: .public)")
             setPhase(.failed(.couldNotSave), for: reviewed.rentalID)
         }
+        // Back to the summary only once it shows the saved review, so the screen behind the
+        // review does not change while the pop animates (that, with accessibility on, stalled
+        // SwiftUI the same way as #99). Returning to the summary is the confirmation.
+        try? await Task.sleep(for: .milliseconds(300))
+        reviewing = nil
     }
 
     /// Deletes the current rental's lease, its scans, and its redaction map from the phone.

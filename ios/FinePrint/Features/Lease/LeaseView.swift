@@ -5,15 +5,18 @@ import VisionKit
 
 /// The Lease tab (spec §4.3 F1): scan or import the current rental's lease, read it on the phone,
 /// and review what is hidden before anything is sent.
+///
+/// Nothing here is presented from inside the tab: the review is pushed, questions are inline rows,
+/// and the file picker and document camera are `SystemPicker`s that `RootTabView` presents. A sheet,
+/// alert, or dialog from inside a tab while the deadline accessory shows sends SwiftUI into an
+/// AttributeGraph update cycle whenever accessibility is on (VoiceOver, UI automation).
 struct LeaseView: View {
     @Environment(\.leaseStore) private var store
     @Environment(AppConfiguration.self) private var configuration
+    @Environment(AppNavigation.self) private var navigation
     @Query(sort: \Rental.createdAt) private var rentals: [Rental]
     @State private var model = LeaseModel()
-    @State private var isImporting = false
-    @State private var isScanning = false
     @State private var isScannerUnavailable = false
-    @State private var isConfirmingRemove = false
 
     private var currentRentalID: UUID? { Rental.current(in: rentals)?.id }
 
@@ -28,27 +31,15 @@ struct LeaseView: View {
             .task(id: currentRentalID) {
                 await model.load(rentalID: currentRentalID, store: store)
             }
-            .fileImporter(isPresented: $isImporting, allowedContentTypes: [.pdf]) { result in
-                if case .success(let url) = result {
-                    model.importPDF(at: url, store: store)
+            .onChange(of: navigation.systemPickerResult?.id) {
+                guard let result = navigation.systemPickerResult, navigation.selectedTab == .lease else { return }
+                navigation.systemPickerResult = nil
+                switch result.content {
+                case .file(let url): model.importPDF(at: url, store: store)
+                case .scan(let images): model.importScan(images, store: store)
                 }
             }
-            .fullScreenCover(isPresented: $isScanning) {
-                DocumentScanner { images in
-                    isScanning = false
-                    model.importScan(images, store: store)
-                } onCancel: {
-                    isScanning = false
-                }
-                .ignoresSafeArea()
-            }
-            .alert("Scanning needs a camera", isPresented: $isScannerUnavailable) {
-                Button("Import PDF") { importPDF() }
-                Button("Cancel", role: .cancel) {}
-            } message: {
-                Text("This device can't scan documents. Import a PDF of your lease instead.")
-            }
-            .sheet(item: $model.reviewing) { scan in
+            .navigationDestination(item: $model.reviewing) { scan in
                 RedactionReviewView(scan: scan) { reviewed in
                     Task { await model.finishReview(reviewed, store: store) }
                 }
@@ -70,15 +61,7 @@ struct LeaseView: View {
             LeaseSummaryView(scan: scan) {
                 model.reviewing = scan
             } onRemove: {
-                isConfirmingRemove = true
-            }
-            .confirmationDialog("Remove this lease from your phone?", isPresented: $isConfirmingRemove, titleVisibility: .visible) {
-                Button("Remove Lease", role: .destructive) {
-                    Task { await model.removeLease(store: store) }
-                }
-                .accessibilityIdentifier("lease.remove.confirm")
-            } message: {
-                Text("The scan, its text, and the list of hidden details are deleted from this phone.")
+                Task { await model.removeLease(store: store) }
             }
         }
     }
@@ -110,6 +93,18 @@ struct LeaseView: View {
                             }
                             .buttonStyle(.bordered)
                             .accessibilityIdentifier("lease.importPDF")
+
+                            if isScannerUnavailable {
+                                Label {
+                                    Text("This device can't scan documents. Import a PDF of your lease instead.")
+                                } icon: {
+                                    Image(systemName: "camera.badge.ellipsis")
+                                        .accessibilityHidden(true)
+                                }
+                                .font(.subheadline)
+                                .foregroundStyle(.secondary)
+                                .accessibilityIdentifier("lease.scanUnavailable")
+                            }
                         }
                         .frame(maxWidth: 320)
                     }
@@ -170,9 +165,10 @@ struct LeaseView: View {
         }
         #endif
         if VNDocumentCameraViewController.isSupported {
-            isScanning = true
+            navigation.systemPicker = .documentScan
         } else {
             isScannerUnavailable = true
+            AccessibilityNotification.Announcement(String(localized: "This device can't scan documents. Import a PDF of your lease instead.")).post()
         }
     }
 
@@ -183,7 +179,7 @@ struct LeaseView: View {
             return
         }
         #endif
-        isImporting = true
+        navigation.systemPicker = .pdfFile
     }
 }
 
@@ -204,6 +200,7 @@ struct LeaseSummaryView: View {
     let scan: LeaseScan
     let onReview: () -> Void
     let onRemove: () -> Void
+    @State private var isConfirmingRemove = false
 
     var body: some View {
         List {
@@ -266,8 +263,27 @@ struct LeaseSummaryView: View {
             }
 
             Section {
-                Button("Remove Lease", role: .destructive, action: onRemove)
+                if isConfirmingRemove {
+                    // Asked in a row, not a dialog (see `LeaseView`).
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Remove this lease from your phone?")
+                            .font(.subheadline.weight(.semibold))
+                        Text("The scan, its text, and the list of hidden details are deleted from this phone.")
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
+                    }
+                    .accessibilityElement(children: .combine)
+                    Button("Remove Lease", role: .destructive, action: onRemove)
+                        .accessibilityIdentifier("lease.remove.confirm")
+                    Button("Keep Lease") { isConfirmingRemove = false }
+                        .accessibilityIdentifier("lease.remove.cancel")
+                } else {
+                    Button("Remove Lease", role: .destructive) {
+                        isConfirmingRemove = true
+                        AccessibilityNotification.Announcement(String(localized: "Remove this lease from your phone? Choose Remove Lease or Keep Lease.")).post()
+                    }
                     .accessibilityIdentifier("lease.remove")
+                }
             } footer: {
                 Text("Your scan, its full text, and the hidden details stay on this phone.")
             }

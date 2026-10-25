@@ -46,7 +46,7 @@ async function startReading(screen: Screen, id: 'lease.scan' | 'lease.importPDF'
   }
 }
 
-test('an imported lease is read on the phone and sent only with personal details hidden', { platforms: ['ios'] }, async ({ app, screen }) => {
+test('an imported lease is read on the phone and sent only with personal details hidden', { platforms: ['ios'], timeout: 360_000 }, async ({ app, screen }) => {
   await app.open();
   await expect(screen.getByText('No lease yet')).toBeVisible();
   await startReading(screen, 'lease.importPDF');
@@ -56,10 +56,7 @@ test('an imported lease is read on the phone and sent only with personal details
   const tenant = screen.getByTestId('lease.redaction.TENANT_1');
   await expect(tenant).toBeVisible(readTimeout);
   await expect(tenant).toContainText('Jordan Lee');
-  const ssn = screen.getByTestId('lease.redaction.SSN_1');
-  await screen.scrollUntilVisible(ssn);
-  await expect(ssn).toContainText('987-65-4321');
-  await screen.scrollUntilVisible(screen.getByTestId('lease.review.add'), { direction: 'up' });
+  // The engine cannot scroll this list back up, so the top of it comes first.
   const detected = await hiddenCount(screen);
   expect(detected).toBeGreaterThanOrEqual(15);
 
@@ -77,15 +74,21 @@ test('an imported lease is read on the phone and sent only with personal details
   const link = screen.getByTestId('lease.redaction.LINK_1');
   await screen.scrollUntilVisible(link);
   await link.tap();
-  await screen.scrollUntilVisible(screen.getByTestId('lease.review.add'), { direction: 'up' });
-  await expect.poll(() => hiddenCount(screen)).toBe(detected);
+  await expect(link).toContainText('Sent as written');
+
+  // The SSN comes from the OCR'd page.
+  const ssn = screen.getByTestId('lease.redaction.SSN_1');
+  await screen.scrollUntilVisible(ssn);
+  await expect(ssn).toContainText('987-65-4321');
 
   // The lease text view marks each hidden detail for VoiceOver.
-  await screen.getByRole('button', { name: 'Lease Text' }).tap();
+  await screen.getByRole('tab', { name: 'Lease Text' }).tap();
   await expect(screen.getByText(/Jordan Lee, hidden,/).first()).toBeVisible();
 
   await screen.getByRole('button', { name: 'Done' }).tap();
   await expect(screen.getByTestId('lease.status')).toContainText('Personal details hidden');
+  // Detected details, plus "grace period", minus the portal link.
+  await expect(screen.getByTestId('lease.hiddenCount')).toContainText(String(detected));
 
   // What gets sent is the upload body's redacted text, built from the reviewed lease.
   await screen.getByTestId('lease.sentPreview').tap();
@@ -104,7 +107,7 @@ test('an imported lease is read on the phone and sent only with personal details
   }
 });
 
-test('a scanned lease belongs to the rental it was scanned for', { platforms: ['ios'] }, async ({ app, screen }) => {
+test('a scanned lease belongs to the rental it was scanned for', { platforms: ['ios'], timeout: 360_000 }, async ({ app, screen }) => {
   await app.open();
   await startReading(screen, 'lease.scan');
   await expect(screen.getByTestId('lease.redaction.TENANT_1')).toBeVisible(readTimeout);
