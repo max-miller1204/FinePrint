@@ -17,11 +17,10 @@ FinePrint is not a lawyer and gives no legal advice. When the stakes are high (e
 
 ### Why it matters
 
-The impact numbers below need sources before submission. This README does not invent figures.
-
-- Renter households in Blacksburg and Montgomery County, Virginia. TODO: source (e.g. U.S. Census Bureau ACS 5-year, table B25003).
-- Virginia Tech students living off campus. TODO: source (Virginia Tech institutional research).
-- Virginia security deposit disputes. TODO: source.
+- **Most Blacksburg households rent.** 64% of occupied housing units in the Town of Blacksburg are renter-occupied: 8,885 of 13,840 (±612). In Montgomery County the share is 45% (16,523 of 36,961), and in Virginia it is 33% (1,099,123 of 3,365,732). Source: U.S. Census Bureau, American Community Survey 2020–2024 5-year estimates, table B25003, via [Census Reporter](https://censusreporter.org/data/table/?table=B25003&geo_ids=16000US5107784,05000US51121,04000US51).
+- **Most Virginia Tech undergraduates live off campus.** 67% of degree-seeking undergraduates live off campus or commute, while 99% of first-year students live in college housing. Virginia Tech enrolled 31,536 undergraduates in fall 2025. Source: Virginia Tech [Common Data Set 2025–2026](https://aie.vt.edu/analytics-and-ai/common-data-set.html), sections B1 and F1.
+- **Many renters lose some or all of their deposit, and documentation helps.** These figures are national; no Virginia data was found. Among U.S. renters who recently moved from a previous rental, 40% got their entire deposit back, 18% got most of it, 9% got some, and 24% got none. 19% disagreed with the landlord about repairs, damage, or maintenance, and 16% about move-out costs or fees. Renters who documented the move-in condition with photos, video, and a checklist, and told the landlord, got their entire deposit back 50% of the time, against 41% for renters who did none of these. That comparison is observational. Source: [Zillow Consumer Housing Trends Report 2024: Renters](https://www.zillow.com/research/renters-housing-trends-report-2024-34387/) ([archived copy](https://web.archive.org/web/20260120104727/https://www.zillow.com/research/renters-housing-trends-report-2024-34387/)). The report combines six surveys of more than 36,000 renters, fielded March to July 2024.
+- **Virginia deposit disputes.** TODO: source. Virginia's courts do not report security deposit cases separately, and no public Virginia dataset was found.
 
 ### Status
 
