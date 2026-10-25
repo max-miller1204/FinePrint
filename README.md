@@ -59,12 +59,12 @@ Design rule: **Gemma interprets, code verifies.** Each call returns structured J
 | Triage | 26B | `minimal` | Finds high-stakes situations (eviction, lockout, retaliation). A keyword backstop in code also triggers, so either one can route the tenant to legal aid. | Planned (#37) |
 | Lease extraction | 26B | `high` | Pulls clauses and key terms (rent, deposit, dates, fees) from the redacted lease text | Planned (#14) |
 | Rule mapping | 26B | `high` | Maps clauses to VRLTA rules from the rule pack, such as the prohibited provisions in § 55.1-1208 and the late-fee cap in § 55.1-1204 | Planned (#14) |
-| Legal verifier | 31B | `high` | A second, independent opinion on each legal finding. If 31B is down, the finding is marked "unverified". | Planned (#15) |
+| Legal verifier | 31B | `high` | A second, independent opinion on each legal finding: it sees only the clause and the statute's exact words. If 31B is down, the finding is marked "unverified" and reads as "worth asking about". | Built (#15), no route yet |
 | Vision | 26B | `minimal` | Finds damage in evidence photos, proposes an approximate box for the tenant to adjust, and compares move-out photos with move-in photos | Planned |
 | Landlord report diff | 26B | not set | Compares the landlord's move-in report with the tenant's sealed evidence, then drafts the five-day objection | Planned |
 | Responsibility check | 26B, then 31B | `high` | "Likely the landlord's / likely yours" with reasons, citations, confidence, and what would change the answer. 31B checks the High-confidence verdicts. | Planned |
 | Ask | 26B | `minimal` | Answers questions grounded in the tenant's lease and the rule pack, with function calling | Planned |
-| Explanation, translation | 26B | `minimal` | Plain-language explanations. Translation is a separate, last step over text that is already verified. Legal quotes stay verbatim. | Planned |
+| Explanation, translation | 26B | `minimal` | Plain-language explanations, checked in code at grade 7 or lower (5 for Simpler). Translation is a separate, last step over text that is already verified. Legal quotes stay verbatim. | Built (#15), no route yet |
 
 What is built today is the client that every stage calls: `generate(stage, schema, docs, options)` in [`server/src/ai/gemma.ts`](server/src/ai/gemma.ts). Its stage table, retry policy, fallback chains, and measured model behavior are in [docs/ai-pipeline.md](docs/ai-pipeline.md). No route calls a model yet.
 
