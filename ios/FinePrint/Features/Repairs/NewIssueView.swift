@@ -44,6 +44,7 @@ struct NewIssueView: View {
                     SafetyGuidance(category: category)
                         .padding()
                 }
+                .repairsBottomClearance()
                 .background(Color(.systemBackground))
             default:
                 form
@@ -136,6 +137,15 @@ struct NewIssueView: View {
             checkSection
         }
         .scrollDismissesKeyboard(.interactively)
+        .repairsBottomClearance()
+        .toolbar {
+            // Return adds a line in the description, so the keyboard gets its own way out.
+            ToolbarItemGroup(placement: .keyboard) {
+                Spacer()
+                Button("Done") { isDescriptionFocused = false }
+                    .accessibilityIdentifier("issue.keyboardDone")
+            }
+        }
     }
 
     private var photosSection: some View {
@@ -205,6 +215,7 @@ struct NewIssueView: View {
             VStack(spacing: 12) {
                 Text("FinePrint checks Virginia law, your lease, and your move-in photos. It takes about a minute.")
                 LegalFooter()
+                    .frame(maxWidth: .infinity)
             }
         }
     }
@@ -233,6 +244,7 @@ struct NewIssueView: View {
             }
             .padding()
         }
+        .repairsBottomClearance()
         .background(Color(.systemBackground))
     }
 

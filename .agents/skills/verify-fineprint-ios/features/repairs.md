@@ -14,7 +14,8 @@ the web feature [responsibility](../../verify-fineprint-web/features/responsibil
   "Legal information, not legal advice." on every Repairs screen.
 - New Issue (`NewIssueView`, pushed, not a sheet):
   - Description (`issue.description`), 1 to 2,000 characters after
-    trimming.
+    trimming. Return adds a line; the keyboard's Done
+    (`issue.keyboardDone`) closes it.
   - Room (`issue.room`) and Item (`issue.item`), "Not sure" by default,
     chosen on a pushed list. Rooms are the walkthrough's first (so a repair
     names a room the way its move-in photos do), then the presets it lacks.
@@ -118,3 +119,12 @@ repairs-emergency|ios|fuzzer|Repairs > New Issue with emergencies phrased many w
   actions) are #32 and #55.
 - A check takes about a minute live; give `issue.verdict` a long timeout.
 - Typing a long description with `fill` is slow on the simulator but works.
+  Tap the keyboard's Done after it (by role and name: iOS 26 lists a
+  toolbar button twice): the keyboard covers Check otherwise.
+- The deadline accessory floats over the bottom of each screen, so every
+  Repairs screen has bottom clearance (`repairsBottomClearance`). Without
+  it a tap on Check lands on the accessory and opens Evidence.
+- Refs #99: New Issue and the saved issue are pushes, the room and item are
+  pushed lists, and the camera is a full-screen cover, as in the
+  walkthrough. If a hang shows up there, move them in place or to
+  `RootTabView` as the Lease tab does.

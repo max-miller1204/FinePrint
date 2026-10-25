@@ -26,8 +26,14 @@ const HEATER = 'The heater in my bedroom stopped working on January 3. It is 50 
 type Screen = {
   getByText(text: string, options?: { exact?: boolean }): Parameters<typeof expect>[0] & { tap(): Promise<void> };
   getByRole(role: string, options: { name: string }): { tap(): Promise<void> };
-  getByTestId(id: string): Parameters<typeof expect>[0] & { tap(): Promise<void>; fill(text: string): Promise<void>; isVisible(): Promise<boolean> };
+  getByTestId(id: string): Parameters<typeof expect>[0] & {
+    tap(): Promise<void>;
+    fill(text: string): Promise<void>;
+    isVisible(): Promise<boolean>;
+    boundingBox(): Promise<{ x: number; y: number; width: number; height: number } | null>;
+  };
   scrollUntilVisible(locator: unknown): Promise<void>;
+  swipe(options: { direction: 'up' | 'down' | 'left' | 'right' }): Promise<void>;
 };
 
 /** Waits for the tabs to settle, then opens Repairs. A tab tapped while the app is still launching is lost. */
@@ -42,6 +48,24 @@ async function openRepairs(screen: Screen) {
       // The tap was lost while the tabs were still settling: tap again.
     }
   }
+}
+
+/**
+ * Brings Check Who's Responsible clear of the floating tab bar and deadline accessory. In the tree is
+ * not enough: under the accessory a tap opens Evidence. The form has bottom clearance, so swiping to
+ * its end lifts the button above the accessory.
+ */
+async function scrollToCheck(screen: Screen) {
+  const check = screen.getByTestId('issue.check');
+  const accessory = screen.getByTestId('deadlineAccessory');
+  for (let attempt = 0; attempt < 4; attempt++) {
+    const button = await check.boundingBox();
+    const bar = (await accessory.isVisible()) ? await accessory.boundingBox() : null;
+    if (button && (!bar || button.y + button.height <= bar.y)) return;
+    // e2e directions are scroll directions: 'down' moves the content up, toward the form's end.
+    await screen.swipe({ direction: 'down' });
+  }
+  throw new Error('Check Who\'s Responsible stayed under the deadline accessory');
 }
 
 /** Takes the next fixture photo and keeps it, even if the quality gate asks for a retake. */
@@ -70,6 +94,8 @@ test('a broken heater in January gets a cited answer, with a photo of it', { pla
   await expect(screen.getByTestId('issue.addPhoto')).toBeDisabled();
 
   await screen.getByTestId('issue.description').fill(HEATER);
+  // iOS 26 lists a toolbar button twice, so it goes by role and name.
+  await screen.getByRole('button', { name: 'Done' }).tap();
   await screen.getByTestId('issue.room').tap();
   await screen.getByText('Bedroom', { exact: true }).tap();
   await screen.getByTestId('issue.item').tap();
@@ -83,7 +109,7 @@ test('a broken heater in January gets a cited answer, with a photo of it', { pla
   await expect(screen.getByTestId('issue.photo.0')).toContainText('Uploaded', { timeout: 60_000 });
   await expect.poll(() => logLines('evidence received'), { timeout: 15_000 }).toBe(received + 1);
 
-  await screen.scrollUntilVisible(screen.getByTestId('issue.check'));
+  await scrollToCheck(screen);
   await screen.getByTestId('issue.check').tap();
 
   if (!modelOn) {
@@ -118,6 +144,10 @@ test('a gas smell skips straight to safety steps and saves nothing', { platforms
 
   await screen.getByTestId('repairs.newIssue').tap();
   await screen.getByTestId('issue.description').fill('I smell gas in the kitchen.');
+  // Return adds a line in the description: the keyboard's Done closes it.
+  // iOS 26 lists a toolbar button twice, so it goes by role and name.
+  await screen.getByRole('button', { name: 'Done' }).tap();
+  await scrollToCheck(screen);
   await screen.getByTestId('issue.check').tap();
 
   // The keyword backstop catches it with or without a model.

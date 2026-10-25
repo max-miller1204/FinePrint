@@ -33,9 +33,11 @@ struct RepairsView: View {
                             .controlSize(.large)
                     }
                     LegalFooter()
+                        .frame(maxWidth: .infinity)
                 }
                 .frame(maxWidth: .infinity, minHeight: proxy.size.height)
             }
+            .repairsBottomClearance()
         }
         .background(Color(.systemBackground))
     }
@@ -58,9 +60,11 @@ struct RepairsView: View {
                 Text("Issues")
             } footer: {
                 LegalFooter()
+                    .frame(maxWidth: .infinity)
                     .padding(.top, 12)
             }
         }
+        .repairsBottomClearance()
     }
 
     @ViewBuilder
@@ -77,18 +81,6 @@ struct RepairsView: View {
                 .disabled(true)
                 .accessibilityIdentifier("repairs.newIssue")
         }
-    }
-}
-
-/// "Legal information, not legal advice." on every Repairs screen (spec §7.12).
-struct LegalFooter: View {
-    var body: some View {
-        Text("Legal information, not legal advice.")
-            .font(.footnote)
-            .foregroundStyle(.secondary)
-            .multilineTextAlignment(.center)
-            .frame(maxWidth: .infinity)
-            .padding([.horizontal, .bottom])
     }
 }
 
@@ -148,9 +140,18 @@ struct IssueDetailView: View {
             }
             .padding()
         }
+        .repairsBottomClearance()
         .background(Color(.systemBackground))
         .navigationTitle("Issue")
         .navigationBarTitleDisplayMode(.inline)
+    }
+}
+
+extension View {
+    /// Room below a Repairs screen's scrolling content, so its last rows and buttons scroll clear of
+    /// the floating tab bar and next-deadline accessory instead of sitting under them.
+    func repairsBottomClearance() -> some View {
+        leaseBottomClearance()
     }
 }
 
