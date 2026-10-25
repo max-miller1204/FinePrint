@@ -5,8 +5,10 @@ offline (spec §5.3, §6.3, §8.2, #23). "Use Photo" (or "Keep Photo") hands
 the capture to an on-device upload queue; the queue asks the server for a
 5-minute upload URL, PUTs the original straight to Cloud Storage, and asks
 the server to check its size and SHA-256. Each photo shows a seal status
-pill. Sealing itself (#24) is not built, so the furthest a photo gets today
-is "Uploaded, waiting to seal".
+pill. Sealing is the last step of the [move-in walkthrough](walkthrough.md)
+(#25): the server signs a manifest of the received photos (#24) and their
+pills read "Sealed". A photo taken in Developer Options is never sealed by
+the app, so its pill stops at "Uploaded, waiting to seal".
 
 ## Sub-features
 
@@ -31,7 +33,8 @@ is "Uploaded, waiting to seal".
   - "Didn't upload" (orange triangle): the server refused it for good, such
     as a hash mismatch (422 `HASH_MISMATCH`, or Storage refusing the bytes
     for the signed hash). Not retried.
-  - "Sealed" (green seal): reserved for #24; nothing sets it yet.
+  - "Sealed" (green seal): the photo is in a signed manifest, after Seal
+    Move-In Report in a walkthrough. Shown on the walkthrough's item rows.
 - Developer Options > Camera, after a photo is kept: "Seal Status" for the
   last photo (`developer.sealStatus`), "Waiting to Upload" count
   (`developer.uploadQueueCount`), and in DEBUG a "Simulate Offline" switch

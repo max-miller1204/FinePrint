@@ -48,6 +48,10 @@ struct APIClient {
         try await send("PATCH", path, body: try encode(body))
     }
 
+    func delete<Reply: Decodable>(_ path: String) async throws(APIError) -> Reply {
+        try await send("DELETE", path, body: nil)
+    }
+
     private func encode(_ body: some Encodable) throws(APIError) -> Data {
         do {
             return try JSONEncoder().encode(body)

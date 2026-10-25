@@ -36,6 +36,12 @@ KEYRING=fineprint
 KEY=report-signing
 RUNTIME_SA_ID=fineprint-api
 BUILD_SA_ID=fineprint-build
+# Cloud Scheduler signs in as this account to call POST /internal/purge, which
+# removes rentals past purgeAfter (spec §6.1, §9.2). It holds no roles.
+PURGE_SA_ID=fineprint-purge
+PURGE_JOB=fineprint-purge
+# Daily, 03:17 UTC.
+PURGE_SCHEDULE='17 3 * * *'
 SECRET=GEMINI_API_KEY
 API_KEY_DISPLAY_NAME=fineprint-client
 # Alerts at half the budget and at the whole budget: $10 and $20 (spec §15.4).
@@ -57,6 +63,7 @@ APIS=(
   iamcredentials.googleapis.com
   cloudbilling.googleapis.com
   billingbudgets.googleapis.com
+  cloudscheduler.googleapis.com
 )
 
 usage() {
@@ -145,6 +152,7 @@ preflight() {
   BUCKET="$PROJECT-fineprint-evidence"
   RUNTIME_SA="$RUNTIME_SA_ID@$PROJECT.iam.gserviceaccount.com"
   BUILD_SA="$BUILD_SA_ID@$PROJECT.iam.gserviceaccount.com"
+  PURGE_SA="$PURGE_SA_ID@$PROJECT.iam.gserviceaccount.com"
   KEY_NAME="projects/$PROJECT/locations/$REGION/keyRings/$KEYRING/cryptoKeys/$KEY"
   # Cloud Run requires the image name to match the service name.
   IMAGE="$REGION-docker.pkg.dev/$PROJECT/$REPO/$SERVICE"
@@ -248,6 +256,7 @@ ensure_service_accounts() {
   step "Service accounts"
   ensure_service_account "$RUNTIME_SA_ID" "$RUNTIME_SA" "FinePrint API (Cloud Run runtime)"
   ensure_service_account "$BUILD_SA_ID" "$BUILD_SA" "FinePrint build (Cloud Build)"
+  ensure_service_account "$PURGE_SA_ID" "$PURGE_SA" "FinePrint purge (Cloud Scheduler)"
 }
 
 ensure_artifact_registry() {
@@ -375,13 +384,35 @@ deploy_service() {
   step "Cloud Run (builds the server; takes a few minutes)"
   # The env var names are the server's contract with this script.
   local env="FIREBASE_PROJECT_ID=$PROJECT,FIREBASE_API_KEY=$FIREBASE_API_KEY"
-  env+=",GCS_EVIDENCE_BUCKET=$BUCKET,KMS_SIGNING_KEY=$KEY_NAME"
+  env+=",GCS_EVIDENCE_BUCKET=$BUCKET,KMS_SIGNING_KEY=$KEY_NAME,PURGE_CALLER_EMAIL=$PURGE_SA"
   # Plain gcloud, not gc, so the build log streams instead of arriving at the end.
   gcloud --project="$PROJECT" --quiet run deploy "$SERVICE" --source="$ROOT" --image="$IMAGE" --region="$REGION" \
     --service-account="$RUNTIME_SA" --build-service-account="projects/$PROJECT/serviceAccounts/$BUILD_SA" \
     --allow-unauthenticated --set-env-vars="$env" --set-secrets="GEMINI_API_KEY=$SECRET:latest" \
     --max-instances=3 --memory=512Mi
   SERVICE_URL=$(gc run services describe "$SERVICE" --region="$REGION" --format='value(status.url)')
+}
+
+# The daily purge: Cloud Scheduler calls POST /internal/purge with a Google ID
+# token for the purge account. The server accepts only that account, for this
+# service's URL (server/src/routes/internal.ts), so the open Cloud Run URL
+# exposes nothing.
+ensure_purge_job() {
+  step "Daily purge (Cloud Scheduler)"
+  # The URL is known only now, so the server learns the token audience with an
+  # update (the same URL the job names below). Unchanged settings add no revision.
+  gc run services update "$SERVICE" --region="$REGION" --update-env-vars="PURGE_AUDIENCE=$SERVICE_URL" >/dev/null
+  have "PURGE_AUDIENCE=$SERVICE_URL"
+  local args=(--location="$REGION" --schedule="$PURGE_SCHEDULE" --time-zone=Etc/UTC
+    --uri="$SERVICE_URL/internal/purge" --http-method=POST
+    --oidc-service-account-email="$PURGE_SA" --oidc-token-audience="$SERVICE_URL")
+  if gc scheduler jobs describe "$PURGE_JOB" --location="$REGION" >/dev/null 2>&1; then
+    gc scheduler jobs update http "$PURGE_JOB" "${args[@]}" >/dev/null
+    have "job $PURGE_JOB ($PURGE_SCHEDULE UTC)"
+  else
+    gc scheduler jobs create http "$PURGE_JOB" "${args[@]}" >/dev/null
+    made "job $PURGE_JOB ($PURGE_SCHEDULE UTC)"
+  fi
 }
 
 check_health() {
@@ -397,6 +428,11 @@ check_health() {
   die "$SERVICE_URL/health did not answer 200. Read the logs: gcloud run services logs read $SERVICE --project $PROJECT --region $REGION"
 }
 
+# The URL as a xcconfig value: "//" starts a comment there, so it becomes "/$()/".
+xcconfig_url() {
+  printf '%s:/$()/%s' "${1%%://*}" "${1#*://}"
+}
+
 summary() {
   cat <<EOF
 
@@ -408,6 +444,12 @@ FinePrint is deployed.
 
 iOS app: the server address is the only value to set. The app reads the
 Firebase project and key from the client config above.
+
+  Release builds:  copy ios/Config/Server.example.xcconfig to
+                   ios/Config/Server.xcconfig and put this line in it
+                   (a xcconfig reads "//" as a comment, so it is written "/\$()/"):
+
+    FINEPRINT_SERVER_URL[config=Release] = $(xcconfig_url "$SERVICE_URL")
 
   Developer menu:  Server URL = $SERVICE_URL
   Launch argument: -FinePrintServerURL $SERVICE_URL
@@ -429,6 +471,7 @@ deploy() {
   ensure_auth
   ensure_budget
   deploy_service
+  ensure_purge_job
   check_health
   summary
 }
@@ -439,7 +482,7 @@ destroy() {
   cat <<EOF
 
 This permanently deletes FinePrint from $PROJECT ($REGION): the Cloud Run
-service, every stored photo and report (the bucket and the Firestore
+service, the daily purge job, every stored photo and report (the bucket and the Firestore
 database), the Gemini key secret, the images, the service accounts, the API
 key, and the budget. KMS keys cannot be deleted, so every key version is
 scheduled for destruction and the empty key ring stays.
@@ -454,6 +497,12 @@ EOF
     gc run services delete "$SERVICE" --region="$REGION" >/dev/null
     gone "service $SERVICE"
   else skip "service $SERVICE"; fi
+
+  step "Daily purge (Cloud Scheduler)"
+  if gc scheduler jobs describe "$PURGE_JOB" --location="$REGION" >/dev/null 2>&1; then
+    gc scheduler jobs delete "$PURGE_JOB" --location="$REGION" >/dev/null
+    gone "job $PURGE_JOB"
+  else skip "job $PURGE_JOB"; fi
 
   step "Budget alerts"
   local account
@@ -536,7 +585,7 @@ EOF
   gc projects remove-iam-policy-binding "$PROJECT" --member="serviceAccount:$BUILD_SA" \
     --role=roles/run.builder --condition=None >/dev/null 2>&1 || true
   local email
-  for email in "$RUNTIME_SA" "$BUILD_SA"; do
+  for email in "$RUNTIME_SA" "$BUILD_SA" "$PURGE_SA"; do
     if gc iam service-accounts describe "$email" >/dev/null 2>&1; then
       gc iam service-accounts delete "$email" >/dev/null
       gone "$email and its project bindings"

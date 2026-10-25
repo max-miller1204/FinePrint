@@ -41,19 +41,26 @@ export interface StageConfig {
 // `high` only takes effect on a `json` stage. The lease stages (#14) are on
 // `json`: in `schema` mode 26B looped until the output cap on half of the
 // synthetic lease's S2 runs and garbled S5's quotes (docs/ai-pipeline.md, gap 7).
+// `verification` (#15) is on `json` from the clauses-golden eval (eval/runners/
+// verifier.ts, 2026-10-25): 29 of 30 violations agreed and none of 15
+// look-alikes, against 27 of 30 and 2 checks skipped in `schema` mode, at
+// about 52 s a call against 19 s. `explanation` and `translation` are on
+// `json` too: in `schema` mode 26B answered "text" for a whole explanation
+// and "explicación" for a translation on the synthetic lease (2026-10-25).
+// They stay at `minimal`, so `json` adds no thinking time.
 // `responsibility` (#31) too: in `schema` mode 26B looped to the cap on one
 // of three live cases and repeated a phrase inside a string on another.
 export const STAGES: Record<Stage, StageConfig> = {
   triage: { role: 'primary', thinking: 'minimal', output: 'schema' },
   extraction: { role: 'primary', thinking: 'high', output: 'json' },
   mapping: { role: 'primary', thinking: 'high', output: 'json' },
-  verification: { role: 'verifier', thinking: 'high', output: 'schema' },
+  verification: { role: 'verifier', thinking: 'high', output: 'json' },
   vision: { role: 'primary', thinking: 'minimal', output: 'schema' },
   responsibility: { role: 'primary', thinking: 'high', output: 'json' },
   responsibility_verify: { role: 'verifier', thinking: 'high', output: 'schema' },
   ask: { role: 'primary', thinking: 'minimal', output: 'schema' },
-  explanation: { role: 'primary', thinking: 'minimal', output: 'schema' },
-  translation: { role: 'primary', thinking: 'minimal', output: 'schema' },
+  explanation: { role: 'primary', thinking: 'minimal', output: 'json' },
+  translation: { role: 'primary', thinking: 'minimal', output: 'json' },
 };
 
 export type ProviderName = 'gemini' | 'openai_compatible';

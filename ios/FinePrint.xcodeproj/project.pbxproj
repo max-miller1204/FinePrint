@@ -17,6 +17,9 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		F1A000000000000000000054 /* Info-Additions.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "Info-Additions.plist"; sourceTree = "<group>"; };
+		F1A000000000000000000051 /* Shared.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Shared.xcconfig; sourceTree = "<group>"; };
+		F1A000000000000000000052 /* Server.example.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Server.example.xcconfig; sourceTree = "<group>"; };
 		F1A000000000000000000021 /* FinePrint.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = FinePrint.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		F1A000000000000000000022 /* FinePrintTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = FinePrintTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
@@ -70,10 +73,21 @@
 		F1A000000000000000000011 = {
 			isa = PBXGroup;
 			children = (
+				F1A000000000000000000053 /* Config */,
 				F1A000000000000000000031 /* FinePrint */,
 				F1A000000000000000000032 /* FinePrintTests */,
 				F1A000000000000000000012 /* Products */,
 			);
+			sourceTree = "<group>";
+		};
+		F1A000000000000000000053 /* Config */ = {
+			isa = PBXGroup;
+			children = (
+				F1A000000000000000000051 /* Shared.xcconfig */,
+				F1A000000000000000000052 /* Server.example.xcconfig */,
+				F1A000000000000000000054 /* Info-Additions.plist */,
+			);
+			path = Config;
 			sourceTree = "<group>";
 		};
 		F1A000000000000000000012 /* Products */ = {
@@ -218,6 +232,7 @@
 /* Begin XCBuildConfiguration section */
 		F1A000000000000000000003 /* Debug */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = F1A000000000000000000051 /* Shared.xcconfig */;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
@@ -283,6 +298,7 @@
 		};
 		F1A000000000000000000004 /* Release */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = F1A000000000000000000051 /* Shared.xcconfig */;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
@@ -347,6 +363,7 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = FinePrint;
+				INFOPLIST_FILE = Config/Info-Additions.plist;
 				INFOPLIST_KEY_NSCameraUsageDescription = "FinePrint uses the camera to photograph your rental's condition as evidence.";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
@@ -379,6 +396,7 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = FinePrint;
+				INFOPLIST_FILE = Config/Info-Additions.plist;
 				INFOPLIST_KEY_NSCameraUsageDescription = "FinePrint uses the camera to photograph your rental's condition as evidence.";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;

@@ -3,9 +3,12 @@ import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { createGemma, estimateInputTokens, JSON_RULE } from '../src/ai/gemma.js';
 import { modelConfigFromEnv } from '../src/ai/models.js';
-import { runDeterministicChecks } from '../src/ai/pipeline/checks.js';
+import { runAbsenceChecks, runDeterministicChecks } from '../src/ai/pipeline/checks.js';
+import { explainFindings, NOT_COVERED_ACTION, TEMPLATE_EXPLANATION, TEMPLATE_TITLE, usableExplanation, usableTitle } from '../src/ai/pipeline/explain.js';
+import { draftFindings, rankFindings, type Draft } from '../src/ai/pipeline/findings.js';
 import { parseValue, readDate, readNumber, toAmount } from '../src/ai/pipeline/key-terms.js';
 import {
+  ANALYSIS_CALLS,
   analyzeLease,
   chunkText,
   detectInjection,
@@ -18,18 +21,22 @@ import {
   type LeaseEvent,
 } from '../src/ai/pipeline/lease.js';
 import { containsText, locateQuote } from '../src/ai/pipeline/quotes.js';
+import { fleschKincaidGrade, GRADE_TARGET, meetsGrade, sentenceCount, syllables } from '../src/ai/pipeline/readability.js';
+import { SEVERITY_LABEL, severityFor, type SeverityInput } from '../src/ai/pipeline/severity.js';
+import { isEnglish, languageName, quotedSegments, translateFindings } from '../src/ai/pipeline/translate.js';
 import { resolveClauses, resolveKeyTerms } from '../src/ai/pipeline/resolve.js';
-import type { Clause, Drop, KeyTerm } from '../src/ai/pipeline/types.js';
+import type { Clause, Drop, Finding, KeyTerm } from '../src/ai/pipeline/types.js';
+import { runVerifier, statuteText, type StageCall } from '../src/ai/pipeline/verifier.js';
 import { verifyMappings, type VerifyContext } from '../src/ai/pipeline/verify.js';
-import type { ModelProvider, ProviderRequest } from '../src/ai/provider.js';
+import { ProviderError, type ModelProvider, type ProviderRequest } from '../src/ai/provider.js';
 import { SEGMENT_INSTRUCTION } from '../src/ai/prompts/lease.js';
 import { TRIAGE_INSTRUCTION } from '../src/ai/prompts/triage.js';
-import type { Mapping, Segmentation } from '../src/ai/schemas/lease.js';
+import type { Mapping, Segmentation, VerifierAssessment } from '../src/ai/schemas/lease.js';
 import { createTriage, type TriageProvider } from '../src/ai/triage/index.js';
 import { keywordBackstop } from '../src/ai/triage/keywords.js';
 import { JURISDICTIONS_ROOT, loadRulePack } from '../src/rules/loader.js';
 import { resolveRules } from '../src/rules/resolve.js';
-import type { Rule, RulePack } from '../src/rules/types.js';
+import type { Rule, RulePack, Severity } from '../src/rules/types.js';
 import type { Clock } from '../src/ratelimit.js';
 import { memoryUsageSink } from '../src/usage.js';
 
@@ -105,7 +112,35 @@ const MAPPINGS: Record<string, Omit<Mapping, 'clauseId'>[]> = {
 interface Script {
   triage?: { category: string; confidence: number };
   segment?: (doc: string) => Segmentation;
+  // S7's own reading of one check; null leaves the check out of the answer.
+  verify?: (check: { clauseId: string; ruleId: string }) => VerifierAssessment | null;
+  // S8's words for one finding; null leaves it out.
+  explain?: (findingId: string, retry: boolean) => { title: string; explanation: string } | null;
+  // S9's text for one document; null leaves it out.
+  translate?: (text: string) => string | null;
+  // A model that answers this stage with HTTP 503 every time.
+  down?: (stage: ScriptedStage, model: string) => boolean;
 }
+
+type ScriptedStage = 'triage' | 'segment' | 'mapping' | 'verifier' | 'explanation' | 'translation';
+
+function stageOf(request: ProviderRequest): ScriptedStage {
+  const s = request.systemInstruction;
+  if (s.includes(TRIAGE_INSTRUCTION)) return 'triage';
+  if (s.includes(SEGMENT_INSTRUCTION)) return 'segment';
+  if (s.includes('You check lease clauses against the exact words')) return 'verifier';
+  if (s.includes('You explain findings')) return 'explanation';
+  if (s.includes('You translate short texts')) return 'translation';
+  return 'mapping';
+}
+
+const taskText = (request: ProviderRequest) => {
+  const last = request.parts.at(-1);
+  return last && 'text' in last ? last.text : '';
+};
+
+// Plain enough for grade 5.
+const PLAIN = 'This part of the lease may not be fair to you. You can ask about it.';
 
 function documents(request: ProviderRequest): { id: string; text: string }[] {
   const texts = request.parts.map((p) => ('text' in p ? p.text : ''));
@@ -125,11 +160,37 @@ function scriptedProvider(script: Script = {}): ModelProvider & { requests: Prov
     async generate(request) {
       requests.push(request);
       const docs = documents(request);
+      const stage = stageOf(request);
+      if (script.down?.(stage, request.model)) throw new ProviderError(503);
       let answer: unknown;
-      if (request.systemInstruction.includes(TRIAGE_INSTRUCTION)) {
+      if (stage === 'triage') {
         answer = script.triage ?? { category: 'none', confidence: 0.9 };
-      } else if (request.systemInstruction.includes(SEGMENT_INSTRUCTION)) {
+      } else if (stage === 'segment') {
         answer = (script.segment ?? segmentation)(docs[0]!.text);
+      } else if (stage === 'verifier') {
+        const checks = [...taskText(request).matchAll(/clause (\S+) against (\S+)/g)].map((m) => ({ clauseId: m[1]!, ruleId: m[2]! }));
+        answer = {
+          checks: checks.flatMap((c) => {
+            const assessment = script.verify ? script.verify(c) : 'violates';
+            return assessment ? [{ ...c, assessment, reasoning: 'Verifier reasoning.' }] : [];
+          }),
+        };
+      } else if (stage === 'explanation') {
+        const retry = request.systemInstruction.includes('too hard to read');
+        const ids = /Explain findings (.+?), once each/.exec(taskText(request))![1]!.split(', ');
+        answer = {
+          explanations: ids.flatMap((findingId) => {
+            const e = script.explain ? script.explain(findingId, retry) : { title: `About ${findingId}`, explanation: PLAIN };
+            return e ? [{ findingId, ...e }] : [];
+          }),
+        };
+      } else if (stage === 'translation') {
+        answer = {
+          translations: docs.flatMap((d) => {
+            const text = script.translate ? script.translate(d.text) : `ES ${d.text}`;
+            return text === null ? [] : [{ id: d.id, text }];
+          }),
+        };
       } else {
         answer = {
           mappings: docs.flatMap((doc) =>
@@ -490,19 +551,47 @@ describe('analyzeLease', () => {
       'S6 superseded_by_check VA_LATE_FEE_CAP',
     ]);
 
-    // Triage, one S2 call, and four mapping batches of about 10 clauses.
-    expect(analysis.usage.calls).toBe(6);
-    expect(provider.requests).toHaveLength(6);
-    expect(analysis.usage).toMatchObject({ models: ['gemma-4-26b-a4b-it'], fallback: false });
-    expect(events.filter((e) => e.type === 'stage').map((e) => e.type === 'stage' && e.stage)).toEqual(['S1', 'S2', 'S3', 'S4', 'S5', 'S6']);
+    // Triage, one S2 call, four mapping batches of about 10 clauses, one
+    // verifier call, and one explanation call. English: no translation.
+    expect(analysis.usage.calls).toBe(8);
+    expect(provider.requests.map(stageOf)).toEqual(['triage', 'segment', 'mapping', 'mapping', 'mapping', 'mapping', 'verifier', 'explanation']);
+    expect(analysis.usage).toMatchObject({ models: ['gemma-4-26b-a4b-it', 'gemma-4-31b-it'], fallback: false });
+    expect(events.filter((e) => e.type === 'stage').map((e) => e.type === 'stage' && e.stage)).toEqual(['S1', 'S2', 'S3', 'S4', 'S5', 'S6', 'S7', 'S8']);
+
+    // The severity table on the synthetic lease: the three S4 violations and
+    // the four violations 31B agreed with are unenforceable; the HVAC clause
+    // S5 found unclear is worth asking about.
+    const heading = (f: Finding) => analysis.clauses.find((c) => c.id === f.clauseId)?.heading;
+    expect(analysis.findings.map((f) => [f.id, f.severity, f.basis, f.ruleId, heading(f)])).toEqual([
+      ['f1', 'unenforceable', 'check', 'VA_LATE_FEE_CAP', 'LATE CHARGES'],
+      ['f2', 'unenforceable', 'check', 'VA_DEPOSIT_CAP', 'SECURITY DEPOSIT'],
+      ['f3', 'unenforceable', 'check', 'VA_ROUTINE_MAINTENANCE_NOTICE_72H', 'ENTRY BY LANDLORD'],
+      ['f4', 'unenforceable', 'mapping', 'VA_NO_EXCULPATION_INDEMNITY', 'LIABILITY'],
+      ['f5', 'unenforceable', 'mapping', 'VA_NO_RIGHTS_WAIVER', 'WAIVER OF RIGHTS'],
+      ['f6', 'unenforceable', 'mapping', 'VA_NO_CONFESSION_OF_JUDGMENT', 'CONFESSION OF JUDGMENT'],
+      ['f7', 'unenforceable', 'mapping', 'VA_NO_LANDLORD_ATTORNEY_FEES', 'ATTORNEY FEES'],
+      ['f8', 'ask', 'mapping', 'VA_LANDLORD_MAINTAIN_FIT', 'MAINTENANCE AND REPAIRS'],
+    ]);
+    for (const f of analysis.findings) {
+      expect(LEASE.slice(f.quoteSpan!.start, f.quoteSpan!.end)).toBe(f.leaseQuote);
+      expect(f.statuteQuote).toBe(PACK.byId.get(f.ruleId!)!.versions[0]!.statuteQuote);
+      expect(f.actionEn).toBe(PACK.byId.get(f.ruleId!)!.action);
+      expect(meetsGrade(f.explanationEn, 'standard')).toBe(true);
+      expect(f.translations).toEqual({});
+    }
+    expect(analysis.findings[0]).toMatchObject({ check: { limit: 150, actual: 225, unit: 'usd' }, verifier: null, primaryModel: null });
+    expect(analysis.findings[3]!.verifier).toEqual({ verdict: 'agree', assessment: 'violates', reasoning: 'Verifier reasoning.', model: 'gemma-4-31b-it', fallback: false });
+    // S7 checks only S5's violations; the unclear one needs no verifier.
+    expect(analysis.findings[7]!.verifier).toBeNull();
+    expect(events.filter((e) => e.type === 'finding').map((e) => e.type === 'finding' && e.finding.id)).toEqual(analysis.findings.map((f) => f.id));
     expect(events.find((e) => e.type === 'keyterms')).toMatchObject({ keyTerms: expect.arrayContaining([expect.objectContaining({ name: 'lateFee' })]) });
-    expect(analysis.injection).toEqual({ detected: false, model: false, pattern: false });
+    expect(analysis.injection).toEqual({ detected: false, model: false, pattern: false, finding: null });
   });
 
   it('sends lease text only inside document tags and every rule summary in the mapping prompt', async () => {
     const { provider, gemma } = setup();
     await analyzeLease({ leaseId: 'lease1', text: LEASE, locale: 'en' }, { gemma, pack: PACK, log: quiet });
-    const mapping = provider.requests.filter((r) => !r.systemInstruction.includes(SEGMENT_INSTRUCTION));
+    const mapping = provider.requests.filter((r) => stageOf(r) === 'mapping');
     for (const request of provider.requests) expect(request.systemInstruction).not.toContain('Blue Ridge');
     for (const request of mapping) {
       for (const rule of PACK.rules) expect(request.systemInstruction).toContain(rule.summaryForModel);
@@ -514,7 +603,7 @@ describe('analyzeLease', () => {
     }
     expect(mapping.flatMap(documents).map((d) => d.id)).toEqual(['c0', ...Array.from({ length: 30 }, (_, i) => `c${i + 1}`)]);
     // Both lease stages think (json mode) and cap their answers.
-    expect(provider.requests.map((r) => [r.thinking, r.maxOutputTokens])).toEqual([
+    expect(provider.requests.filter((r) => ['segment', 'mapping'].includes(stageOf(r))).map((r) => [r.thinking, r.maxOutputTokens])).toEqual([
       ['high', segmentOutputCap(LEASE.length)],
       ...mapping.map((r) => ['high', mappingOutputCap(documents(r).length)]),
     ]);
@@ -523,7 +612,7 @@ describe('analyzeLease', () => {
   it('stops at S1 when triage escalates, before any lease call', async () => {
     const { provider, gemma, triage } = setup({ triage: { category: 'eviction_or_court', confidence: 0.95 } });
     const analysis = await analyzeLease({ leaseId: 'lease1', text: LEASE, locale: 'en' }, { gemma, pack: PACK, triage, log: quiet });
-    expect(analysis).toMatchObject({ status: 'escalated', triage: { escalate: true, category: 'eviction_or_court' }, usage: { calls: 1 } });
+    expect(analysis).toMatchObject({ status: 'escalated', by: 'triage', triage: { escalate: true, category: 'eviction_or_court' }, usage: { calls: 1 } });
     expect(provider.requests).toHaveLength(1);
   });
 
@@ -561,7 +650,7 @@ describe('analyzeLease', () => {
     expect(assumed).toMatchObject({ term: { start: '2026-10-24', end: null, source: 'assumed' } });
   });
 
-  it('analyzes a 12-page lease in 8 calls or fewer, each request under the token cap', async () => {
+  it('analyzes a 12-page lease in 8 calls or fewer to S5 and 12 in all, each request under the token cap', async () => {
     // About 12 pages: the fixture's 30 clauses and three addenda of 30 more.
     const addenda = [1, 2, 3]
       .map((n) =>
@@ -578,11 +667,342 @@ describe('analyzeLease', () => {
     expect(analysis.clauses).toHaveLength(121);
     expect(analysis.usage.calls).toBeLessThanOrEqual(MAX_CALLS);
     expect(provider.requests.length).toBeLessThanOrEqual(MAX_CALLS);
+    expect(provider.requests.filter((r) => ['triage', 'segment', 'mapping'].includes(stageOf(r))).length).toBeLessThanOrEqual(ANALYSIS_CALLS);
     for (const r of provider.requests) expect(estimateInputTokens(r.systemInstruction, r.parts)).toBeLessThanOrEqual(MAX_REQUEST_TOKENS);
     expect(analysis.checks.filter((c) => c.outcome === 'violates')).toHaveLength(3);
     // Every clause went to exactly one mapping call.
-    const mapped = provider.requests.filter((r) => r.systemInstruction.includes('Virginia landlord-tenant rules')).flatMap(documents);
+    const mapped = provider.requests.filter((r) => stageOf(r) === 'mapping').flatMap(documents);
     expect(mapped.map((d) => d.id)).toEqual(analysis.clauses.map((c) => c.id));
+  });
+});
+
+describe('severity decision table', () => {
+  type Row = [SeverityInput['basis'], SeverityInput['assessment'], SeverityInput['verdict'], Severity];
+  const table: Row[] = [
+    ['check', 'violates', null, 'unenforceable'],
+    ['mapping', 'violates', 'agree', 'unenforceable'],
+    ['mapping', 'violates', 'disagree', 'ask'],
+    ['mapping', 'violates', 'unclear', 'ask'],
+    ['mapping', 'violates', 'unverified', 'ask'],
+    ['mapping', 'unclear', null, 'ask'],
+    ['mapping', 'unclear', 'agree', 'ask'],
+    ['mapping', 'complies', null, 'info'],
+    ['mapping', 'not_covered', null, 'info'],
+  ];
+  it.each(table)('%s %s with verifier %s is %s', (basis, assessment, verdict, expected) => {
+    expect(severityFor({ basis, assessment, verdict, cap: 'unenforceable' })).toBe(expected);
+  });
+
+  it("caps the result at the rule's severityIfViolated, and code findings are the deterministic row", () => {
+    expect(severityFor({ basis: 'mapping', assessment: 'violates', verdict: 'agree', cap: 'ask' })).toBe('ask');
+    expect(severityFor({ basis: 'absence', assessment: 'violates', verdict: null, cap: 'ask' })).toBe('ask');
+    expect(severityFor({ basis: 'absence', assessment: 'violates', verdict: null, cap: 'unenforceable' })).toBe('unenforceable');
+    expect(severityFor({ basis: 'mapping', assessment: 'unclear', verdict: null, cap: 'info' })).toBe('info');
+    expect(severityFor({ basis: 'mapping', assessment: 'not_covered', verdict: null, cap: null })).toBe('info');
+    expect(SEVERITY_LABEL).toEqual({ unenforceable: 'Likely unenforceable', ask: 'Worth asking about', info: 'Good to know' });
+  });
+});
+
+describe('S7 verifier', () => {
+  it("shows 31B only the clauses S5 found in violation and their statutes' exact words, never S5's answer", async () => {
+    const { provider, gemma } = setup();
+    const analysis = await analyzeLease({ leaseId: 'lease1', text: LEASE, locale: 'en' }, { gemma, pack: PACK, log: quiet });
+    if (analysis.status !== 'analyzed') throw new Error(analysis.status);
+    const [request, ...more] = provider.requests.filter((r) => stageOf(r) === 'verifier');
+    expect(more).toEqual([]);
+    expect(request!.model).toBe('gemma-4-31b-it');
+    const violates = analysis.mappings.filter((m) => m.assessment === 'violates');
+    expect(documents(request!)).toEqual(violates.map((m) => ({ id: m.clauseId, text: analysis.clauses.find((c) => c.id === m.clauseId)!.verbatim })));
+    for (const m of violates) {
+      const rule = PACK.byId.get(m.rules[0]!.ruleId)!;
+      expect(request!.systemInstruction).toContain(rule.versions[0]!.statuteQuote);
+      expect(request!.systemInstruction).toContain(rule.citation);
+      expect(request!.systemInstruction).not.toContain(rule.summaryForModel);
+      expect(request!.systemInstruction).not.toContain(rule.tenantExplanation);
+      expect(request!.systemInstruction + taskText(request!)).not.toContain(m.reasoning);
+    }
+    expect(taskText(request!)).not.toMatch(/violat/);
+    // § 55.1-1204 is not in this call: its rules were decided by S4 or are unclear.
+    expect(request!.systemInstruction).not.toContain('VA_LATE_FEE_CAP');
+  });
+
+  it('turns a verifier that disagrees or is unsure into "worth asking about"', async () => {
+    const verify = ({ ruleId }: { ruleId: string }): VerifierAssessment =>
+      ruleId === 'VA_NO_RIGHTS_WAIVER' ? 'complies' : ruleId === 'VA_NO_CONFESSION_OF_JUDGMENT' ? 'unclear' : 'violates';
+    const { gemma } = setup({ verify });
+    const analysis = await analyzeLease({ leaseId: 'lease1', text: LEASE, locale: 'en' }, { gemma, pack: PACK, log: quiet });
+    if (analysis.status !== 'analyzed') throw new Error(analysis.status);
+    const byRule = (id: string) => analysis.findings.find((f) => f.ruleId === id)!;
+    expect(byRule('VA_NO_RIGHTS_WAIVER')).toMatchObject({ severity: 'ask', primaryAssessment: 'violates', verifier: { verdict: 'disagree', assessment: 'complies' } });
+    expect(byRule('VA_NO_CONFESSION_OF_JUDGMENT')).toMatchObject({ severity: 'ask', verifier: { verdict: 'unclear', assessment: 'unclear' } });
+    expect(byRule('VA_NO_EXCULPATION_INDEMNITY')).toMatchObject({ severity: 'unenforceable', verifier: { verdict: 'agree' } });
+    // Sorted by severity: every unenforceable finding comes first.
+    expect(analysis.findings.map((f) => f.severity)).toEqual([...analysis.findings.map((f) => f.severity)].sort((a, b) => ['unenforceable', 'ask', 'info'].indexOf(a) - ['unenforceable', 'ask', 'info'].indexOf(b)));
+  });
+
+  it('marks findings unverified, never unenforceable, and still finishes when no verifier model answers', async () => {
+    const { gemma } = setup({ down: (stage) => stage === 'verifier' });
+    const analysis = await analyzeLease({ leaseId: 'lease1', text: LEASE, locale: 'en' }, { gemma, pack: PACK, log: quiet });
+    if (analysis.status !== 'analyzed') throw new Error(analysis.status);
+    const checked = analysis.findings.filter((f) => f.verifier);
+    expect(checked).toHaveLength(4);
+    for (const f of checked) expect(f).toMatchObject({ severity: 'ask', verifier: { verdict: 'unverified', assessment: null, model: null } });
+    // S4's violations need no verifier.
+    expect(analysis.findings.filter((f) => f.severity === 'unenforceable').map((f) => f.basis)).toEqual(['check', 'check', 'check']);
+  });
+
+  it('labels an answer from a fallback model, and leaves a check it skipped unverified', async () => {
+    const { gemma } = setup({
+      down: (stage, model) => stage === 'verifier' && model === 'gemma-4-31b-it',
+      verify: ({ ruleId }) => (ruleId === 'VA_NO_LANDLORD_ATTORNEY_FEES' ? null : 'violates'),
+    });
+    const analysis = await analyzeLease({ leaseId: 'lease1', text: LEASE, locale: 'en' }, { gemma, pack: PACK, log: quiet });
+    if (analysis.status !== 'analyzed') throw new Error(analysis.status);
+    expect(analysis.findings.find((f) => f.ruleId === 'VA_NO_RIGHTS_WAIVER')!.verifier).toMatchObject({ verdict: 'agree', model: 'gemma-4-26b-a4b-it', fallback: true });
+    expect(analysis.findings.find((f) => f.ruleId === 'VA_NO_LANDLORD_ATTORNEY_FEES')).toMatchObject({ severity: 'ask', verifier: { verdict: 'unverified' } });
+    expect(analysis.drops).toContainEqual({ stage: 'S7', reason: 'verifier_no_answer', ref: 'c21:VA_NO_LANDLORD_ATTORNEY_FEES' });
+  });
+
+  it('sends one statute text when a version change leaves the quote alone, and each version when it does not', () => {
+    const rule = PACK.byId.get('VA_LATE_FEE_CAP')!;
+    const [resolved] = resolveRules([rule], TERM);
+    const draft = { ruleId: rule.id, citation: rule.citation, versions: resolved!.versions } as Draft;
+    expect(statuteText(draft).versions).toEqual([{ quote: rule.versions[0]!.statuteQuote, from: '2026-11-01', until: '2027-06-30' }]);
+    const changed = { ...draft, versions: [resolved!.versions[0]!, { ...resolved!.versions[1]!, version: { ...resolved!.versions[1]!.version, statuteQuote: 'New words.' } }] };
+    expect(statuteText(changed).versions.map((v) => [v.quote.slice(0, 9), v.from, v.until])).toEqual([
+      ['No such l', '2026-11-01', '2027-06-30'],
+      ['New words', '2027-07-01', '2027-10-31'],
+    ]);
+  });
+});
+
+describe('S8 explanations', () => {
+  const HARD = 'Notwithstanding any contrary provision, the aforementioned contractual stipulation purportedly indemnifies the lessor against consequential liabilities arising from negligence.';
+
+  it('grades text in code', () => {
+    expect(['table', 'rules', 'boxes', 'charges', 'wanted', 'signed', 'landlord', 'deposit'].map(syllables)).toEqual([2, 1, 2, 2, 2, 1, 2, 3]);
+    expect(sentenceCount('The fee is $1,500.00. Ask about it! Why?')).toBe(3);
+    expect(fleschKincaidGrade('The cat sat on the mat.')).toBe(-1.4);
+    expect(fleschKincaidGrade(HARD)).toBeGreaterThan(20);
+    expect(GRADE_TARGET).toEqual({ standard: 7, simpler: 5 });
+    expect(meetsGrade('', 'standard')).toBe(false);
+    // Every fallback reads at grade 5, so a finding always has a passing explanation.
+    for (const text of Object.values(TEMPLATE_EXPLANATION)) expect(meetsGrade(text, 'simpler')).toBe(true);
+  });
+
+  it('regenerates a hard explanation once, then falls back to the rule text or a fixed one, so every explanation passes', async () => {
+    const explain = (id: string, retry: boolean) => {
+      if (id === 'f1') return { title: 'Late fee is too high', explanation: retry ? PLAIN : HARD };
+      if (id === 'f2' || id === 'f8') return { title: 'A hard one', explanation: HARD };
+      if (id === 'f3') return null;
+      return { title: `About ${id}`, explanation: PLAIN };
+    };
+    const { provider, gemma } = setup({ explain });
+    const analysis = await analyzeLease({ leaseId: 'lease1', text: LEASE, locale: 'en' }, { gemma, pack: PACK, log: quiet });
+    if (analysis.status !== 'analyzed') throw new Error(analysis.status);
+    const explanation = provider.requests.filter((r) => stageOf(r) === 'explanation');
+    expect(explanation.map((r) => /Explain findings (.+?), once/.exec(taskText(r))![1])).toEqual(['f1, f2, f3, f4, f5, f6, f7, f8', 'f1, f2, f3, f8']);
+    expect(explanation[1]!.systemInstruction).toContain('too hard to read');
+    const by = Object.fromEntries(analysis.findings.map((f) => [f.id, f]));
+    expect(by.f1).toMatchObject({ explanationEn: PLAIN, readability: { source: 'model_retry', target: 7 } });
+    // VA_DEPOSIT_CAP's own explanation reads at grade 6.2; the HVAC rule's at 9.1, so it gets the fixed text.
+    expect(by.f2).toMatchObject({ titleEn: 'A hard one', explanationEn: PACK.byId.get('VA_DEPOSIT_CAP')!.tenantExplanation, readability: { source: 'rule' } });
+    expect(by.f8).toMatchObject({ explanationEn: TEMPLATE_EXPLANATION.ask, readability: { source: 'template' } });
+    expect(by.f3).toMatchObject({ titleEn: TEMPLATE_TITLE.unenforceable, explanationEn: TEMPLATE_EXPLANATION.unenforceable });
+    expect(by.f4).toMatchObject({ explanationEn: PLAIN, readability: { source: 'model' } });
+    for (const f of analysis.findings) {
+      expect(meetsGrade(f.explanationEn, 'standard')).toBe(true);
+      expect(f.readability.grade).toBe(fleschKincaidGrade(f.explanationEn));
+    }
+    expect(analysis.drops.filter((d) => d.stage === 'S8')).toEqual([
+      { stage: 'S8', reason: 'explanation_over_grade', ref: 'f2' },
+      { stage: 'S8', reason: 'explanation_missing', ref: 'f3' },
+      { stage: 'S8', reason: 'explanation_over_grade', ref: 'f8' },
+    ]);
+  });
+
+  it('rejects junk that passes the grade check: one-word answers and empty titles', async () => {
+    expect(usableExplanation('text', 'standard')).toBe(false);
+    expect(usableExplanation(PLAIN, 'standard')).toBe(true);
+    expect([usableTitle('text'), usableTitle('Late fee is too high'), usableTitle('word '.repeat(13))]).toEqual([false, true, false]);
+    const { gemma } = setup({ explain: (id, retry) => (id === 'f1' && !retry ? { title: 'text', explanation: 'text' } : { title: `About ${id}`, explanation: PLAIN }) });
+    const analysis = await analyzeLease({ leaseId: 'lease1', text: LEASE, locale: 'en' }, { gemma, pack: PACK, log: quiet });
+    if (analysis.status !== 'analyzed') throw new Error(analysis.status);
+    expect(analysis.findings[0]).toMatchObject({ titleEn: 'About f1', explanationEn: PLAIN, readability: { source: 'model_retry' } });
+  });
+
+  it('holds Simpler to grade 5', async () => {
+    const middling = 'Your landlord is required to keep the heating working. This section makes you responsible for those repairs.';
+    const grade = fleschKincaidGrade(middling);
+    expect(grade).toBeGreaterThan(5);
+    expect(grade).toBeLessThanOrEqual(7);
+    const { provider, gemma } = setup({ explain: () => ({ title: 'Repairs', explanation: middling }) });
+    const analysis = await analyzeLease({ leaseId: 'lease1', text: LEASE, locale: 'en', readingLevel: 'simpler' }, { gemma, pack: PACK, log: quiet });
+    if (analysis.status !== 'analyzed') throw new Error(analysis.status);
+    expect(provider.requests.find((r) => stageOf(r) === 'explanation')!.systemInstruction).toContain('a student in grade 5');
+    for (const f of analysis.findings) {
+      expect(f.readability.target).toBe(5);
+      expect(meetsGrade(f.explanationEn, 'simpler')).toBe(true);
+      expect(f.explanationEn).not.toBe(middling);
+    }
+  });
+
+  it("sends lease quotes only as documents, with code's numbers and the rule's own text as facts", async () => {
+    const { provider, gemma } = setup();
+    const analysis = await analyzeLease({ leaseId: 'lease1', text: LEASE, locale: 'en' }, { gemma, pack: PACK, log: quiet });
+    if (analysis.status !== 'analyzed') throw new Error(analysis.status);
+    const request = provider.requests.find((r) => stageOf(r) === 'explanation')!;
+    expect(documents(request)).toEqual(analysis.findings.map((f) => ({ id: f.id, text: f.leaseQuote })));
+    for (const f of analysis.findings) expect(request.systemInstruction).not.toContain(f.leaseQuote);
+    expect(request.systemInstruction).toContain("- f1 (Likely unenforceable): Virginia limits late fees to 10% of your rent. A higher fee can't be enforced. The lease's amount is $225. The most allowed is $150.");
+    expect(request.systemInstruction).toContain("The lease gives 24 hours' notice. At least 72 hours are required.");
+  });
+
+  it('falls back for every finding when no model answers, and still finishes', async () => {
+    const { gemma } = setup({ down: (stage) => stage === 'explanation' });
+    const analysis = await analyzeLease({ leaseId: 'lease1', text: LEASE, locale: 'en' }, { gemma, pack: PACK, log: quiet });
+    if (analysis.status !== 'analyzed') throw new Error(analysis.status);
+    expect(analysis.findings).toHaveLength(8);
+    for (const f of analysis.findings) {
+      expect(['rule', 'template']).toContain(f.readability.source);
+      expect(meetsGrade(f.explanationEn, 'standard')).toBe(true);
+    }
+  });
+});
+
+describe('S9 translation', () => {
+  it('runs only when the locale is not English', async () => {
+    expect([isEnglish('en'), isEnglish('en-US'), isEnglish('EN_gb'), isEnglish('es'), isEnglish('eng')]).toEqual([true, true, true, false, false]);
+    expect([languageName('es'), languageName('vi'), languageName('not a tag')]).toEqual(['Spanish', 'Vietnamese', 'not a tag']);
+    const { provider, gemma } = setup();
+    await analyzeLease({ leaseId: 'lease1', text: LEASE, locale: 'en-US' }, { gemma, pack: PACK, log: quiet });
+    expect(provider.requests.filter((r) => stageOf(r) === 'translation')).toEqual([]);
+  });
+
+  it('translates title, explanation, and action, and keeps every quote byte-identical', async () => {
+    const english = setup();
+    const en = await analyzeLease({ leaseId: 'lease1', text: LEASE, locale: 'en' }, { gemma: english.gemma, pack: PACK, log: quiet });
+    const { provider, gemma } = setup();
+    const events: LeaseEvent[] = [];
+    const es = await analyzeLease({ leaseId: 'lease1', text: LEASE, locale: 'es' }, { gemma, pack: PACK, log: quiet }, { onEvent: (e) => events.push(e) });
+    if (en.status !== 'analyzed' || es.status !== 'analyzed') throw new Error('not analyzed');
+
+    expect(events.filter((e) => e.type === 'stage').map((e) => e.type === 'stage' && e.stage)).toEqual(['S1', 'S2', 'S3', 'S4', 'S5', 'S6', 'S7', 'S8', 'S9'].slice(1));
+    const [request, ...more] = provider.requests.filter((r) => stageOf(r) === 'translation');
+    expect(more).toEqual([]);
+    expect(request!.systemInstruction).toContain('into Spanish');
+    expect(es.usage.calls).toBe(en.usage.calls + 1);
+    for (const [i, f] of es.findings.entries()) {
+      const e = en.findings[i]!;
+      // The translated finding is the English one plus its translation.
+      expect({ ...f, translations: {} }).toEqual(e);
+      expect(Buffer.from(f.leaseQuote!).equals(Buffer.from(e.leaseQuote!))).toBe(true);
+      expect(Buffer.from(f.statuteQuote!).equals(Buffer.from(e.statuteQuote!))).toBe(true);
+      expect(LEASE.slice(f.quoteSpan!.start, f.quoteSpan!.end)).toBe(f.leaseQuote);
+      expect(f.translations.es).toEqual({ title: `ES ${e.titleEn}`, explanation: `ES ${e.explanationEn}`, action: `ES ${e.actionEn}`, model: 'gemma-4-26b-a4b-it', fallback: false });
+      // Quotes are never sent to be translated.
+      for (const d of documents(request!)) {
+        expect(d.text).not.toContain(f.leaseQuote);
+        expect(d.text).not.toContain(f.statuteQuote);
+      }
+    }
+    // Findings that share a rule's action share one document.
+    expect(documents(request!).length).toBeLessThan(es.findings.length * 3);
+  });
+
+  it('keeps only the English when a translation is missing or changes a quoted phrase', async () => {
+    const quoted = 'The lease calls this a "processing fee". You can ask about it.';
+    expect(quotedSegments(`${quoted} And “this one”.`)).toEqual(['processing fee', 'this one']);
+    const { gemma } = setup({
+      explain: (id) => ({ title: `About ${id}`, explanation: id === 'f2' ? quoted : id === 'f3' ? `${PLAIN} Ask soon.` : PLAIN }),
+      translate: (text) => (text === quoted ? 'El contrato lo llama una "tarifa de proceso".' : text.endsWith('Ask soon.') ? null : `ES ${text}`),
+    });
+    const analysis = await analyzeLease({ leaseId: 'lease1', text: LEASE, locale: 'es-MX' }, { gemma, pack: PACK, log: quiet });
+    if (analysis.status !== 'analyzed') throw new Error(analysis.status);
+    const by = Object.fromEntries(analysis.findings.map((f) => [f.id, f]));
+    expect(by.f2!.translations).toEqual({});
+    expect(by.f3!.translations).toEqual({});
+    expect(by.f1!.translations['es-MX']).toMatchObject({ explanation: `ES ${PLAIN}` });
+    expect(analysis.drops.filter((d) => d.stage === 'S9')).toEqual([
+      { stage: 'S9', reason: 'translation_quote_changed', ref: 'f2' },
+      { stage: 'S9', reason: 'translation_missing', ref: 'f3' },
+    ]);
+  });
+
+  it('rejects a translation far shorter or longer than its English', async () => {
+    const { gemma } = setup({ translate: (text) => (text === PLAIN ? 'explicación' : `ES ${text}`) });
+    const analysis = await analyzeLease({ leaseId: 'lease1', text: LEASE, locale: 'es' }, { gemma, pack: PACK, log: quiet });
+    if (analysis.status !== 'analyzed') throw new Error(analysis.status);
+    for (const f of analysis.findings) expect(f.translations).toEqual({});
+    expect(analysis.drops.filter((d) => d.stage === 'S9').map((d) => d.reason)).toEqual(Array(8).fill('translation_rejected'));
+  });
+
+  it('keeps the English when no model translates, and still finishes', async () => {
+    const { gemma } = setup({ down: (stage) => stage === 'translation' });
+    const analysis = await analyzeLease({ leaseId: 'lease1', text: LEASE, locale: 'es' }, { gemma, pack: PACK, log: quiet });
+    if (analysis.status !== 'analyzed') throw new Error(analysis.status);
+    for (const f of analysis.findings) expect(f.translations).toEqual({});
+    expect(analysis.drops.filter((d) => d.stage === 'S9')).toHaveLength(8);
+  });
+});
+
+describe('required wording', () => {
+  const WITHOUT_STATEMENT = LEASE.replace(/^28\. STATEMENT OF TENANT RIGHTS\..*\n/m, '');
+
+  it('finds the DHCD statement when the lease mentions it, and reports it missing when not', () => {
+    expect(WITHOUT_STATEMENT).not.toBe(LEASE);
+    const resolved = resolveRules(PACK.rules, TERM);
+    expect(runAbsenceChecks(resolved, LEASE)).toEqual([]);
+    expect(runAbsenceChecks(resolved, 'Tenant received the Statement of\nTenant’s Rights and Responsibilities.')).toEqual([]);
+    expect(runAbsenceChecks(resolved, WITHOUT_STATEMENT).map((a) => [a.ruleId, a.outcome])).toEqual([['VA_TENANT_RIGHTS_STATEMENT', 'missing']]);
+    expect(runAbsenceChecks(resolveRules(PACK.rules, { start: '2018-01-01', end: '2018-12-31' }), WITHOUT_STATEMENT)).toEqual([]);
+  });
+
+  it('adds a "worth asking about" finding with no quote, after the quoted ones, and drops S5 claims on that rule', async () => {
+    const segment = (doc: string) => segmentation(doc);
+    const { gemma } = setup({ segment });
+    const analysis = await analyzeLease({ leaseId: 'lease1', text: `${WITHOUT_STATEMENT}`, locale: 'en' }, { gemma, pack: PACK, log: quiet });
+    if (analysis.status !== 'analyzed') throw new Error(analysis.status);
+    const last = analysis.findings.at(-1)!;
+    expect(last).toMatchObject({
+      id: 'f9',
+      severity: 'ask',
+      basis: 'absence',
+      ruleId: 'VA_TENANT_RIGHTS_STATEMENT',
+      clauseId: null,
+      leaseQuote: null,
+      quoteSpan: null,
+      verifier: null,
+      actionEn: PACK.byId.get('VA_TENANT_RIGHTS_STATEMENT')!.action,
+    });
+    expect(last.statuteQuote).toContain('statement of tenant rights and responsibilities');
+    const drafts = draftFindings(PACK, [], runAbsenceChecks(resolveRules(PACK.rules, TERM), WITHOUT_STATEMENT), [], []);
+    expect(rankFindings(drafts, new Map()).map((f) => [f.id, f.severity])).toEqual([['f1', 'ask']]);
+    const clause: Clause = { id: 'c1', heading: null, start: 0, end: 30, verbatim: 'Tenant got the tenant handbook.' };
+    const resolved = resolveRules(PACK.rules, TERM);
+    const drops: Drop[] = [];
+    const kept = verifyMappings(
+      [{ clauseId: 'c1', ruleIds: ['VA_TENANT_RIGHTS_STATEMENT'], assessment: 'complies', leaseQuote: 'Tenant got the tenant handbook', reasoning: 'r' }],
+      { clauses: new Map([['c1', clause]]), pack: PACK, inForce: new Map(resolved.map((r) => [r.rule.id, r])), checks: [], absent: ['VA_TENANT_RIGHTS_STATEMENT'], model: 'm', fallback: false },
+      drops,
+    );
+    expect(kept).toEqual([]);
+    expect(drops[0]).toEqual({ stage: 'S6', reason: 'superseded_by_check', ref: 'VA_TENANT_RIGHTS_STATEMENT' });
+  });
+
+  it('gives a not_covered clause no rule, no legal claim, and the generic action', async () => {
+    const drafts = draftFindings(
+      PACK,
+      [],
+      [],
+      [{ clauseId: 'c7', assessment: 'not_covered', leaseQuote: 'Tenant shall not keep a waterbed', quoteSpan: { start: 10, end: 42 }, reasoning: 'r', rules: [], model: 'm', fallback: false }],
+      [],
+    );
+    const call: StageCall = { gemma: setup().gemma, options: { onEvent: () => {}, log: quiet }, track: (r) => r };
+    const [finding] = await explainFindings(rankFindings(drafts, new Map()), 'standard', call, []);
+    expect(finding).toMatchObject({ severity: 'info', ruleId: null, citation: null, statuteQuote: null, checkType: null, verifier: null, actionEn: NOT_COVERED_ACTION });
+    expect(await runVerifier(drafts, new Map(), call, [])).toEqual(new Map());
+    expect(await translateFindings([finding!], 'en', call, [])).toEqual([finding]);
   });
 });
 

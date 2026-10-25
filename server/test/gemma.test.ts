@@ -252,7 +252,7 @@ describe('generate', () => {
     const json = Object.entries(STAGES)
       .filter(([, s]) => s.output === 'json')
       .map(([stage]) => stage);
-    expect(json).toEqual(['extraction', 'mapping', 'responsibility']);
+    expect(json).toEqual(['extraction', 'mapping', 'verification', 'responsibility', 'explanation', 'translation']);
   });
 
   it('caps the answer when the caller asks', async () => {

@@ -13,6 +13,10 @@ belong to a `Rental`, counted in whole calendar days on `CalendarDay`.
   "Just moved in" / "Living there" with an occupancy date starts the
   landlord's report clock; "Moving out" / "Ended" with an end date starts
   the deposit clock. Seeding never asks for notification permission.
+- Sealing a move-in walkthrough ([walkthrough](walkthrough.md), #25) starts
+  the landlord's report clock when the rental has none, on its occupancy date
+  or else the day the walkthrough began (`startMoveInReportClock`). It never
+  asks for notification permission.
 - Accessory (`deadlineAccessory`): the soonest deadline due today or later;
   if none, the latest one that passed in the last 7 days ("Past due"). It
   hides when nothing is due. Tapping it selects the deadline's tab

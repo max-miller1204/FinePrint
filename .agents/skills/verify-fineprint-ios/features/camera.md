@@ -1,8 +1,9 @@
 # Evidence camera
 
 The full-screen camera behind F2 Move-in Evidence (spec §4.3 F2, §7.5, §8.1,
-#21). Until the move-in walkthrough (#25) lands, it opens only from
-Developer Options, for the "Walls" item in the "Kitchen".
+#21). It opens from the move-in walkthrough ([walkthrough](walkthrough.md),
+#25) for the item the tenant picked, and from Developer Options, for the
+"Walls" item in the "Kitchen".
 
 ## Sub-features
 
@@ -21,6 +22,9 @@ Developer Options, for the "Walls" item in the "Kitchen".
   on this device." (`camera.saved`, then `camera.use` / `camera.retake`) or a
   retake reason (`camera.retakeReason`, then `camera.retake` /
   `camera.keep`). Retake and close delete the discarded files.
+- In a walkthrough the camera also shows "N of M done" (`camera.progress`)
+  and Mark No Damage (`camera.markNoDamage`), which records the item without
+  a photo and closes the camera.
 - Developer Options shows the last kept photo's hash
   (`developer.lastCaptureHash`).
 - Fixture camera (DEBUG only, `-FinePrintFixtureCamera <dir>`, #22): the viewfinder is

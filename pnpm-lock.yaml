@@ -232,6 +232,9 @@ importers:
       firebase-admin:
         specifier: ^14.5.0
         version: 14.5.0(@firebase/app-compat@0.5.20)(@firebase/app@0.16.4)(supports-color@7.2.0)
+      google-auth-library:
+        specifier: ^10.9.1
+        version: 10.9.1(supports-color@7.2.0)
       hono:
         specifier: ^4.13.13
         version: 4.13.13
@@ -6396,7 +6399,7 @@ snapshots:
   gcp-metadata@8.1.2(supports-color@7.2.0):
     dependencies:
       gaxios: 7.3.1(supports-color@7.2.0)
-      google-logging-utils: 1.2.0
+      google-logging-utils: 1.1.3
       json-bigint: 1.0.0
     transitivePeerDependencies:
       - supports-color

@@ -3,11 +3,13 @@ import { requestId } from 'hono/request-id';
 import type { GemmaClient } from './ai/gemma.js';
 import { modelFromEnv, triageWith } from './ai/triage/from-env.js';
 import type { Triage } from './ai/triage/index.js';
+import { firebaseAccounts, type Accounts } from './accounts.js';
 import { firebaseIdTokenVerifier, type VerifyIdToken } from './auth.js';
 import { ApiError } from './errors.js';
 import { runChecks, stubbedChecks, type HealthChecks } from './health.js';
 import { signerFromEnv, type Signer } from './integrity/kms.js';
 import { createLogger, type LogSink, type Logger } from './log.js';
+import { createInternal, googleSchedulerVerifier, type VerifyScheduler } from './routes/internal.js';
 import { createV1 } from './routes/v1.js';
 import { loadRulePacks } from './rules/loader.js';
 import type { RulePack } from './rules/types.js';
@@ -35,6 +37,11 @@ export interface AppDeps {
   triage?: Triage;
   // Rule packs by jurisdiction. Every rule must be verified to load.
   rulePacks?: ReadonlyMap<string, RulePack>;
+  accounts?: Accounts;
+  // Null: /internal/purge answers 404.
+  verifyScheduler?: VerifyScheduler | null;
+  // The URL the purge job's token is minted for; default PURGE_AUDIENCE, else the Host header.
+  purgeAudience?: string;
 }
 
 export function createApp({
@@ -48,6 +55,9 @@ export function createApp({
   gemma = modelFromEnv(createLogger(null, logSink)),
   triage = triageWith(gemma),
   rulePacks = loadRulePacks(undefined, { requireVerified: true }),
+  accounts = firebaseAccounts(),
+  verifyScheduler = googleSchedulerVerifier(),
+  purgeAudience,
 }: AppDeps = {}) {
   const app = new Hono<AppEnv>();
 
@@ -83,7 +93,9 @@ export function createApp({
 
   // Public: /healthz and /health above, /.well-known/*, and later /r/* and /impact.
   app.route('/.well-known', createWellKnown(clientConfig, signer));
-  app.route('/v1', createV1(verifyIdToken, store, objects, signer, { gemma, triage, rulePacks }));
+  app.route('/v1', createV1(verifyIdToken, store, objects, signer, { gemma, triage, rulePacks }, accounts));
+  // Cloud Scheduler only; it checks its own Google token, not a Firebase one.
+  app.route('/internal', createInternal(store, objects, verifyScheduler, undefined, purgeAudience ?? process.env.PURGE_AUDIENCE));
 
   // Returned, not thrown: a throw here skips the access line above.
   app.notFound((c) => c.json(new ApiError(404, 'NOT_FOUND', 'No route matches this request').toEnvelope(), 404));

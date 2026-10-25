@@ -34,6 +34,9 @@ struct RootTabView: View {
         .sheet(isPresented: $navigation.isAddingRental) {
             AddRentalView()
         }
+        .sheet(item: $navigation.roomPicker) { request in
+            RoomPickerSheet(title: request.title, confirmTitle: request.confirmTitle, existingNames: request.existingNames, onConfirm: request.onConfirm)
+        }
         .environment(navigation)
     }
 

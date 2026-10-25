@@ -79,6 +79,32 @@ export function memoryStore() {
       if (issues.has(key)) throw Object.assign(new Error('6 ALREADY_EXISTS'), { code: 6 });
       issues.set(key, Issue.parse(issue));
     },
+    async rentalIdsOwnedBy(uid) {
+      return [...rentals.values()].filter((rental) => rental.ownerUid === uid).map((rental) => rental.id);
+    },
+    async expiredRentalIds(now, limit) {
+      return [...rentals.values()]
+        .filter((rental) => rental.purgeAfter !== null && rental.purgeAfter <= now)
+        .slice(0, limit)
+        .map((rental) => rental.id);
+    },
+    async deleteRental(rentalId) {
+      let evidenceItems = 0;
+      for (const key of [...evidence.keys()]) {
+        if (!key.startsWith(`${rentalId}/`)) continue;
+        evidence.delete(key);
+        evidenceItems += 1;
+      }
+      for (const key of [...manifests.keys()]) if (key.startsWith(`${rentalId}/`)) manifests.delete(key);
+      for (const key of [...issues.keys()]) if (key.startsWith(`${rentalId}/`)) issues.delete(key);
+      leases.delete(rentalId);
+      ledgers.delete(rentalId);
+      rentals.delete(rentalId);
+      return { evidenceItems };
+    },
+    async deleteUser(uid) {
+      users.delete(uid);
+    },
   };
   return { store, rentals, users, evidence, ledgers, manifests, leases, issues };
 }

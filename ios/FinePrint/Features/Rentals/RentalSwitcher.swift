@@ -111,5 +111,5 @@ struct AddRentalView: View {
         .environment(AppConfiguration.preview())
         .environment(DeadlineStore(launchOptions: LaunchOptions()))
         .environment(AppNavigation())
-        .modelContainer(for: [Rental.self, Deadline.self], inMemory: true)
+        .modelContainer(for: [Rental.self, Deadline.self, Walkthrough.self], inMemory: true)
 }

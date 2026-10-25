@@ -8,6 +8,8 @@ struct FinePrintApp: App {
     @State private var deadlines: DeadlineStore
     @State private var auth: AuthSession
     @State private var uploads: UploadQueue
+    @State private var deletion = DataDeletion()
+    @State private var settings = UserSettings()
     @Environment(\.scenePhase) private var scenePhase
     private let signsInAutomatically: Bool
     private let skipsOnboarding: Bool
@@ -45,6 +47,8 @@ struct FinePrintApp: App {
                 .environment(auth)
                 .environment(\.evidenceStore, evidenceStore)
                 .environment(uploads)
+                .environment(deletion)
+                .environment(settings)
                 // First launch signs in anonymously with no input; later launches reuse the account.
                 .task {
                     guard signsInAutomatically else { return }
@@ -68,7 +72,7 @@ struct FinePrintApp: App {
     private static let logger = Logger(subsystem: "org.fineprint.FinePrint", category: "Persistence")
 
     private static func makeModelContainer(inMemory: Bool) -> ModelContainer {
-        let schema = Schema([Rental.self, Deadline.self])
+        let schema = Schema([Rental.self, Deadline.self, Walkthrough.self])
         do {
             let configuration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: inMemory)
             return try ModelContainer(for: schema, configurations: configuration)

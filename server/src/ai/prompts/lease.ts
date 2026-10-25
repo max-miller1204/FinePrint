@@ -1,5 +1,6 @@
-// The lease stages' prompts (spec §7.3 S2, S5). Rule text is ours, so it goes
-// in the system instruction; lease text only ever arrives as a document.
+// The lease stages' prompts (spec §7.3 S2, S5, S7 to S9). Rule and statute
+// text is ours, so it goes in the system instruction; lease text and model
+// text only ever arrive as documents.
 
 import type { Rule } from '../../rules/types.js';
 import { KEY_TERM_DESCRIPTIONS, KEY_TERMS } from '../pipeline/key-terms.js';
@@ -39,4 +40,77 @@ Leave out clauses that no rule applies to and that are ordinary. leaseQuote is t
 
 export function mappingTask(clauseIds: readonly string[]): string {
   return `The documents are clauses ${clauseIds.join(', ')} of one lease; each document id is its clauseId. Map them to the rules.`;
+}
+
+// S7 sees only the clauses and the statutes' exact words: no rule summary,
+// no S5 assessment or reasoning, and no other part of the lease.
+export interface StatuteText {
+  ruleId: string;
+  citation: string;
+  // Each version in force during the lease, with the dates it covers.
+  versions: { quote: string; from: string; until: string | null }[];
+}
+
+function statuteLine({ ruleId, citation, versions }: StatuteText): string {
+  if (versions.length === 1) return `- ${ruleId} (${citation}): "${versions[0]!.quote}"`;
+  const parts = versions.map((v) => `  From ${v.from}${v.until ? ` to ${v.until}` : ''}: "${v.quote}"`);
+  return `- ${ruleId} (${citation}), which changes during the lease:\n${parts.join('\n')}`;
+}
+
+export function verifierInstruction(statutes: readonly StatuteText[]): string {
+  return `You check lease clauses against the exact words of Virginia statutes. Use only the statute text below, never other law you know or what a clause's heading suggests. The statutes:
+${statutes.map(statuteLine).join('\n')}
+
+For each check, read the clause and the statute and give an assessment:
+- violates: the clause conflicts with the statute.
+- complies: the clause does not conflict with the statute.
+- unclear: the answer depends on facts or wording the clause does not settle.
+reasoning names what the clause says and what the statute requires.`;
+}
+
+export function verifierTask(checks: readonly { clauseId: string; ruleId: string }[]): string {
+  const list = checks.map((c, i) => `${i + 1}. clause ${c.clauseId} against ${c.ruleId}`).join('\n');
+  return `The documents are lease clauses; each document id is its clauseId. Answer each check once:\n${list}`;
+}
+
+// What S8 is told about one finding. All of it is ours: the rule pack's
+// verified text and code's numbers. The lease quote is a document.
+export interface ExplanationFacts {
+  findingId: string;
+  label: string;
+  // The rule's tenant explanation, or null when no rule covers the clause.
+  rule: string | null;
+  // Code's numbers for an S4 finding ("The lease's late fee is $225. The limit is $150.").
+  numbers: string | null;
+  // An absence finding has no lease quote.
+  hasQuote: boolean;
+}
+
+function factsLine(f: ExplanationFacts): string {
+  const about = f.rule ?? 'No Virginia rule in our checklist covers this clause. Say what it means for the tenant, and make no legal claim.';
+  const quote = f.hasQuote ? `The lease text is document ${f.findingId}.` : 'The lease does not mention it at all.';
+  return `- ${f.findingId} (${f.label}): ${about}${f.numbers ? ` ${f.numbers}` : ''} ${quote}`;
+}
+
+export function explanationInstruction(facts: readonly ExplanationFacts[], grade: number, retry: boolean): string {
+  return `You explain findings from a Virginia lease review to a tenant in plain English. For each finding, write a title of three to eight words and an explanation of one to three short sentences that a student in grade ${grade} can read: short sentences, short common words, and no legal terms.
+
+Say what the lease says and what that means for the tenant, using only the facts below and the lease text. Match the finding's label: "Likely unenforceable" means it likely can't be enforced; "Worth asking about" means it may be a problem and is worth asking about, not that it is illegal; "Good to know" means it is allowed but worth knowing. Do not quote the lease; the app shows the quote next to your words. Do not name laws or sections, predict what a court will do, or tell the tenant to withhold rent, break the lease, or sign or not sign.${
+    retry ? ` Your last answer was too hard to read. Use sentences of 12 words or fewer, and words of one or two syllables.` : ''
+  }
+
+The findings:
+${facts.map(factsLine).join('\n')}`;
+}
+
+export function explanationTask(findingIds: readonly string[]): string {
+  return `Explain findings ${findingIds.join(', ')}, once each, using each finding's id as findingId.`;
+}
+
+export function translationInstruction(language: string): string {
+  return `You translate short texts from a tenant's lease review from English into ${language}. Keep the meaning, the plain reading level, and every number, amount, and date. Keep any text inside quotation marks exactly as written, untranslated. Do not add, drop, or explain anything.`;
+}
+
+export function translationTask(ids: readonly string[], language: string): string {
+  return `Translate documents ${ids.join(', ')} into ${language}, once each, using each document's id as id.`;
 }

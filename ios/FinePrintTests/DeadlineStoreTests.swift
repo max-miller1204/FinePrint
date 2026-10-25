@@ -236,7 +236,7 @@ struct DeadlineStoreTests {
     let now: Date
 
     init() throws {
-        container = try ModelContainer(for: Rental.self, Deadline.self, configurations: ModelConfiguration(isStoredInMemoryOnly: true))
+        container = try ModelContainer(for: Rental.self, Deadline.self, Walkthrough.self, configurations: ModelConfiguration(isStoredInMemoryOnly: true))
         scheduler = FakeReminderScheduler()
         now = newYork.date(from: DateComponents(year: 2026, month: 8, day: 14, hour: 8))!
     }
