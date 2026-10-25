@@ -41,3 +41,12 @@ impact|web|skeptic|Try to increment without consent, impersonate another account
 After integrating PR 119's Evidence Report, the combined full web gate passed
 41 tests in 12 files (two existing live-model skips), exit 0, including smoke,
 impact, and all five report tests. Proof: `.e2e/proof/impact-main-merge`.
+
+## Dev integration verification
+
+Merged origin/dev while preserving the impact entry and the report accessibility
+gate in the feature map. Smoke, impact, leases and integrity passed together:
+9 passed, 2 unconfigured live-model skips, exit 0, no retries or cache.
+Evidence: `e2e/.e2e/proof/dev-impact-merge/`. Server unit tests: 476 passed;
+workspace typecheck: exit 0. iOS runtime acceptance uses the dev TestFlight
+build on @max-miller1204's device.

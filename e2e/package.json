@@ -12,6 +12,7 @@
   },
   "devDependencies": {
     "@ai-sdk/google": "^4.0.104",
+    "@axe-core/playwright": "^4.14.0",
     "@e2e-dev/mobile": "0.12.4",
     "@e2e-dev/web": "^0.15.2",
     "agent-device": "0.21.29",

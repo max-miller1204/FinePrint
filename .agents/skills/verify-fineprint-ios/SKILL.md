@@ -191,12 +191,11 @@ calls the server, it also checks the matching `request` line in
 ## Bug bash
 
 The model is Gemini (`gemini-flash-latest` through `@ai-sdk/google`) and
-reads `GEMINI_API_KEY`. The worktree's `.env` (gitignored) holds a
-1Password reference, not the key, so run anything that calls the model as
-`op run --env-file ../.env -- <command>` from `e2e/`. Never print the
-value. On macOS without 1Password, keep the key in the login keychain
-(service `fineprint-gemini-api-key`, see `CONTRIBUTING.md`) and use
-`../scripts/with-gemini-key.sh <command>` in place of `op run ... --`.
+reads `GEMINI_API_KEY`. Run model commands through
+`../scripts/with-secrets.sh <command>` from `e2e/`. It preserves a personal
+key exported in your shell; otherwise it reads Secret Manager using
+`FINEPRINT_PROJECT` or the gcloud project. See `CONTRIBUTING.md` for setup.
+Never print the value.
 
 `e2e/e2e.bugbash.config.ts` is gitignored and local. It spreads
 `e2e.config.ts` and adds the `skeptic` and `fuzzer` personas (topic
@@ -220,7 +219,7 @@ The charters are in [features/](features/), one per feature, in the
 
 ```bash
 cd e2e
-op run --env-file ../.env -- npx e2e explore '<charter>' \
+../scripts/with-secrets.sh npx e2e explore '<charter>' \
   --config e2e.bugbash.config.ts --target ios --agent <persona> --max-steps 3 \
   --output .e2e/bugbash/<slug> --reporter list,markdown
 ```

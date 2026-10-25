@@ -36,6 +36,7 @@ struct DeadlineAccessoryView: View {
     /// button from the accessibility tree on iOS 26.0.)
     @State private var now = Date.now
     @Environment(\.scenePhase) private var scenePhase
+    @Environment(\.tabViewBottomAccessoryPlacement) private var placement
 
     var body: some View {
         // Counts tick without animation (fineprint-ios-ui §5).
@@ -46,17 +47,26 @@ struct DeadlineAccessoryView: View {
                     .imageScale(.medium)
                     .foregroundStyle(.secondary)
                     .accessibilityHidden(true)
-                ViewThatFits(in: .horizontal) {
-                    HStack(spacing: 8) {
-                        Text(deadline.title)
-                            .fontWeight(.semibold)
-                        Spacer(minLength: 0)
+                // Not `ViewThatFits`: measuring its own content inside the accessory sends SwiftUI
+                // into an AttributeGraph cycle whenever accessibility is on and a tab presents a
+                // sheet, dialog, or menu, or pops a screen, and the app stops responding (#99).
+                // The placement is known without measuring: inline sits beside the minimized tab bar.
+                Group {
+                    if placement == .inline {
                         Text(countdown.text)
-                            .foregroundStyle(.secondary)
+                            .fontWeight(.semibold)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                    } else {
+                        HStack(spacing: 8) {
+                            Text(deadline.title)
+                                .fontWeight(.semibold)
+                            Spacer(minLength: 0)
+                            // The title gives way first, so the count always shows in full.
+                            Text(countdown.text)
+                                .foregroundStyle(.secondary)
+                                .layoutPriority(1)
+                        }
                     }
-                    Text(countdown.text)
-                        .fontWeight(.semibold)
-                        .frame(maxWidth: .infinity, alignment: .leading)
                 }
                 .lineLimit(1)
                 .monospacedDigit()

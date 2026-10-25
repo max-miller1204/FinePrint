@@ -152,7 +152,7 @@ pnpm lint && pnpm typecheck && pnpm test && pnpm check:jurisdictions
 cd e2e && pnpm test:e2e:web        # end-to-end tests against the server with emulators
 ```
 
-Most work needs no Gemini API key. The live Gemma smoke test and the e2e agent steps need one. The repo never reads a `.env` file itself. Load the key with 1Password or the macOS Keychain, as [CONTRIBUTING.md](CONTRIBUTING.md) describes.
+Most work needs no Gemini API key. The live Gemma smoke test and the e2e agent steps need one. Run commands through `scripts/with-secrets.sh`, which preserves your personal AI Studio key or reads the shared key from Google Cloud Secret Manager, as [CONTRIBUTING.md](CONTRIBUTING.md) describes.
 
 ### Deploy your own
 
@@ -166,7 +166,7 @@ gcloud auth login
 ./deploy.sh --destroy          # removes it all, after you type the project ID
 ```
 
-The Gemini API key comes from `GEMINI_API_KEY` in the environment. Load it with 1Password (`op run --env-file ~/.config/fineprint/.env -- ./deploy.sh`) or the macOS Keychain (`scripts/with-gemini-key.sh ./deploy.sh`). See [CONTRIBUTING.md](CONTRIBUTING.md). If neither is available, as in Cloud Shell, the script asks for the key with hidden input. The key goes straight to Secret Manager, and the script never prints it.
+Google Cloud Secret Manager holds the shared Gemini key, mounted by Cloud Run. Run `./deploy.sh` directly to reuse it. For initial setup, the script accepts `GEMINI_API_KEY` or prompts with hidden input. Supply an environment key for intentional rotation. Do not deploy with a personal development key exported: the deploy script treats a different key as a rotation. See [CONTRIBUTING.md](CONTRIBUTING.md) for personal keys, shared access, and partner setup.
 
 You can run the script again at any time. It skips the resources that exist and ships a new revision. At the end it prints the server URL to set in the iOS app. The budget alerts are in US dollars, so the budget step fails on a billing account that uses a different currency.
 

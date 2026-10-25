@@ -56,32 +56,85 @@ The e2e CLI sends anonymous usage data by default. FinePrint turns it off: `e2e.
 
 ### Secrets (Gemini API key)
 
-Tests without agent steps need no key. The server's Gemma 4 calls, the e2e `agent.*` steps, and `deploy.sh` all read `GEMINI_API_KEY` from the environment (`GOOGLE_API_KEY` also works), a Google AI Studio key. Nothing in the repo reads a `.env` file itself: wrap the command in one of the two loaders below. Never commit the key or write its value to a file in the repo, and never print it.
+Google Cloud Secret Manager is the shared source of truth for runtime secrets.
+Currently the only required shared secret is `GEMINI_API_KEY`. Cloud Run mounts
+it directly. App Store Connect and TestFlight credentials stay in GitHub secrets.
+The wrapper does not fetch or migrate those credentials, and never changes IAM.
 
-**1Password** (`op` CLI). `~/.config/fineprint/.env` holds a reference, not the key:
+For local development, each developer should create their own key at
+https://aistudio.google.com/apikey in their own Google Cloud project so their
+AI Studio usage has separate quota.
+Set `GEMINI_API_KEY` in your shell profile using your editor, then reload the
+profile. Do not paste the key into a shell command that would save it in history.
+Alternatively keep `export GEMINI_API_KEY=...` in a private file outside the repo,
+set its permissions to `600`, and source it before running commands. Never commit
+or print the value. The wrapper does not source `.env` files or resolve old
+password-manager references. Remove those references from your environment.
+
+On Linux and macOS, wrap commands with:
 
 ```sh
-# ~/.config/fineprint/.env
-GEMINI_API_KEY=op://<vault>/<item>/<field>
+scripts/with-secrets.sh pnpm --filter @fineprint/server dev:emulated
+cd e2e
+../scripts/with-secrets.sh pnpm test:e2e:web
 ```
+
+The wrapper preserves a nonempty `GEMINI_API_KEY` already in the environment.
+If only `GOOGLE_API_KEY` is set, it uses that as `GEMINI_API_KEY` for both the
+server and e2e. With either personal key, gcloud is unnecessary. Tests without
+agent steps or live model calls can also run directly without a key.
+
+To use the shared key (deployed server and model-backed CI, or an explicit local
+fallback), install the [Google Cloud CLI](https://cloud.google.com/sdk/docs/install)
+and authenticate:
 
 ```sh
-ln -s ~/.config/fineprint/.env .env                        # optional, per checkout; .env is gitignored
-op run --env-file ~/.config/fineprint/.env -- <command>    # or --env-file .env (../.env from e2e/)
+gcloud auth login
+export FINEPRINT_PROJECT=fineprint-dev  # or your own deployed project
+scripts/with-secrets.sh <command> [args...]
 ```
 
-To add a secret: store it in 1Password, then add a `NAME=op://<vault>/<item>/<field>` line to `~/.config/fineprint/.env`.
+As in `deploy.sh`, project selection is `FINEPRINT_PROJECT`, then gcloud's
+configured project (`gcloud config set project <project-id>`). The wrapper reads
+`latest` from `GEMINI_API_KEY` only if no personal key is set. It keeps the payload
+in process memory, exports it to the command, and never writes a cache. Missing
+CLI, project, authentication, access, or an empty secret stops the command with
+an error. A CLI login is sufficient; application-default login is not required.
 
-**macOS Keychain** (no 1Password). Store the key once, then wrap the command:
+**Partner access (owner runs manually).** For `maddoxrjohnson`, replace the email
+placeholder with their Google account email, not their GitHub username. Grant
+access only to this secret, following the [gcloud secret IAM reference](https://cloud.google.com/sdk/gcloud/reference/secrets/add-iam-policy-binding):
 
 ```sh
-security add-generic-password -U -a "$USER" -s fineprint-gemini-api-key -w   # prompts for the key
-scripts/with-gemini-key.sh <command>
+gcloud secrets add-iam-policy-binding GEMINI_API_KEY \
+  --project=fineprint-dev \
+  --member='user:<PARTNER_GOOGLE_ACCOUNT_EMAIL>' \
+  --role=roles/secretmanager.secretAccessor \
+  --condition=None
 ```
 
-To add a secret: store it with `security add-generic-password -U -a "$USER" -s fineprint-<name> -w`, then export it in `scripts/with-gemini-key.sh` the same way it exports `GEMINI_API_KEY`.
+Use the same command with your own Google account email if it needs access.
+Repeat per specific secret if the project gains other shared runtime secrets;
+add those names to the wrapper explicitly. No project-wide role is needed.
+The partner then runs `gcloud auth login` and sets `FINEPRINT_PROJECT` as above.
+Confirm access without displaying the payload:
 
-Examples: `op run --env-file ~/.config/fineprint/.env -- ./deploy.sh` or `scripts/with-gemini-key.sh ./deploy.sh`.
+```sh
+scripts/with-secrets.sh bash -c 'if [[ -n ${GEMINI_API_KEY:-} ]]; then echo "GEMINI_API_KEY is set"; else exit 1; fi'
+```
+
+For a shared-access check, use a shell without a personal key exported. To run
+model-backed CI, authenticate its service account through your existing Google
+Cloud identity setup, grant that identity access to this specific secret, then
+use the same wrapper. Current model-free CI needs no Gemini key.
+
+**Deployment and rotation.** Run `./deploy.sh` directly with no personal
+`GEMINI_API_KEY` or `GOOGLE_API_KEY` exported to keep the deployed shared key.
+The deploy script adds a version when an exported key differs from the stored
+key. Only supply an environment key for intentional shared-key rotation, or use
+its hidden prompt during first-time setup. Do not wrap deployment in a shell
+carrying a personal development key. Secret creation, rotation, deployment,
+and IAM grants remain owner actions.
 
 The `verify-fineprint-web` and `verify-fineprint-ios` skills in `.agents/skills/` cover launching, driving, evidence, and bug bashes.
 

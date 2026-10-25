@@ -2,7 +2,8 @@
 # schema check, and a gitleaks scan of every commit reachable from HEAD. Each
 # Node job runs a root script from package.json that recurses into every
 # workspace defining it, so a new package is covered by adding `typecheck` or
-# `test` to its own package.json. The e2e and eval jobs land separately.
+# `test` to its own package.json. Web report e2e and axe gate accessibility;
+# live model evals land separately.
 name: CI
 
 on:
@@ -41,6 +42,38 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: ${{ matrix.check.run }}
+
+  web-accessibility:
+    name: web report accessibility
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: pnpm
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: 21
+      - run: pnpm install --frozen-lockfile
+      - name: Install browser engines and system dependencies
+        working-directory: e2e
+        run: pnpm exec playwright-core install --with-deps chromium firefox webkit
+      - name: Smoke, report, verification and WCAG 2.2 AA
+        working-directory: e2e
+        run: pnpm exec e2e run tests/web/smoke.e2e.ts tests/web/report.e2e.ts tests/web/report-verify.e2e.ts tests/web/report-accessibility.e2e.ts --target web --output .e2e/proof/ci-web --trace on --no-cache --retries 0
+      - name: Keep accessibility scans and e2e evidence
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: web-report-accessibility
+          path: |
+            e2e/.e2e/proof/
+            e2e/.e2e/logs/
+          include-hidden-files: true
 
   gitleaks:
     runs-on: ubuntu-latest

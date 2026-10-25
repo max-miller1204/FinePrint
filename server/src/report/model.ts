@@ -44,6 +44,9 @@ export type ReportExhibit = Pick<
   // An authorized, short-lived URL supplied by the loader. Null for pending,
   // missing or unsupported previews. Deleted photos are never requested.
   imageUrl: string | null;
+  // Optional authorized original-byte GET URL, including HEIC without a
+  // preview. Undefined uses imageUrl for backward-compatible loaders.
+  originalUrl?: string | null;
   annotations: Annotation[];
 };
 export interface EvidenceReport {

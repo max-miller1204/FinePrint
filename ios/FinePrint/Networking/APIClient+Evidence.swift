@@ -39,6 +39,7 @@ nonisolated struct EvidenceItemRequest: Encodable, Equatable, Sendable {
     var deviceUptimeMs: Int
     var source: String
     var appVersion: String
+    var session: EvidenceSession
 
     init(_ record: CaptureRecord) {
         itemId = record.itemID
@@ -51,6 +52,7 @@ nonisolated struct EvidenceItemRequest: Encodable, Equatable, Sendable {
         deviceUptimeMs = record.deviceUptimeMs
         source = record.source.rawValue
         appVersion = record.appVersion
+        session = record.session
     }
 }
 

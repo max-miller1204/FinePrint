@@ -52,7 +52,7 @@ Triage and the lease stream share one client, so one rate limiter.
 
 ## Driving it with e2e
 
-`tests/web/triage.e2e.ts` reaches it when the run is wrapped in `op run`
+`tests/web/triage.e2e.ts` reaches it when the run is wrapped in `scripts/with-secrets.sh`
 (the `triage` log line says `modelStatus: "ok"`). `pnpm --filter @fineprint/server test`
 covers it with the SDK mocked (`test/gemma.test.ts`,
 `test/ratelimit.test.ts`, `test/response-schema.test.ts`) and `fetch`
@@ -61,7 +61,7 @@ The live check calls the real API:
 
 ```bash
 cd server
-op run --env-file ../.env -- pnpm smoke:gemma
+../scripts/with-secrets.sh pnpm smoke:gemma
 ```
 
 Self-hosted, against a local Ollama (no GPU needed for the small model):
