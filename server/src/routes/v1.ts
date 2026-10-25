@@ -1,13 +1,15 @@
 import { Hono } from 'hono';
 import { requireAuth, type AuthEnv, type VerifyIdToken } from '../auth.js';
+import type { Signer } from '../integrity/kms.js';
 import type { Store } from '../storage/firestore.js';
 import type { EvidenceObjects } from '../storage/gcs.js';
 import { createEvidence } from './evidence.js';
 import { createRentals } from './rentals.js';
+import { createSeal } from './seal.js';
 
 // Every /v1 route needs a Firebase ID token (spec §13). Auth runs before
 // routing, so an unknown /v1 path without a token is 401, not 404.
-export function createV1(verifyIdToken: VerifyIdToken, store: Store, objects: EvidenceObjects) {
+export function createV1(verifyIdToken: VerifyIdToken, store: Store, objects: EvidenceObjects, signer: Signer | null) {
   const v1 = new Hono<AuthEnv>();
   v1.use(requireAuth(verifyIdToken));
 
@@ -19,7 +21,8 @@ export function createV1(verifyIdToken: VerifyIdToken, store: Store, objects: Ev
   });
 
   v1.route('/rentals', createRentals(store));
-  v1.route('/rentals', createEvidence(store, objects));
+  v1.route('/rentals', createEvidence(store, objects, signer));
+  v1.route('/rentals', createSeal(store, signer));
 
   return v1;
 }

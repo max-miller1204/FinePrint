@@ -3,6 +3,7 @@ import { requestId } from 'hono/request-id';
 import { firebaseIdTokenVerifier, type VerifyIdToken } from './auth.js';
 import { ApiError } from './errors.js';
 import { runChecks, stubbedChecks, type HealthChecks } from './health.js';
+import { signerFromEnv, type Signer } from './integrity/kms.js';
 import { createLogger, type LogSink, type Logger } from './log.js';
 import { createV1 } from './routes/v1.js';
 import { firestoreStore, type Store } from './storage/firestore.js';
@@ -20,6 +21,8 @@ export interface AppDeps {
   clientConfig?: ClientConfig | null;
   store?: Store;
   objects?: EvidenceObjects;
+  // Null: sealing and the key set answer 503.
+  signer?: Signer | null;
 }
 
 export function createApp({
@@ -29,6 +32,7 @@ export function createApp({
   clientConfig = clientConfigFromEnv(),
   store = firestoreStore(),
   objects = gcsObjects(),
+  signer = signerFromEnv(),
 }: AppDeps = {}) {
   const app = new Hono<AppEnv>();
 
@@ -63,8 +67,8 @@ export function createApp({
   });
 
   // Public: /healthz and /health above, /.well-known/*, and later /r/* and /impact.
-  app.route('/.well-known', createWellKnown(clientConfig));
-  app.route('/v1', createV1(verifyIdToken, store, objects));
+  app.route('/.well-known', createWellKnown(clientConfig, signer));
+  app.route('/v1', createV1(verifyIdToken, store, objects, signer));
 
   // Returned, not thrown: a throw here skips the access line above.
   app.notFound((c) => c.json(new ApiError(404, 'NOT_FOUND', 'No route matches this request').toEnvelope(), 404));

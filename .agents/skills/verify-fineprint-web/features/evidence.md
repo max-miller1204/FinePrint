@@ -4,7 +4,7 @@ How move-in photos reach the server (spec §5.3, §6.1, §6.2, §8.2, §13,
 #23). The API never carries image bytes: it hands the app a 5-minute upload
 URL straight to Cloud Storage, then checks what was stored against the
 device's capture record (§8.1) before it records `receivedAtServer`.
-Sealing (#24) comes after this and is not built.
+Sealing and deletion come after this ([integrity](integrity.md), #24).
 
 ## Sub-features
 
@@ -14,7 +14,8 @@ Sealing (#24) comes after this and is not built.
   image/jpeg), capturedAtDevice (ISO time with offset), deviceUptimeMs,
   source (in_app_camera or imported), appVersion }`. 201 when it created an
   item, 200 when every item already existed. Each item comes back with
-  `status` (`pending` or `received`), `receivedAtServer`, and `upload`:
+  `status` (`pending`, `received`, `sealed`, or `deleted`),
+  `receivedAtServer`, `deletedAt`, and `upload`:
   `{ method: "PUT", url, headers, expiresAt }` while pending, `null` once
   received.
 - The upload is bound to the declared type and hash: `headers` is
@@ -27,7 +28,8 @@ Sealing (#24) comes after this and is not built.
 - Items are stored at `rentals/{rentalId}/evidence/{itemId}` (lowercased
   UUID) with the §6.1 fields, `gcsPath`
   `rentals/{rentalId}/evidence/{itemId}.heic`, `receivedAtServer: null`,
-  and `sealedManifestId: null`. `gcsPath` is never returned.
+  `sealedManifestId: null`, and `deletedAt: null`. `gcsPath` is never
+  returned.
 - Sending the same record again is how the app gets a fresh URL after one
   expired. A different record under an `itemId` already in use is 409
   `CONFLICT`.

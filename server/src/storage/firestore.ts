@@ -1,7 +1,9 @@
 import { getFirestore, Timestamp, type DocumentData, type Firestore } from 'firebase-admin/firestore';
 import type { AuthUser } from '../auth.js';
 import { firebaseApp } from '../firebase.js';
-import { Evidence } from '../models/evidence.js';
+import { LedgerEntry, type LedgerHead } from '../integrity/ledger.js';
+import { Manifest } from '../integrity/manifest.js';
+import { Evidence, type EvidenceSession } from '../models/evidence.js';
 import { Rental } from '../models/rental.js';
 import { User } from '../models/user.js';
 
@@ -26,7 +28,28 @@ export interface Store {
   // Sets `receivedAtServer` unless it is already set, and returns the item.
   // Null when there is no such item.
   markEvidenceReceived(rentalId: string, itemId: string, at: Date): Promise<Evidence | null>;
+  // Every item of one session, deleted ones included.
+  listEvidence(rentalId: string, session: EvidenceSession): Promise<Evidence[]>;
+  // The ledger in `seq` order.
+  listLedger(rentalId: string): Promise<LedgerEntry[]>;
+  // Null when there is no such manifest.
+  getManifest(rentalId: string, manifestId: string): Promise<Manifest | null>;
+  // Appends one ledger entry in a transaction. `build` gets the current
+  // head (null for an empty ledger) and returns the entry plus the writes
+  // that land with it. A concurrent append makes the transaction retry, so
+  // `build` may run more than once and must not write anything itself.
+  appendLedger(rentalId: string, build: (head: LedgerHead | null) => Promise<LedgerAppend>): Promise<LedgerAppend>;
 }
+
+export interface LedgerAppend {
+  entry: LedgerEntry;
+  manifest?: Manifest;
+  // Fields set on items, in the same transaction.
+  items?: { itemId: string; fields: Partial<Pick<Evidence, 'sealedManifestId' | 'deletedAt'>> }[];
+}
+
+// Ledger document ids sort in `seq` order.
+export const ledgerDocId = (seq: number) => String(seq).padStart(10, '0');
 
 // Firestore document ids: no `/`, not `.` or `..`, not `__reserved__`.
 // Anything else in a URL is not one of our ids.
@@ -43,6 +66,8 @@ export function firestoreStore(connect: () => Firestore = () => getFirestore(fir
     return { db, rentals: db.collection('rentals'), users: db.collection('users') };
   };
   const evidence = (rentalId: string) => collections().rentals.doc(rentalId).collection('evidence');
+  const ledger = (rentalId: string) => collections().rentals.doc(rentalId).collection('ledger');
+  const manifests = (rentalId: string) => collections().rentals.doc(rentalId).collection('manifests');
 
   return {
     async createRental(owner, build) {
@@ -115,6 +140,39 @@ export function firestoreStore(connect: () => Firestore = () => getFirestore(fir
         if (item.receivedAtServer !== null) return item;
         tx.update(ref, { receivedAtServer: Timestamp.fromDate(at) });
         return { ...item, receivedAtServer: at };
+      });
+    },
+
+    async listEvidence(rentalId, session) {
+      const snapshot = await evidence(rentalId).where('session', '==', session).get();
+      return snapshot.docs.map((doc) => evidenceFromFirestore(doc.id, doc.data()));
+    },
+
+    async listLedger(rentalId) {
+      const snapshot = await ledger(rentalId).orderBy('seq').get();
+      return snapshot.docs.map((doc) => LedgerEntry.parse(doc.data()));
+    },
+
+    async getManifest(rentalId, manifestId) {
+      const snapshot = await manifests(rentalId).doc(manifestId).get();
+      return snapshot.exists ? Manifest.parse({ ...fromTimestamps(snapshot.data()!), id: manifestId }) : null;
+    },
+
+    async appendLedger(rentalId, build) {
+      const { db } = collections();
+      return db.runTransaction(async (tx) => {
+        const last = await tx.get(ledger(rentalId).orderBy('seq', 'desc').limit(1));
+        const head = last.empty ? null : LedgerEntry.parse(last.docs[0]!.data());
+        const append = await build(head && { seq: head.seq, entryHash: head.entryHash });
+        const entry = LedgerEntry.parse(append.entry);
+        // `create`, so two appends of the same seq cannot both land.
+        tx.create(ledger(rentalId).doc(ledgerDocId(entry.seq)), entry);
+        if (append.manifest) {
+          const { id, ...fields } = Manifest.parse(append.manifest);
+          tx.create(manifests(rentalId).doc(id), toFirestore(fields));
+        }
+        for (const { itemId, fields } of append.items ?? []) tx.update(evidence(rentalId).doc(itemId), toFirestore(fields));
+        return append;
       });
     },
   };

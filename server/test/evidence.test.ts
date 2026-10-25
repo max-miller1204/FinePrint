@@ -74,6 +74,7 @@ describe('POST /v1/rentals/:id/evidence', () => {
         sealedManifestId: null,
         status: 'pending',
         receivedAtServer: null,
+        deletedAt: null,
         createdAt: expect.any(String),
         upload: {
           method: 'PUT',
