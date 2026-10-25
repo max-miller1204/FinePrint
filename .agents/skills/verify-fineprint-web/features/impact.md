@@ -57,3 +57,9 @@ Smoke, impact, leases, integrity and sharing passed together: 16 passed,
 2 unconfigured live-model skips, exit 0, retries/cache disabled.
 Evidence: `e2e/.e2e/proof/dev-impact-sharing/`. Server unit tests: 478 passed;
 workspace typecheck: exit 0. No iOS test file was authored or edited.
+
+The macOS build caught a Swift typed-error inference failure in Settings.
+The handler now uses `do throws(APIError)`, matching the API's declared failure
+and the error state. Smoke and both impact checks were rerun on this fix:
+3 passed, exit 0, no retries/cache; proof `dev-impact-typed-error`.
+Compilation awaits the new macOS CI run; no iOS runtime pass is claimed.

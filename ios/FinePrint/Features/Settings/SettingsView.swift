@@ -160,7 +160,7 @@ struct SettingsView: View {
         impactError = nil
         Task {
             defer { settings.isSyncingImpact = false }
-            do {
+            do throws(APIError) {
                 let reply = try await APIClient(auth: auth, serverURL: configuration.serverURL).setImpactOptIn(optedIn)
                 settings.impactOptIn = reply.impactOptIn
             } catch {

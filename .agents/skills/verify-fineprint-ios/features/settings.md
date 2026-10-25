@@ -10,8 +10,14 @@ one button that removes everything FinePrint holds about them.
   shares onboarding's key. Nothing renders in Spanish or at the Simpler
   level yet (#45, #18), and the footer says so. Test ids
   `settings.language`, `settings.readingLevel`.
-- **Privacy**: "Add to the Impact Count", off by default, saved on the
-  device. #57 builds the counter on it. Test id `settings.impactOptIn`.
+- **Privacy**: "Add to the Impact Count", off by default. #57 sends consent
+  through authenticated `PATCH /v1/me/impact`, saves the acknowledged choice,
+  serializes foreground sync with saves, and shows progress or a retryable
+  error without changing the acknowledged value on failure. Test ids:
+  `settings.impactOptIn`, `settings.impactProgress`, `settings.impactError`.
+  The save handler uses `do throws(APIError)` to preserve the typed API failure
+  for display. The macOS build checks compilation; runtime acceptance is the
+  user-approved TestFlight device check from dev by @max-miller1204.
 - **Your Data > Delete Everything…** (`settings.deleteEverything`) opens a
   confirmation dialog ("Delete everything?", button "Delete All My Data",
   `settings.deleteEverything.confirm`). The dialog modifier belongs to the
@@ -29,8 +35,9 @@ one button that removes everything FinePrint holds about them.
   (`deletion.receipt.server`: rentals and photos) and what the device
   removed (`deletion.receipt.device`). "Start Over"
   (`deletion.receipt.done`) leaves it; the receipt is never saved.
-- **Left out**: share links and their access log (#35) and the AI trace
-  overlay (#39) have no rows, because those features do not exist yet.
+- **Share Links**: #35 provides link creation, one-time sharing, revocation and
+  access history; see the device checklist below.
+- **Left out**: the AI trace overlay (#39) has no row yet.
   Sign in with Apple is not built (optional in the issue).
 - **Built-in server URL** (#78): the default server is the Info.plist key
   `FinePrintServerURL`, set from `ios/Config/Shared.xcconfig`. Debug is
