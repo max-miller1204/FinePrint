@@ -436,8 +436,8 @@ All model IDs live in `server/src/ai/models.ts` and env vars (`GEMMA_PRIMARY`, `
    |
    v  POST /v1/rentals/:id/leases  (redacted text only)
 [S1] Triage ............................ 26B   -> stop + handoff if high-stakes
-[S2] Clause segmentation + key terms ... 26B   -> clauses[{heading, verbatim}], keyTerms[{name, value, quote}]
-[S3] Quote resolution .................. code  -> locate each verbatim in redactedText (whitespace/quote normalized); drop misses
+[S2] Clause segmentation + key terms ... 26B   -> clauses[{heading, start}] (first 6 to 12 words), keyTerms[{name, value, quote}]
+[S3] Quote resolution .................. code  -> locate each start and quote in redactedText (whitespace/quote normalized); clauses run start to next start; drop misses
 [S4] Deterministic checks .............. code  -> deposit cap, late fee cap, notice hours, using verified keyTerms
 [S5] Semantic rule mapping ............. 26B   -> per clause: ruleIds[], assessment, leaseQuote, reasoning  (batches of ~10 clauses; all rule summaries in prompt)
 [S6] Mechanical verification ........... code  -> leaseQuote in clause? ruleId exists? rule version effective for lease dates?
