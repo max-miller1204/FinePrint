@@ -30,7 +30,8 @@ gcloud auth login
 ```
 
 Run it again any time: it skips what exists and ships a new revision. It
-prints the server URL to set in the iOS app.
+prints the server URL to set in the iOS app. The budget alerts are in US
+dollars, so the budget step fails on a billing account in another currency.
 
 ## API dependency map
 
