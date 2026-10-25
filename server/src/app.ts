@@ -13,6 +13,7 @@ import { signerFromEnv, type Signer } from './integrity/kms.js';
 import { createLogger, type LogSink, type Logger } from './log.js';
 import { createInternal, googleSchedulerVerifier, type VerifyScheduler } from './routes/internal.js';
 import type { LeaseAnalyzer } from './routes/leases.js';
+import { createImpact } from './routes/impact.js';
 import { createV1 } from './routes/v1.js';
 import { firestoreStore, type Store } from './storage/firestore.js';
 import { gcsObjects, type EvidenceObjects } from './storage/gcs.js';
@@ -95,8 +96,9 @@ export function createApp({
     return c.json({ status: 'ok', checks: results });
   });
 
-  // Public: /healthz and /health above, /.well-known/*, and later /r/* and /impact.
+  // Public: /healthz and /health above, /.well-known/*, /impact, and later /r/*.
   app.route('/.well-known', createWellKnown(clientConfig, signer));
+  app.route('/impact', createImpact(store));
   const analyzer: LeaseAnalyzer = { gemma, triage, packs };
   app.route('/v1', createV1(verifyIdToken, store, objects, signer, triage, accounts, analyzer));
   // Cloud Scheduler only; it checks its own Google token, not a Firebase one.

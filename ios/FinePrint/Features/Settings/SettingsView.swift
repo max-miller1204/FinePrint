@@ -10,6 +10,7 @@ struct SettingsView: View {
     @Environment(\.evidenceStore) private var evidenceStore
     @Environment(\.dismiss) private var dismiss
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var impactError: APIError?
     @State private var unlock = DeveloperUnlock()
     @State private var unlockCount = 0
     @State private var isConfirmingDelete = false
@@ -39,19 +40,31 @@ struct SettingsView: View {
                 }
 
                 Section {
-                    Toggle("Add to the Impact Count", isOn: $settings.impactOptIn)
+                    Toggle("Add to the Impact Count", isOn: Binding(
+                        get: { settings.impactOptIn },
+                        set: { saveImpactPreference($0) }
+                    ))
+                        .disabled(settings.isSyncingImpact || deletion.isDeleting)
                         .accessibilityIdentifier("settings.impactOptIn")
+                    if settings.isSyncingImpact {
+                        ProgressView("Saving your choice…")
+                            .accessibilityIdentifier("settings.impactProgress")
+                    }
+                    if let impactError {
+                        WarningLabel(impactError.message)
+                            .accessibilityIdentifier("settings.impactError")
+                    }
                 } header: {
                     Text("Privacy")
                 } footer: {
-                    Text("Adds one to a public count of tenants helped. It never includes your name, your rental, or your documents. Off unless you turn it on.")
+                    Text("Adds one to a public count of tenants helped. It never includes your name, your rental, or your documents. Off unless you turn it on. Turning it off stops future counts; past anonymous totals remain.")
                 }
 
                 Section {
                     Button("Delete Everything…", role: .destructive) {
                         isConfirmingDelete = true
                     }
-                    .disabled(deletion.isDeleting)
+                    .disabled(deletion.isDeleting || settings.isSyncingImpact)
                     .accessibilityIdentifier("settings.deleteEverything")
                     // Keep the iOS 26 popover anchored to the row that opens it.
                     .confirmationDialog("Delete everything?", isPresented: $isConfirmingDelete, titleVisibility: .visible) {
@@ -78,7 +91,7 @@ struct SettingsView: View {
                 } header: {
                     Text("Your Data")
                 } footer: {
-                    Text("Removes your rentals, photos, and anonymous account from this device and from the server. Nothing is kept.")
+                    Text("Removes your rentals, photos, and anonymous account from this device and from the server. No personal data is kept. Past anonymous impact totals remain.")
                 }
 
                 Section {
@@ -133,6 +146,20 @@ struct SettingsView: View {
                 summarizeLocalData(deadlines: deadlines, evidence: evidenceStore)
             } erase: {
                 eraseLocalData(deadlines: deadlines, uploads: uploads, evidence: evidenceStore, settings: settings, auth: auth)
+            }
+        }
+    }
+
+    private func saveImpactPreference(_ optedIn: Bool) {
+        settings.isSyncingImpact = true
+        impactError = nil
+        Task {
+            defer { settings.isSyncingImpact = false }
+            do {
+                let reply = try await APIClient(auth: auth, serverURL: configuration.serverURL).setImpactOptIn(optedIn)
+                settings.impactOptIn = reply.impactOptIn
+            } catch {
+                impactError = error
             }
         }
     }

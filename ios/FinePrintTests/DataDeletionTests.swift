@@ -58,6 +58,19 @@ struct DataDeletionTests {
         return APIClient(auth: auth, serverURL: Fixture.server, transport: http.transport)
     }
 
+    @Test func `impact consent sends only the explicit boolean and authenticated account`() async throws {
+        let http = StubHTTP(["impact": [.init(status: 200, body: #"{"impactOptIn":true}"#)]])
+        let reply = try await client(http).setImpactOptIn(true)
+        #expect(reply.impactOptIn)
+        let request = try #require(http.requests(to: "impact").first)
+        #expect(request.httpMethod == "PATCH")
+        #expect(request.url?.path() == "/v1/me/impact")
+        #expect(request.value(forHTTPHeaderField: "Authorization") == "Bearer id-1")
+        let body = try #require(request.httpBody)
+        let fields = try JSONSerialization.jsonObject(with: body) as? [String: Bool]
+        #expect(fields == ["impactOptIn": true])
+    }
+
     @Test func `deletes on the server, then the device, and keeps a receipt`() async throws {
         let http = StubHTTP(["me": [reply]])
         let deletion = DataDeletion()

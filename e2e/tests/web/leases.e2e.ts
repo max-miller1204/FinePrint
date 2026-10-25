@@ -77,7 +77,7 @@ async function curlStream(baseUrl: string, path: string, idToken: string, timeou
 
 // The stored lease, read from the Firestore emulator in ../firebase.json.
 async function storedDocs(path: string): Promise<{ documents?: { name: string; fields: Record<string, Record<string, unknown>> }[]; fields?: Record<string, Record<string, unknown>> }> {
-  const res = await fetch(`http://127.0.0.1:8090/v1/projects/demo-fineprint/databases/(default)/documents/${path}?pageSize=300`, {
+  const res = await fetch(`http://${process.env.E2E_FIRESTORE_HOST ?? '127.0.0.1:8090'}/v1/projects/demo-fineprint/databases/(default)/documents/${path}?pageSize=300`, {
     headers: { Authorization: 'Bearer owner' },
   });
   expect(res.status).toBe(200);

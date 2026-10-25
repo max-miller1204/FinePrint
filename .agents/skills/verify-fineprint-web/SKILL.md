@@ -28,7 +28,12 @@ can take most of a minute to start on an 8 GB Mac, so the command's
 `startupTimeout` is 180 s. The
 runner starts it, polls `/healthz` until it answers, and stops it with
 SIGTERM after the run, which shuts the emulators down too. Nothing to start
-by hand. No seeds yet: `/healthz` checks are stubbed until M6. Run
+by hand. For concurrent worktrees, set `E2E_WEB_FIREBASE_CONFIG` to a local
+Firebase config with unique auth, Firestore, Storage, hub, and logging
+ports (and absolute rule paths). Set `E2E_FIRESTORE_HOST` and `E2E_AUTH_HOST`
+to those host:port values for test readbacks. Also set `TMPDIR` to a
+unique existing directory so concurrent Storage emulators do not share
+blob files. Defaults remain unchanged. No seeds yet: `/healthz` checks are stubbed until M6. Run
 `pnpm install` at the repo root first.
 
 To watch the server by hand: `pnpm --filter @fineprint/server dev:emulated`

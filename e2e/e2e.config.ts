@@ -40,7 +40,7 @@ const serverCommand = (port: string, log: string, firebaseConfig: string, emulat
   env: { PORT: port },
   // Only set under `op run`: then triage asks Gemma as well as the keyword
   // backstop. Without a key the server runs the backstop alone.
-  inheritEnv: ['GEMINI_API_KEY', 'GEMMA_*'],
+  inheritEnv: ['GEMINI_API_KEY', 'GEMMA_*', 'TMPDIR'],
   log,
   // The Firestore and Storage emulators are JVMs; on an 8 GB Mac they can
   // take over a minute to start, past the 60 s default.
@@ -63,7 +63,7 @@ export default {
         // with a dev server you started by hand.
         url: 'http://127.0.0.1:0',
         readyUrl: 'http://127.0.0.1:{port}/healthz',
-        command: serverCommand('{port}', '.e2e/logs/server.log', join(import.meta.dirname, '..', 'firebase.json'), 'auth,firestore,storage'),
+        command: serverCommand('{port}', '.e2e/logs/server.log', process.env.E2E_WEB_FIREBASE_CONFIG ?? join(import.meta.dirname, '..', 'firebase.json'), 'auth,firestore,storage'),
       },
     },
     {

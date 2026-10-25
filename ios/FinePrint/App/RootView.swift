@@ -52,9 +52,19 @@ struct RootView: View {
             if phase == .active { foregrounds += 1 }
         }
         .task(id: trigger) {
+            guard trigger.signedIn, !deletion.isDeleting, deletion.receipt == nil else { return }
+            let client = APIClient(auth: auth, serverURL: configuration.serverURL)
+            if !settings.isSyncingImpact {
+                settings.isSyncingImpact = true
+                do {
+                    _ = try await client.setImpactOptIn(settings.impactOptIn)
+                } catch {
+                    // Retry consent next foreground; rental sync remains available.
+                }
+                settings.isSyncingImpact = false
+            }
             let pending = rentals.filter { $0.serverID == nil }
             guard !pending.isEmpty else { return }
-            let client = APIClient(auth: auth, serverURL: configuration.serverURL)
             if await RentalSync.uploadPending(pending, with: client) > 0 {
                 try? context.save()
             }

@@ -246,3 +246,18 @@ See [CONTRIBUTING.md](CONTRIBUTING.md).
 ## License
 
 [Apache-2.0](LICENSE)
+
+## Opt-in impact
+
+The public `/impact` page shows anonymous aggregate totals. Settings’
+“Add to the Impact Count” is off by default and now saves consent on the
+server. Counters include participating accounts, distinct verified clauses
+flagged, first move-in seals in occupancy days 0 through 4 (UTC), and deposit
+dollars covered, rounded down per rental to $500 buckets. This early-seal
+measure is not a legal deadline. No names, rentals, documents, or account
+identifiers are stored in the public counters. Past anonymous totals remain
+after opt-out or deletion; earlier activity is never backfilled.
+
+Objection letters, repairs, and actual legal-aid handoffs are labeled “Not
+tracked yet” until their workflows exist. Counts measure participation and
+actions, not proven legal outcomes. See the [verification map](.agents/skills/verify-fineprint-web/features/impact.md).
