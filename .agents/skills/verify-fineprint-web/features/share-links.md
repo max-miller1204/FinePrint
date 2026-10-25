@@ -89,5 +89,12 @@ Secret Manager wrapper's 13 synthetic checks passed without fetching a real
 secret. Typecheck, lint and jurisdiction checks passed. Screenshots and run
 metadata are saved in `docs/evidence/issue-35/`.
 
-Waiting on: iOS e2e by @maddoxrjohnson. The PR remains blocked on the Mac
+Waiting on: iOS e2e test written and run by @maddoxrjohnson. The PR remains blocked on the Mac
 runtime evidence and review; Linux results do not satisfy that gate.
+
+Latest sync includes main `ff20bdf` (#120). The single web run at
+`.e2e/proof/issue-35-main-sync/` passed 14 files and 54 tests, with 2
+unconfigured live-model skips, exit 0. It includes smoke, all sharing and
+browser verification tests, plus parity CLI checks. Unit tests: 452 passed;
+typecheck and lint passed. iOS test authoring and execution remain assigned
+to @maddoxrjohnson's Mac agents. No iOS test file was added from Linux.
