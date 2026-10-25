@@ -5,7 +5,7 @@
 import { CHECKS, isCheckName, runCheck, type CheckInputs } from '../../rules/checks.js';
 import type { ResolvedRule } from '../../rules/resolve.js';
 import type { KeyTermName } from './key-terms.js';
-import type { CheckResultForLease, KeyTerm } from './types.js';
+import type { CheckResultForLease, KeyTerm, RuleInForce } from './types.js';
 
 export function runDeterministicChecks(resolved: readonly ResolvedRule[], keyTerms: readonly KeyTerm[]): CheckResultForLease[] {
   const byName = new Map(keyTerms.map((term) => [term.name as string, term]));
@@ -38,4 +38,28 @@ export function runDeterministicChecks(resolved: readonly ResolvedRule[], keyTer
     });
   }
   return results;
+}
+
+// Wording a lease must have, searched for in code. S5 can only cite a rule
+// with a quote from a clause, so a lease that leaves something out entirely
+// never yields a mapping; these rules are decided here instead.
+export const REQUIRED_WORDING: Readonly<Record<string, RegExp>> = {
+  // § 55.1-1204(B): the DHCD Statement of Tenant Rights and Responsibilities
+  // comes with the lease. Any mention counts: an attachment, an exhibit, or
+  // the signed acknowledgment.
+  VA_TENANT_RIGHTS_STATEMENT: /\btenant(?:s|['’]s|s['’])?\s+rights\s+and\s+responsibilities\b/i,
+};
+
+export interface AbsenceResult extends RuleInForce {
+  // Always `missing`: a rule whose wording is found yields nothing.
+  outcome: 'missing';
+}
+
+export function runAbsenceChecks(resolved: readonly ResolvedRule[], text: string): AbsenceResult[] {
+  const folded = text.replace(/\s+/g, ' ');
+  return resolved.flatMap(({ rule, versions, changes }) => {
+    const wording = REQUIRED_WORDING[rule.id];
+    if (!wording || wording.test(folded)) return [];
+    return [{ ruleId: rule.id, versions, changes, outcome: 'missing' as const }];
+  });
 }

@@ -1,6 +1,5 @@
-// The lease analysis pipeline, S1 to S6 (spec §7.3). Gemma interprets; code
-// verifies. S7 to S9 (verifier, severity, explanation, translation) are #15;
-// the route and SSE stream are #16.
+// The lease analysis pipeline, S1 to S9 (spec §7.3). Gemma interprets; code
+// verifies. The route and SSE stream are #16.
 //
 //   analyzeLease({ leaseId, text, locale, term? }, { gemma, pack, triage? })
 //     S1 triage.check(lease)                  -> stop with the handoff if it escalates
@@ -10,11 +9,18 @@
 //     S4 code: every deterministic rule in force, on the verified key terms
 //     S5 gemma `mapping`, ~10 clauses a call  -> per clause: ruleIds, assessment, leaseQuote
 //     S6 code: clause exists, quote in clause, rule exists and in force, not decided by S4
+//     S7 gemma `verification` (31B), S5 violations only -> its own reading of clause against statute
+//        code: severity table (severity.ts); findings sorted and numbered
+//     S8 gemma `explanation`, all findings  -> title, explanation; grade check, one regeneration
+//     S9 gemma `translation` if locale is not English -> title, explanation, action; quotes untouched
 //
-// Budget: at most MAX_CALLS generate() calls for a 12-page lease, and no
-// request over MAX_REQUEST_TOKENS, so each one fits in a minute of Gemma's
-// 16K input tokens (docs/ai-pipeline.md, gap 3). Requests queue in the
-// client's rate limiter, which reports each wait as a `waiting` event.
+// Budget: S1 to S5 make at most ANALYSIS_CALLS generate() calls for a
+// 12-page lease, and S7 to S9 usually four more (verifier, explanation, its
+// regeneration, translation), MAX_CALLS in all. No request is over
+// MAX_REQUEST_TOKENS, so each one fits in a minute of Gemma's 16K input
+// tokens (docs/ai-pipeline.md, gap 3); S7 runs on 31B's own quota. Requests
+// queue in the client's rate limiter, which reports each wait as a
+// `waiting` event.
 
 import { createLogger, type Logger } from '../../log.js';
 import { resolveRules, type LeaseTerm, type ResolvedRule } from '../../rules/resolve.js';
@@ -25,29 +31,31 @@ import { mappingInstruction, mappingTask, SEGMENT_INSTRUCTION, segmentTask } fro
 import { mappingSchema, SegmentationSchema, type DocumentType, type Mapping } from '../schemas/lease.js';
 import type { Triage, TriageCategory, TriageDecision } from '../triage/index.js';
 import { assessInjection, notALease, withInjectionFinding, type Injection } from './adversarial.js';
-import { runDeterministicChecks } from './checks.js';
+import { clampOutput, MAX_REQUEST_TOKENS } from './budget.js';
+import { runAbsenceChecks, runDeterministicChecks } from './checks.js';
+import { explainFindings } from './explain.js';
+import { draftFindings, rankFindings } from './findings.js';
+import type { ReadingLevel } from './readability.js';
 import { resolveClauses, resolveKeyTerms } from './resolve.js';
-import type { CheckResultForLease, Clause, Drop, KeyTerm, PipelineUsage, TermUsed, VerifiedMapping } from './types.js';
+import { isEnglish, translateFindings } from './translate.js';
+import type { CheckResultForLease, Clause, Drop, Finding, KeyTerm, PipelineUsage, TermUsed, VerifiedMapping } from './types.js';
+import { runVerifier, type StageCall } from './verifier.js';
 import { verifyMappings } from './verify.js';
 
 export { detectInjection, type Injection } from './adversarial.js';
-
-export const MAX_CALLS = 8;
-// Estimated input tokens (gemma.ts, 4 characters a token) per request.
-export const MAX_REQUEST_TOKENS = 12_000;
+export { MAX_REQUEST_TOKENS };
+// S1 to S5.
+export const ANALYSIS_CALLS = 8;
+// Every stage.
+export const MAX_CALLS = 12;
 // Spec §7.3: about 10 clauses per mapping call.
 export const CLAUSES_PER_BATCH = 10;
 // About 10K tokens of lease per S2 call: a 12-page lease is one or two calls.
 export const SEGMENT_CHUNK_CHARS = 40_000;
-// Output caps (gemma.ts, maxOutputTokens), sized to the work so a looping
-// answer is cut off and retried instead of running for minutes, while a long
-// lease still fits. Measured on 26B (2026-10-25): S2 writes about 1 token per
-// 4.5 characters of lease (1,700 for the 7,837-character synthetic lease), and
-// a 12-page lease's 25-clause mapping batches ran past 4,096 tokens, thinking
-// included.
-const MIN_OUTPUT_TOKENS = 4_096;
-const MAX_OUTPUT_TOKENS = 16_384;
-const clampOutput = (tokens: number) => Math.min(MAX_OUTPUT_TOKENS, Math.max(MIN_OUTPUT_TOKENS, Math.ceil(tokens)));
+// Output caps (budget.ts). Measured on 26B (2026-10-25): S2 writes about 1
+// token per 4.5 characters of lease (1,700 for the 7,837-character synthetic
+// lease), and a 12-page lease's 25-clause mapping batches ran past 4,096
+// tokens, thinking included.
 
 // Twice the measured rate, for clause-dense pages.
 export function segmentOutputCap(chunkChars: number): number {
@@ -63,6 +71,8 @@ export interface LeaseInput {
   // The redacted text the device sent.
   text: string;
   locale: string;
+  // The user's setting (spec §6.1 users.readingLevel): grade 7, or grade 5 for `simpler`.
+  readingLevel?: ReadingLevel;
   // The rental's dates, used when the lease does not state its own.
   term?: LeaseTerm;
   // The day of the analysis; defaults to today (UTC).
@@ -70,8 +80,10 @@ export interface LeaseInput {
 }
 
 export type LeaseEvent =
-  | { type: 'stage'; stage: 'S1' | 'S2' | 'S3' | 'S4' | 'S5' | 'S6'; label: string; progress: number }
+  | { type: 'stage'; stage: 'S1' | 'S2' | 'S3' | 'S4' | 'S5' | 'S6' | 'S7' | 'S8' | 'S9'; label: string; progress: number }
   | { type: 'keyterms'; keyTerms: KeyTerm[] }
+  // One per finding, in display order, once S8 (and S9) are done.
+  | { type: 'finding'; finding: Finding }
   | { type: 'model'; event: GemmaEvent };
 
 export interface LeaseDeps {
@@ -102,6 +114,7 @@ export type LeaseAnalysis =
       keyTerms: KeyTerm[];
       checks: CheckResultForLease[];
       mappings: VerifiedMapping[];
+      findings: Finding[];
       injection: Injection;
       drops: Drop[];
       usage: PipelineUsage;
@@ -195,6 +208,11 @@ export async function analyzeLease(input: LeaseInput, deps: LeaseDeps, { signal,
             keyTerms: analysis.keyTerms.length,
             violations: analysis.checks.filter((c) => c.outcome === 'violates').length,
             mappings: analysis.mappings.length,
+            findings: analysis.findings.length,
+            unenforceable: analysis.findings.filter((f) => f.severity === 'unenforceable').length,
+            ask: analysis.findings.filter((f) => f.severity === 'ask').length,
+            info: analysis.findings.filter((f) => f.severity === 'info').length,
+            unverified: analysis.findings.filter((f) => f.verifier?.verdict === 'unverified').length,
             drops: analysis.drops.length,
             termSource: analysis.term.source,
           }
@@ -260,6 +278,7 @@ export async function analyzeLease(input: LeaseInput, deps: LeaseDeps, { signal,
   // S4.
   stage('S4', 'Checking amounts and notice periods', 0.45);
   const checks = runDeterministicChecks(resolved, keyTerms);
+  const absences = runAbsenceChecks(resolved, input.text);
 
   // S5 and S6. Every rule in force goes in the prompt; S4 still overrides
   // the model on the rules it could decide.
@@ -269,7 +288,7 @@ export async function analyzeLease(input: LeaseInput, deps: LeaseDeps, { signal,
   if (rules.length > 0 && clauses.length > 0) {
     const schema = mappingSchema(rules.map((r) => r.id) as [string, ...string[]]);
     const instruction = mappingInstruction(rules);
-    const batches = planBatches(clauses, MAX_CALLS - usage.calls, Math.ceil((instruction.length + 2_000) / 4));
+    const batches = planBatches(clauses, ANALYSIS_CALLS - usage.calls, Math.ceil((instruction.length + 2_000) / 4));
     const answers = await Promise.all(
       batches.map(async (batch) => {
         const docs: TextDocument[] = batch.map((c) => ({ id: c.id, text: c.verbatim }));
@@ -289,12 +308,36 @@ export async function analyzeLease(input: LeaseInput, deps: LeaseDeps, { signal,
       mappings.push(
         ...verifyMappings(
           result.data.mappings,
-          { clauses: new Map(batch.map((c) => [c.id, c])), pack, inForce, checks, model: result.model, fallback: result.fallback },
+          {
+            clauses: new Map(batch.map((c) => [c.id, c])),
+            pack,
+            inForce,
+            checks,
+            absent: absences.map((a) => a.ruleId),
+            model: result.model,
+            fallback: result.fallback,
+          },
           drops,
         ),
       );
     }
   }
+
+  // S7, then the severity table.
+  stage('S7', 'Getting a second opinion on legal findings', 0.8);
+  const call: StageCall = { gemma, options: common, track };
+  const drafts = draftFindings(pack, checks, absences, mappings, keyTerms);
+  const verdicts = await runVerifier(drafts, new Map(clauses.map((c) => [c.id, c])), call, drops);
+  const ranked = rankFindings(drafts, verdicts);
+
+  // S8 and S9.
+  stage('S8', 'Writing it in plain language', 0.88);
+  let findings = await explainFindings(ranked, input.readingLevel ?? 'standard', call, drops);
+  if (!isEnglish(input.locale)) {
+    stage('S9', 'Translating', 0.95);
+    findings = await translateFindings(findings, input.locale, call, drops);
+  }
+  for (const finding of findings) onEvent?.({ type: 'finding', finding });
 
   return done({
     status: 'analyzed',
@@ -305,6 +348,7 @@ export async function analyzeLease(input: LeaseInput, deps: LeaseDeps, { signal,
     keyTerms,
     checks,
     mappings,
+    findings,
     injection,
     drops,
     usage,
