@@ -7,6 +7,7 @@ import type { EvidenceObjects } from '../storage/gcs.js';
 import type { Accounts } from '../accounts.js';
 import { createAsk } from './ask.js';
 import { createEvidence } from './evidence.js';
+import { createIssues } from './issues.js';
 import { createLeases, type LeaseAnalyzer } from './leases.js';
 import { createMe } from './me.js';
 import { createRentals } from './rentals.js';
@@ -34,6 +35,7 @@ export function createV1(verifyIdToken: VerifyIdToken, store: Store, objects: Ev
   v1.route('/rentals', createRentals(store));
   v1.route('/rentals', createEvidence(store, objects, signer));
   v1.route('/rentals', createSeal(store, signer));
+  v1.route('/rentals', createIssues(store, analyzer));
   v1.route('/triage', createTriageRoute(triage));
 
   return v1;

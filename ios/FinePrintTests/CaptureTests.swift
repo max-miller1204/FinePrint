@@ -127,7 +127,8 @@ struct CaptureRecordTests {
 
     @Test func `encodes the fields and names of spec section 8_1`() throws {
         let json = try #require(JSONSerialization.jsonObject(with: JSONEncoder().encode(record)) as? [String: Any])
-        #expect(Set(json.keys) == ["itemId", "rentalId", "sha256", "bytes", "mime", "capturedAtDevice", "deviceUptimeMs", "source", "room", "checklistItem", "appVersion"])
+        #expect(Set(json.keys) == ["itemId", "rentalId", "sha256", "bytes", "mime", "capturedAtDevice", "deviceUptimeMs", "source", "room", "checklistItem", "appVersion", "session"])
+        #expect(json["session"] as? String == "move_in")
         #expect(json["itemId"] as? String == "6F1C2B8E-7D7A-4E5B-9C1D-2B3A4C5D6E7F")
         #expect(json["source"] as? String == "in_app_camera")
         #expect(json["bytes"] as? Int == 2_483_112)

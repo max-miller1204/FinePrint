@@ -3,6 +3,7 @@ import { LedgerEntry } from '../src/integrity/ledger.js';
 import { Manifest } from '../src/integrity/manifest.js';
 import type { Clause, Finding } from '../src/ai/pipeline/types.js';
 import { Evidence } from '../src/models/evidence.js';
+import { Issue } from '../src/models/issue.js';
 import { Lease } from '../src/models/lease.js';
 import { Rental } from '../src/models/rental.js';
 import type { Store } from '../src/storage/firestore.js';
@@ -20,6 +21,8 @@ export function memoryStore() {
   // Keyed `rentalId/leaseId`.
   const leases = new Map<string, Lease>();
   const leaseResults = new Map<string, { clauses: Clause[]; findings: Finding[] }>();
+  // Keyed `rentalId/issueId`.
+  const issues = new Map<string, Issue>();
   let nextId = 1;
   const store: Store = {
     async createRental(owner, build) {
@@ -70,6 +73,20 @@ export function memoryStore() {
       for (const { itemId, fields } of append.items ?? []) Object.assign(evidence.get(`${rentalId}/${itemId}`)!, fields);
       return structuredClone(append);
     },
+    async latestLease(rentalId) {
+      const analyzed = [...leases.entries()]
+        .filter(([key, lease]) => key.startsWith(`${rentalId}/`) && lease.status === 'analyzed')
+        .sort(([, a], [, b]) => (b.analyzedAt?.getTime() ?? 0) - (a.analyzedAt?.getTime() ?? 0));
+      const newest = analyzed[0];
+      if (!newest) return null;
+      const [key, lease] = newest;
+      return structuredClone({ id: lease.id, clauses: leaseResults.get(key)?.clauses ?? [] });
+    },
+    async createIssue(rentalId, issue) {
+      const key = `${rentalId}/${issue.id}`;
+      if (issues.has(key)) throw Object.assign(new Error('6 ALREADY_EXISTS'), { code: 6 });
+      issues.set(key, Issue.parse(issue));
+    },
     async rentalIdsOwnedBy(uid) {
       return [...rentals.values()].filter((rental) => rental.ownerUid === uid).map((rental) => rental.id);
     },
@@ -87,6 +104,7 @@ export function memoryStore() {
         evidenceItems += 1;
       }
       for (const key of [...manifests.keys()]) if (key.startsWith(`${rentalId}/`)) manifests.delete(key);
+      for (const key of [...issues.keys()]) if (key.startsWith(`${rentalId}/`)) issues.delete(key);
       for (const key of [...leases.keys()]) {
         if (!key.startsWith(`${rentalId}/`)) continue;
         leases.delete(key);
@@ -126,5 +144,5 @@ export function memoryStore() {
       return structuredClone(leaseResults.get(`${rentalId}/${leaseId}`) ?? { clauses: [], findings: [] });
     },
   };
-  return { store, rentals, users, evidence, ledgers, manifests, leases, leaseResults };
+  return { store, rentals, users, evidence, ledgers, manifests, leases, leaseResults, issues };
 }

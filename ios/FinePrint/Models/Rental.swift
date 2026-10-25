@@ -81,6 +81,7 @@ final class Rental {
     var tenancyEndDate: CalendarDay?
     @Relationship(deleteRule: .cascade, inverse: \Deadline.rental) var deadlines: [Deadline] = []
     @Relationship(deleteRule: .cascade, inverse: \Walkthrough.rental) var walkthroughs: [Walkthrough] = []
+    @Relationship(deleteRule: .cascade, inverse: \RepairIssue.rental) var issues: [RepairIssue] = []
 
     init(
         id: UUID = UUID(),

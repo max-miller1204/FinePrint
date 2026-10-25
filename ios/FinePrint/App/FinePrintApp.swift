@@ -80,7 +80,7 @@ struct FinePrintApp: App {
     private static let logger = Logger(subsystem: "org.fineprint.FinePrint", category: "Persistence")
 
     private static func makeModelContainer(inMemory: Bool) -> ModelContainer {
-        let schema = Schema([Rental.self, Deadline.self, Walkthrough.self])
+        let schema = Schema([Rental.self, Deadline.self, Walkthrough.self, RepairIssue.self])
         do {
             let configuration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: inMemory)
             return try ModelContainer(for: schema, configurations: configuration)

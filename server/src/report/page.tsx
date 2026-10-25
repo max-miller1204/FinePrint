@@ -23,7 +23,7 @@ function Time({ at }: { at: string | null }) {
 function Hash({ value }: { value: string }) {
   return <code>{value}</code>;
 }
-function Layout({ children, fixture = false }: { children: Child; fixture?: boolean }) {
+function Layout({ children, fixture = false, verify = false }: { children: Child; fixture?: boolean; verify?: boolean }) {
   return (
     <>
       {raw('<!doctype html>')}
@@ -37,6 +37,7 @@ function Layout({ children, fixture = false }: { children: Child; fixture?: bool
           <meta name="robots" content="noindex, nofollow, noarchive" />
           <title>Evidence Report | FinePrint</title>
           <style>{raw(reportStyles)}</style>
+          {verify && <script src="/r/verify.js" defer></script>}
         </head>
         <body>
           <a class="skip" href="#report">
@@ -124,6 +125,7 @@ function Exhibit({ item, number, report }: { item: ReportExhibit; number: number
   const deleted = item.deletedAt !== null;
   const annotations = acceptedAnnotations(item);
   const image = deleted ? undefined : webUrl(item.imageUrl);
+  const original = deleted ? undefined : webUrl(item.originalUrl === undefined ? item.imageUrl : item.originalUrl);
   const manifest = report.manifests.find((m) => m.id === item.sealedManifestId);
   const gap = receiptGap(item);
   const title = `Exhibit ${number}: ${item.room}, ${item.checklistItem}`;
@@ -218,7 +220,19 @@ function Exhibit({ item, number, report }: { item: ReportExhibit; number: number
             </ul>
           </>
         )}
-        <div data-verify-exhibit={item.id} />
+        <div
+          class="verification"
+          data-verify-exhibit={item.id}
+          data-manifest-id={item.sealedManifestId ?? ''}
+          data-sha256={item.sha256}
+          data-original={original ?? ''}
+          data-deleted={String(deleted)}
+        >
+          <button type="button" hidden aria-describedby={`verify-status-${item.id}`} aria-label={`Verify exhibit ${number}`}>
+            Verify exhibit {number}
+          </button>
+          <p id={`verify-status-${item.id}`} role="status" aria-atomic="true">Not verified in this browser.</p>
+        </div>
       </figcaption>
     </figure>
   );
@@ -229,7 +243,7 @@ export function ReportPage({ report, variant = 'demo' }: { report: EvidenceRepor
   );
   const timeline = [...report.timeline].sort((a, b) => Date.parse(a.at) - Date.parse(b.at));
   return (
-    <Layout fixture={report.fixture}>
+    <Layout fixture={report.fixture} verify>
       <main id="report" tabIndex={-1}>
         <div class="intro">
           <p class="eyebrow">{report.fixture ? 'Synthetic fixture • ' : ''}Prepared for review</p>
@@ -376,16 +390,27 @@ export function ReportPage({ report, variant = 'demo' }: { report: EvidenceRepor
             receipt and sealing.
           </p>
           <p>
-            Signatures have not been verified in this browser. Deleted photos cannot be checked against their original
+            Checks run in your browser when you choose Verify. Deleted photos cannot be checked against their original
             bytes.
           </p>
-          <div id="verify-report" data-verify-report="" />
+          <p>
+            Verification checks included original photos and signed manifests only. It does not verify lease findings,
+            annotations, ledger history, or completeness of this report. Downloads may use mobile data.
+          </p>
+          <noscript>Enable JavaScript to verify in this browser. The report remains readable and printable.</noscript>
+          <div id="verify-report" class="verification" data-verify-report="">
+            <button type="button" hidden aria-describedby="verify-report-status">Verify report</button>
+            <p id="verify-report-status" role="status" aria-atomic="true">Not verified in this browser.</p>
+          </div>
           <p>
             <a href="/.well-known/fineprint-keys.json">Public signing keys (JWK)</a>
           </p>
           {report.manifests.length ? (
             report.manifests.map((m) => (
-              <details key={m.id} open data-manifest={m.id}>
+              <details
+                key={m.id} open data-manifest={m.id} data-sha256={m.sha256}
+                data-key-id={m.keyId} data-signature={m.signatureB64}
+              >
                 <summary>Signed manifest {m.id}</summary>
                 <dl>
                   <dt>SHA-256</dt>

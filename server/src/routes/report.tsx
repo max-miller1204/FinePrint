@@ -10,6 +10,7 @@ import {
   varyFixture,
 } from '../report/fixture.js';
 import type { EvidenceReport, ReportLoader } from '../report/model.js';
+import { verifyScript } from '../report/verify-script.js';
 import { ReportPage, Unavailable } from '../report/page.js';
 
 export function createReport(load: ReportLoader, signer: Signer | null, fixtureMode = fixturesEnabled()) {
@@ -24,10 +25,11 @@ export function createReport(load: ReportLoader, signer: Signer | null, fixtureM
     c.header('X-Content-Type-Options', 'nosniff');
     c.header(
       'Content-Security-Policy',
-      "default-src 'none'; style-src 'unsafe-inline'; img-src https: http:; base-uri 'none'; frame-ancestors 'none'; form-action 'none'",
+      `default-src 'none'; style-src 'unsafe-inline'; img-src https: http:; script-src 'self'; connect-src 'self' https:${fixtureMode ? ' http:' : ''}; base-uri 'none'; frame-ancestors 'none'; form-action 'none'`,
     );
     await next();
   });
+  route.get('/verify.js', (c) => c.body(verifyScript, 200, { 'Content-Type': 'text/javascript; charset=utf-8' }));
   if (fixtureMode)
     route.get(`/${FIXTURE_TOKEN}/photos/kitchen`, async (c) =>
       c.body(new Uint8Array(await fixturePhoto()), 200, {

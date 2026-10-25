@@ -26,7 +26,7 @@ describe('Evidence Report', () => {
       }),
     ).toBe(true);
   });
-  it('renders SSR without scripts, escapes data, rejects unsafe URLs and excludes rejected annotations', async () => {
+  it('renders SSR with only the self-hosted verifier, escapes data, rejects unsafe URLs and excludes rejected annotations', async () => {
     const report = structuredClone(await base);
     report.fixture = false;
     report.city = '<script>alert("city")</script>';
@@ -41,7 +41,9 @@ describe('Evidence Report', () => {
     expect(res.headers.get('referrer-policy')).toBe('no-referrer');
     expect(res.headers.get('content-security-policy')).toContain("default-src 'none'");
     expect(html).toContain('&lt;script&gt;');
-    expect(html).not.toContain('<script');
+    expect(html.match(/<script/g)).toHaveLength(1);
+    expect(html).toContain('<script src="/r/verify.js" defer');
+    expect(res.headers.get('content-security-policy')).toContain("script-src 'self'");
     expect(html).not.toContain('javascript:');
     expect(html).not.toContain('data:image');
     expect(html).not.toContain('Rejected suggestion');
@@ -89,6 +91,23 @@ describe('Evidence Report', () => {
     expect(validBox({ x: 0, y: 0, width: NaN, height: 1 })).toBe(false);
     expect(validBox({ x: 0, y: 0, width: 1, height: 1 })).toBe(true);
     expect(webUrl('javascript:alert(1)')).toBeUndefined();
+  });
+  it('uses authorized originals without previews, rejects unsafe URLs and omits deleted URLs', async () => {
+    const report = varyFixture(await base, 'demo', 'https://report.example');
+    const original = 'https://storage.example/original?signature=test';
+    report.exhibits[0]!.imageUrl = null;
+    report.exhibits[0]!.originalUrl = original;
+    report.exhibits[1]!.originalUrl = 'javascript:alert(1)';
+    report.exhibits[2]!.originalUrl = 'https://storage.example/deleted';
+    const html = await (await setup(async () => report).request('/r/ok')).text();
+    expect(html).toContain('data-original="' + original + '"');
+    expect(html).not.toContain('javascript:');
+    expect(html).not.toContain('storage.example/deleted');
+    const script = await setup(async () => null).request('/r/verify.js');
+    expect(script.status).toBe(200);
+    expect(script.headers.get('content-type')).toContain('text/javascript');
+    expect(script.headers.get('x-content-type-options')).toBe('nosniff');
+    expect(script.headers.get('content-security-policy')).toContain("connect-src 'self' https:;");
   });
   it('handles absent lease, pending and HEIC exhibits without inventing seal times', async () => {
     const report = varyFixture(await base, 'empty', 'http://localhost');

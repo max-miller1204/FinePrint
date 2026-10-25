@@ -248,11 +248,11 @@ describe('generate', () => {
     await expect(run()).rejects.toBeInstanceOf(GemmaOutputError);
   });
 
-  it('uses JSON for lease reasoning and Ask native function turns', () => {
+  it('uses JSON for lease reasoning, responsibility checks, and Ask native function turns', () => {
     const json = Object.entries(STAGES)
       .filter(([, s]) => s.output === 'json')
       .map(([stage]) => stage);
-    expect(json).toEqual(['extraction', 'mapping', 'verification', 'ask', 'explanation', 'translation']);
+    expect(json).toEqual(['extraction', 'mapping', 'verification', 'responsibility', 'ask', 'explanation', 'translation']);
   });
 
   it('caps the answer when the caller asks', async () => {

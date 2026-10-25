@@ -10,6 +10,11 @@ HTTP provider fixture exercises the real model transport without quota. Separate
 emulator ports are declared in `firebase.ask.json`. Live model quality is checked
 by `pnpm --filter @fineprint/eval ask` under the secret-manager environment.
 
+Merge verification against `origin/main` at `f8f63d0`: smoke, Ask, auth, rentals
+and triage passed together (18 tests, exit 0); proof output
+`e2e/.e2e/proof/ask-main-merge/`. Shared Gemma stage tests retain both
+Responsibility and Ask JSON routing.
+
 Expected: only citations from this request's executed tools appear. Uncited,
 invented, stale and mixed citations do not render. High-stakes input escalates
 before Ask, unrelated questions hand off, foreign rentals return 403, seven

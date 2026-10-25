@@ -13,7 +13,10 @@ Letters, and Ask surfaces). For now, each tab shows a placeholder screen.
   deadline: <title>, <countdown>". Tapping it opens the deadline's flow
   (Evidence for every kind today). It shows the most urgent real deadline
   (see [deadlines.md](deadlines.md)); DEBUG builds show a sample "Object to
-  move-in report" deadline when nothing real is due.
+  move-in report" deadline when nothing real is due. Its layout comes from
+  `tabViewBottomAccessoryPlacement` (inline beside a minimized tab bar: the
+  countdown only), never `ViewThatFits`, which froze pops and presentations
+  under accessibility (#99).
 - The gear (`settingsButton`) in every tab opens Settings as a sheet. Close
   (`settings.close`) dismisses it. See [settings.md](settings.md) for the
   language, reading level, impact count, and Delete Everything.
@@ -28,7 +31,7 @@ Open the app. No account and no network needed.
   that the Lease empty state shows.
 - `tests/ios/app-shell.e2e.ts` taps the accessory and checks that the
   Evidence tab is selected and its empty state shows. It also opens and
-  closes Settings.
+  closes Settings. Both retry a tap lost while the tabs settle after launch.
 - Locators: `getByRole('tab', { name })`, `getByTestId('deadlineAccessory')`,
   `getByTestId('settingsButton')`, `getByTestId('settings.close')`.
 
