@@ -248,8 +248,19 @@ describe('generate', () => {
     await expect(run()).rejects.toBeInstanceOf(GemmaOutputError);
   });
 
-  it('keeps every stage on schema output until an eval says otherwise', () => {
-    expect(Object.values(STAGES).every((s) => s.output === 'schema')).toBe(true);
+  it('puts the lease stages on json output and keeps the rest on schema until an eval says otherwise', () => {
+    const json = Object.entries(STAGES)
+      .filter(([, s]) => s.output === 'json')
+      .map(([stage]) => stage);
+    expect(json).toEqual(['extraction', 'mapping']);
+  });
+
+  it('caps the answer when the caller asks', async () => {
+    const { gemma, generateContent } = setup([reply(JSON.stringify(ANSWER)), reply(JSON.stringify(ANSWER))]);
+    await gemma.generate('triage', Finding, [LEASE], { task: 't', maxOutputTokens: 512 });
+    expect(generateContent.mock.calls[0]![0].config).toMatchObject({ maxOutputTokens: 512 });
+    await gemma.generate('triage', Finding, [LEASE], { task: 't' });
+    expect(generateContent.mock.calls[1]![0].config).not.toHaveProperty('maxOutputTokens');
   });
 
   it('honors GEMMA_PRIMARY for a dev run on Flash', async () => {
