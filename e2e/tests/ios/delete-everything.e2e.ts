@@ -99,7 +99,7 @@ test('Delete Everything removes an uploaded photo from the server and the device
   await expect.poll(photoObjects, { timeout: 15_000 }).toBe(stored + 1);
 
   // Back to Settings, then delete.
-  await screen.getByRole('button', { name: 'Settings' }).tap();
+  await screen.getByRole('button', { name: 'Settings' }).first().tap();
   const deleteRow = screen.getByTestId('settings.deleteEverything');
   await expect(deleteRow).toBeVisible({ timeout: 15_000 });
   await deleteRow.tap();
