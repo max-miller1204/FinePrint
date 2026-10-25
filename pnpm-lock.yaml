@@ -175,6 +175,9 @@ importers:
       '@ai-sdk/google':
         specifier: ^4.0.104
         version: 4.0.104(zod@4.6.7)
+      '@axe-core/playwright':
+        specifier: ^4.14.0
+        version: 4.14.0(playwright-core@1.64.0)
       '@e2e-dev/mobile':
         specifier: 0.12.4
         version: 0.12.4(ai@7.0.151(zod@4.6.7))(e2e@0.21.3(@ai-sdk/google@4.0.104(zod@4.6.7))(ai@7.0.151(zod@4.6.7)))
@@ -297,6 +300,12 @@ packages:
 
   '@apidevtools/json-schema-ref-parser@9.1.2':
     resolution: {integrity: sha512-r1w81DpR+KyRWd3f+rk6TNqMgedmAxZP5v5KWlXQWlgMUUtyEJch0DKEci1SorPMiSeM8XPl7MZ3miJ60JIpQg==}
+
+  '@axe-core/playwright@4.14.0':
+    resolution: {integrity: sha512-SGUhG5PIHd2eMdpgBF2PyQLOhX+qyDR2PT4cmoS4Qk2ak+jX/rrSvst9l0PGv5WTHolKpUMvVmoHpr4cZgf1RQ==}
+    engines: {node: '>=22.12.0'}
+    peerDependencies:
+      playwright-core: '>= 1.0.0'
 
   '@biomejs/biome@2.5.15':
     resolution: {integrity: sha512-WZTW4slm/pdkh92K6t/3aEN++44JD1PQ7squ7RCMLI1flHGl43DVOIGXvCjHiZgBMO1V4uYxoFNtqrIA4qGuIQ==}
@@ -1806,6 +1815,10 @@ packages:
 
   asynckit@0.4.0:
     resolution: {integrity: sha512-Oei9OH4tRh0YqU3GxhX79dM/mwVgvbZJaSNaRk+bshkj0S5cfHcgYakreBjrHwatXKbz+IoIdYLxrKim2MjW0Q==}
+
+  axe-core@4.14.0:
+    resolution: {integrity: sha512-9WTZxEjsZ7b13TH8JPmbV2z8CHbl80/2hm3XPEG4JgNdQLK81IBRXmSxHfMAOkSqQeRxT/0dwNDz2GOm3zzpcQ==}
+    engines: {node: '>=4'}
 
   b4a@1.9.0:
     resolution: {integrity: sha512-dpfcF9fDNR6++cthXR67iyhgqWy9CBouAvIWhIntzBG6cvK/cnIPiZQjBwi/ZqjjBEDGfoNDtmB0kTjroOJ3pQ==}
@@ -4162,6 +4175,11 @@ snapshots:
       call-me-maybe: 1.0.2
       js-yaml: 4.3.2
 
+  '@axe-core/playwright@4.14.0(playwright-core@1.64.0)':
+    dependencies:
+      axe-core: 4.14.0
+      playwright-core: 1.64.0
+
   '@biomejs/biome@2.5.15':
     optionalDependencies:
       '@biomejs/cli-darwin-arm64': 2.5.15
@@ -5454,6 +5472,8 @@ snapshots:
   async@3.2.6: {}
 
   asynckit@0.4.0: {}
+
+  axe-core@4.14.0: {}
 
   b4a@1.9.0: {}
 
