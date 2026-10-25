@@ -7,7 +7,7 @@
 //        documentType not residential_lease   -> stop: not a lease
 //     S3 code: cut clauses at their starts; key terms only if quote and value are found
 //     S4 code: every deterministic rule in force, on the verified key terms
-//     S5 gemma `mapping`, ~10 clauses a call  -> per clause: ruleIds, assessment, leaseQuote
+//     S5 gemma `mapping`, token-packed calls  -> per clause: ruleIds, assessment, leaseQuote
 //     S6 code: clause exists, quote in clause, rule exists and in force, not decided by S4
 //     S7 gemma `verification` (31B), S5 violations only -> its own reading of clause against statute
 //        code: severity table (severity.ts); findings sorted and numbered
@@ -22,16 +22,17 @@
 // queue in the client's rate limiter, which reports each wait as a
 // `waiting` event.
 
+import { z } from 'zod';
 import { createLogger, type Logger } from '../../log.js';
 import { resolveRules, type LeaseTerm, type ResolvedRule } from '../../rules/resolve.js';
 import type { IsoDate, RulePack } from '../../rules/types.js';
-import type { TextDocument } from '../documents.js';
-import type { GemmaClient, GemmaEvent, GenerateResult } from '../gemma.js';
+import { DOCUMENT_RULE, documentParts, type TextDocument } from '../documents.js';
+import { estimateInputTokens, JSON_RULE, type GemmaClient, type GemmaEvent, type GenerateResult } from '../gemma.js';
 import { mappingInstruction, mappingTask, SEGMENT_INSTRUCTION, segmentTask } from '../prompts/lease.js';
 import { mappingSchema, SegmentationSchema, type DocumentType, type Mapping } from '../schemas/lease.js';
 import type { Triage, TriageCategory, TriageDecision } from '../triage/index.js';
 import { assessInjection, notALease, withInjectionFinding, type Injection } from './adversarial.js';
-import { clampOutput, MAX_REQUEST_TOKENS } from './budget.js';
+import { clampOutput, MAX_OUTPUT_TOKENS, MAX_REQUEST_TOKENS } from './budget.js';
 import { runAbsenceChecks, runDeterministicChecks } from './checks.js';
 import { explainFindings } from './explain.js';
 import { draftFindings, rankFindings } from './findings.js';
@@ -48,7 +49,7 @@ export { MAX_REQUEST_TOKENS };
 export const ANALYSIS_CALLS = 8;
 // Every stage.
 export const MAX_CALLS = 12;
-// Spec §7.3: about 10 clauses per mapping call.
+// Historical batch size used by the golden excerpt benchmark.
 export const CLAUSES_PER_BATCH = 10;
 // About 10K tokens of lease per S2 call: a 12-page lease is one or two calls.
 export const SEGMENT_CHUNK_CHARS = 40_000;
@@ -62,8 +63,10 @@ export function segmentOutputCap(chunkChars: number): number {
   return clampOutput(chunkChars / 2);
 }
 
+const MAPPING_TOKENS_PER_CLAUSE = 400;
+
 export function mappingOutputCap(clauses: number): number {
-  return clampOutput(clauses * 400);
+  return clampOutput(clauses * MAPPING_TOKENS_PER_CLAUSE);
 }
 
 export interface LeaseInput {
@@ -138,31 +141,33 @@ export function chunkText(text: string, max: number): { start: number; end: numb
   return chunks;
 }
 
-// Splits clauses into mapping batches: about CLAUSES_PER_BATCH each, fewer
-// calls when the budget is short, and never over the token cap.
-export function planBatches(clauses: readonly Clause[], budget: number, overheadTokens: number): Clause[][] {
-  if (clauses.length === 0) return [];
-  const tokens = (c: Clause) => Math.ceil(c.verbatim.length / 4) + 20;
-  const room = Math.max(1_000, MAX_REQUEST_TOKENS - overheadTokens);
-  const byCount = Math.ceil(clauses.length / CLAUSES_PER_BATCH);
-  const byTokens = Math.ceil(clauses.reduce((sum, c) => sum + tokens(c), 0) / room);
-  const target = Math.max(byTokens, Math.min(byCount, Math.max(1, budget)));
-  const perBatch = Math.ceil(clauses.length / target);
+// Includes the document rule and JSON schema that the client adds in json mode.
+// Reserving the schema is also conservative when mapping uses schema mode.
+export function mappingOverheadTokens(instruction: string, schema: z.ZodType): number {
+  const system = [DOCUMENT_RULE, instruction, `${JSON_RULE}\n${JSON.stringify(z.toJSONSchema(schema, { io: 'output', unrepresentable: 'throw' }))}`].join('\n\n');
+  return estimateInputTokens(system, []);
+}
 
+// Fill each request in lease order until its input or output allowance is full.
+// A clause larger than the input room goes alone, never dropped or cut in half.
+export function planBatches(clauses: readonly Clause[], overheadTokens: number): Clause[][] {
   const batches: Clause[][] = [];
   let batch: Clause[] = [];
-  let used = 0;
+  let used = overheadTokens + Math.ceil(mappingTask([]).length / 4);
+  const base = used;
   for (const clause of clauses) {
-    const t = tokens(clause);
-    if (batch.length > 0 && (batch.length >= perBatch || used + t > room)) {
+    // Include escaped document tags and the id repeated in mappingTask.
+    const cost = estimateInputTokens('', documentParts([{ id: clause.id, text: clause.verbatim }], '')) + Math.ceil((clause.id.length + 2) / 4);
+    const outputFits = (batch.length + 1) * MAPPING_TOKENS_PER_CLAUSE <= MAX_OUTPUT_TOKENS;
+    if (batch.length > 0 && (used + cost > MAX_REQUEST_TOKENS || !outputFits)) {
       batches.push(batch);
       batch = [];
-      used = 0;
+      used = base;
     }
     batch.push(clause);
-    used += t;
+    used += cost;
   }
-  batches.push(batch);
+  if (batch.length > 0) batches.push(batch);
   return batches;
 }
 
@@ -288,7 +293,7 @@ export async function analyzeLease(input: LeaseInput, deps: LeaseDeps, { signal,
   if (rules.length > 0 && clauses.length > 0) {
     const schema = mappingSchema(rules.map((r) => r.id) as [string, ...string[]]);
     const instruction = mappingInstruction(rules);
-    const batches = planBatches(clauses, ANALYSIS_CALLS - usage.calls, Math.ceil((instruction.length + 2_000) / 4));
+    const batches = planBatches(clauses, mappingOverheadTokens(instruction, schema));
     const answers = await Promise.all(
       batches.map(async (batch) => {
         const docs: TextDocument[] = batch.map((c) => ({ id: c.id, text: c.verbatim }));

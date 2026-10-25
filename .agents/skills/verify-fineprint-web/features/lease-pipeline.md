@@ -35,8 +35,11 @@ translation. Gemma interprets; code verifies. The route is
   `VA_ROUTINE_MAINTENANCE_NOTICE_72H` today), with `limit`, `actual`, the
   key terms read, and the rule versions and mid-lease changes.
 - S5: the `mapping` stage (26B, `json` mode, output cap 400 tokens per clause, 4,096 to 16,384),
-  about 10 clauses a call, every rule in force in the instruction, rule ids
-  as an enum.
+  fills each batch up to 12,000 estimated input tokens, including the document
+  rule, JSON schema, escaped tags, and task ids. At most 40 clauses per batch
+  preserves the 400-token output allowance per clause. Every rule in force
+  stays in the instruction, rule ids as an enum. An individually oversized
+  clause is sent alone, preserving the existing no-splitting behavior.
 - S6: drops a mapping whose clause is not in its batch or whose quote is
   not in its clause, and rule ids that are unknown, not in force for the
   term, or already decided by S4 or by a missing-wording check.
@@ -83,6 +86,12 @@ The tenant uploads a lease in the app; the lease stream
 findings screen shows the `findings` list.
 
 ## Driving it with e2e
+
+`tests/web/packed-mapping.e2e.ts` proves one S5 call for all 31 clauses of
+the synthetic fixture through real HTTP/SSE, with a scripted model and
+in-memory storage. It checks request budgets, 26B mapping, 31B verification,
+and persisted findings without a key. This proves orchestration, not live
+model recall or quota behavior.
 
 `tests/web/leases.e2e.ts` drives it through the route ([leases](leases.md)).
 Unit tests cover it with a scripted
@@ -168,3 +177,12 @@ and non-lease uploads end to end.
 - A key term written only in words with no unit ("five") or as a bare
   number is dropped, never guessed: the check then reports
   `insufficient_input`.
+
+## Packed batching live gate (#110)
+
+Run `pnpm smoke:lease --packed-single` in `server/` with `GEMINI_API_KEY`
+provided by the secret manager and a fresh Gemma quota window. It checks one
+successful S5 request, all planted findings, no limiter waits, and no invalid
+outputs. Compare the #20 eval on baseline and packed code before merging;
+see [the comparison procedure](../../../../docs/s5-batching.md). Live accuracy,
+truncation, and timing remain unverified without the key and quota.

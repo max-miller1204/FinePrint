@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
+import { documentParts } from '../src/ai/documents.js';
 import { createGemma, estimateInputTokens, JSON_RULE } from '../src/ai/gemma.js';
 import { modelConfigFromEnv } from '../src/ai/models.js';
 import { runAbsenceChecks, runDeterministicChecks } from '../src/ai/pipeline/checks.js';
@@ -13,6 +14,7 @@ import {
   chunkText,
   detectInjection,
   mappingOutputCap,
+  mappingOverheadTokens,
   MAX_CALLS,
   MAX_REQUEST_TOKENS,
   segmentOutputCap,
@@ -29,9 +31,9 @@ import type { Clause, Drop, Finding, KeyTerm } from '../src/ai/pipeline/types.js
 import { runVerifier, statuteText, type StageCall } from '../src/ai/pipeline/verifier.js';
 import { verifyMappings, type VerifyContext } from '../src/ai/pipeline/verify.js';
 import { ProviderError, type ModelProvider, type ProviderRequest } from '../src/ai/provider.js';
-import { SEGMENT_INSTRUCTION } from '../src/ai/prompts/lease.js';
+import { mappingInstruction, mappingTask, SEGMENT_INSTRUCTION } from '../src/ai/prompts/lease.js';
 import { TRIAGE_INSTRUCTION } from '../src/ai/prompts/triage.js';
-import type { Mapping, Segmentation, VerifierAssessment } from '../src/ai/schemas/lease.js';
+import { mappingSchema, type Mapping, type Segmentation, type VerifierAssessment } from '../src/ai/schemas/lease.js';
 import { createTriage, type TriageProvider } from '../src/ai/triage/index.js';
 import { keywordBackstop } from '../src/ai/triage/keywords.js';
 import { JURISDICTIONS_ROOT, loadRulePack } from '../src/rules/loader.js';
@@ -551,10 +553,10 @@ describe('analyzeLease', () => {
       'S6 superseded_by_check VA_LATE_FEE_CAP',
     ]);
 
-    // Triage, one S2 call, four mapping batches of about 10 clauses, one
+    // Triage, one S2 call, one packed mapping batch, one
     // verifier call, and one explanation call. English: no translation.
-    expect(analysis.usage.calls).toBe(8);
-    expect(provider.requests.map(stageOf)).toEqual(['triage', 'segment', 'mapping', 'mapping', 'mapping', 'mapping', 'verifier', 'explanation']);
+    expect(analysis.usage.calls).toBe(5);
+    expect(provider.requests.map(stageOf)).toEqual(['triage', 'segment', 'mapping', 'verifier', 'explanation']);
     expect(analysis.usage).toMatchObject({ models: ['gemma-4-26b-a4b-it', 'gemma-4-31b-it'], fallback: false });
     expect(events.filter((e) => e.type === 'stage').map((e) => e.type === 'stage' && e.stage)).toEqual(['S1', 'S2', 'S3', 'S4', 'S5', 'S6', 'S7', 'S8']);
 
@@ -599,7 +601,8 @@ describe('analyzeLease', () => {
       expect(request.responseSchema).toBeUndefined();
       expect(request.systemInstruction).toContain(`${JSON_RULE}\n`);
       expect(request.systemInstruction).toContain(JSON.stringify(PACK.rules.map((r) => r.id)));
-      expect(documents(request).length).toBeLessThanOrEqual(10);
+      expect(documents(request)).toHaveLength(31);
+      expect(estimateInputTokens(request.systemInstruction, request.parts)).toBeLessThanOrEqual(MAX_REQUEST_TOKENS);
     }
     expect(mapping.flatMap(documents).map((d) => d.id)).toEqual(['c0', ...Array.from({ length: 30 }, (_, i) => `c${i + 1}`)]);
     // Both lease stages think (json mode) and cap their answers.
@@ -1027,15 +1030,40 @@ describe('budget planning', () => {
     expect(mappingOutputCap(100)).toBe(16_384);
   });
 
-  it('batches about 10 clauses a call, fewer calls when the budget is short, and never over the token cap', () => {
+  it('counts schema, escaped document framing, and long ids near the input cap', () => {
+    const schema = mappingSchema(PACK.rules.map((r) => r.id) as [string, ...string[]]);
+    const instruction = mappingInstruction(PACK.rules);
+    const overhead = mappingOverheadTokens(instruction, schema);
+    const clauses: Clause[] = Array.from({ length: 20 }, (_, i) => ({
+      id: `clause${i}_${'x'.repeat(50)}`, heading: null, start: 0, end: 0,
+      verbatim: '<document>'.repeat(200),
+    }));
+    const batches = planBatches(clauses, overhead);
+    expect(batches.length).toBeGreaterThan(1);
+    expect(batches.flat()).toEqual(clauses);
+    for (const batch of batches) {
+      const parts = documentParts(batch.map((c) => ({ id: c.id, text: c.verbatim })), mappingTask(batch.map((c) => c.id)));
+      const input = overhead + estimateInputTokens('', parts);
+      expect(input).toBeLessThanOrEqual(MAX_REQUEST_TOKENS);
+      expect(mappingOutputCap(batch.length)).toBeGreaterThanOrEqual(batch.length * 400);
+    }
+  });
+
+  it('packs clauses in order up to the input and output caps', () => {
     const clause = (i: number, chars = 400): Clause => ({ id: `c${i}`, heading: null, start: 0, end: chars, verbatim: 'x'.repeat(chars) });
     const forty = Array.from({ length: 40 }, (_, i) => clause(i));
-    expect(planBatches(forty, 8, 2_000).map((b) => b.length)).toEqual([10, 10, 10, 10]);
-    expect(planBatches(forty, 2, 2_000).map((b) => b.length)).toEqual([20, 20]);
+    expect(planBatches(forty, 2_000).map((b) => b.length)).toEqual([40]);
+    expect(planBatches([...forty, clause(40)], 2_000).map((b) => b.length)).toEqual([40, 1]);
     const big = Array.from({ length: 10 }, (_, i) => clause(i, 12_000));
-    const batches = planBatches(big, 1, 2_000);
+    const batches = planBatches(big, 2_000);
     expect(batches.length).toBeGreaterThan(1);
-    expect(batches.flat()).toHaveLength(10);
-    expect(planBatches([], 5, 2_000)).toEqual([]);
+    expect(batches.flat()).toEqual(big);
+    for (const batch of batches) {
+      expect(2_000 + batch.reduce((sum, c) => sum + Math.ceil(c.verbatim.length / 4) + 20, 0)).toBeLessThanOrEqual(MAX_REQUEST_TOKENS);
+    }
+    const oversized = clause(99, 50_000);
+    expect(planBatches([forty[0]!, oversized, forty[1]!], 2_000)).toEqual([[forty[0]], [oversized], [forty[1]]]);
+    expect(planBatches(forty.slice(0, 2), 11_900).map((b) => b.length)).toEqual([1, 1]);
+    expect(planBatches([], 2_000)).toEqual([]);
   });
 });
