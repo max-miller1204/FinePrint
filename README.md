@@ -94,7 +94,7 @@ flowchart LR
 
   CAM --> Q
   Q -- "create item, then complete" --> RUN
-  Q -- "PUT via V4 signed URL<br/>(hash-bound)" --> GCS
+  Q -- "PUT via V4 signed URL" --> GCS
   UI -- "ID token" --> AUTH
   UI -- "Bearer ID token" --> RUN
   RUN -- verify token --> AUTH
@@ -112,9 +112,9 @@ The planned design (spec §5.1) adds on-device OCR (`RecognizeDocumentsRequest`)
 ### How a photo becomes evidence
 
 1. The in-app camera hashes the original (SHA-256) at the shutter, removes any GPS, and checks for darkness, overexposure, and blur.
-2. The app queues the photo with complete file protection and calls `POST /v1/rentals/:id/evidence`. The server returns a 5-minute V4 signed PUT URL that is bound to the content type and the declared hash (`x-goog-content-sha256`).
+2. The app queues the photo with complete file protection and calls `POST /v1/rentals/:id/evidence`. The server returns a 5-minute V4 signed PUT URL. The upload must send the signed content type and declared hash (`x-goog-content-sha256`) headers. Cloud Storage does not hash the body against that header, so step 4 is the check that rejects other bytes.
 3. The app uploads the bytes **straight to Cloud Storage**. The API never proxies image bytes.
-4. `POST /v1/rentals/:id/evidence/:itemId/complete`: the server hashes the stored object again, compares the hash and size with the capture record, and records `receivedAtServer`.
+4. `POST /v1/rentals/:id/evidence/:itemId/complete`: the server hashes the stored object again, compares the hash and size with the capture record, and records `receivedAtServer`. A mismatch returns 422 `HASH_MISMATCH`.
 5. `POST /v1/rentals/:id/seal`: the server builds a manifest of the items and the previous ledger head, canonicalizes it with RFC 8785 JCS, and signs it with Cloud KMS. It then appends a hash-chained, KMS-signed `manifest_sealed` ledger entry.
 6. Anyone can check a signature against the public keys at `/.well-known/fineprint-keys.json`.
 
@@ -181,7 +181,7 @@ Each external service FinePrint uses. `deploy.sh` creates these resources and gr
 | **Firebase Auth / Identity Platform** (`identitytoolkit`, `securetoken`) | Anonymous sign-in on the app. The server verifies ID tokens with `firebase-admin`. | API key `fineprint-client`, limited to Identity Toolkit and Secure Token. It identifies the project and grants nothing on its own, so the server publishes it. Token checks need no role. | Identity Platform per-user pricing. Anonymous sign-in is within its free tier at hackathon scale ([pricing](https://cloud.google.com/identity-platform/pricing)). | New users cannot sign in, and tokens cannot refresh. When a token expires, `/v1` calls return 401. Photos stay queued on the phone. |
 | **Cloud Run** (`run`) | The single `fineprint` service: the API, and later the web report. `--max-instances=3`, 512 MiB, unauthenticated ingress (the app authenticates per request). | The service runs as `fineprint-api`. `fineprint-build` has `roles/run.builder`. | Per request and per vCPU-second. Scales to zero. | Everything server-side. The app keeps working offline: captures queue and upload on reconnect. |
 | **Firestore** (Native mode, `(default)`) | Rentals, evidence records, manifests, the ledger, and model usage records (`usage/{date}/calls`). Client access is denied by rules. Only the server reads and writes. | `fineprint-api`: `roles/datastore.user` on the project | Per document read, write, and delete, plus storage. The free daily quota covers small deployments. | The rental, evidence, and seal routes return 503 `DEPENDENCY_UNAVAILABLE`, which the app retries. Nothing is sealed. |
-| **Cloud Storage** (bucket `<project>-fineprint-evidence`) | Evidence originals and the 1536 px copies for the model. Uniform access, public access prevention enforced, reached only through 5-minute V4 signed URLs. | `fineprint-api`: `roles/storage.objectAdmin` on the bucket. On Cloud Run, signing the URLs also needs IAM `signBlob`: `roles/iam.serviceAccountTokenCreator` for `fineprint-api` on itself, and the `iamcredentials` API. `deploy.sh` on `main` grants neither. #83 adds both. | Per GB-month of standard storage in `us-east4`, plus operations | Uploads and the hash check fail. Photos stay in the phone's queue and retry. Without the `signBlob` grant, `POST /v1/rentals/:id/evidence` returns 503 on Cloud Run. |
+| **Cloud Storage** (bucket `<project>-fineprint-evidence`) | Evidence originals and the 1536 px copies for the model. Uniform access, public access prevention enforced, reached only through 5-minute V4 signed URLs. | `fineprint-api`: `roles/storage.objectAdmin` on the bucket, and `roles/iam.serviceAccountTokenCreator` on itself only. Cloud Run has no key file, so the server signs URLs through IAM `signBlob` (`iamcredentials` API). | Per GB-month of standard storage in `us-east4`, plus operations | Uploads and the hash check fail. Photos stay in the phone's queue and retry. If `signBlob` fails, `POST /v1/rentals/:id/evidence` returns 503. |
 | **Cloud KMS** (key ring `fineprint`, key `report-signing`, `EC_SIGN_P256_SHA256`, software protection) | Signs manifests and ledger entries, and serves the public keys | `fineprint-api`: `roles/cloudkms.signerVerifier` on the key | Per active key version per month, plus per signing operation ([pricing](https://cloud.google.com/kms/pricing)) | Sealing and `/.well-known/fineprint-keys.json` return 503. Uploads and hash checks still work, and the server can seal those items later. |
 | **Secret Manager** (`GEMINI_API_KEY`, user-managed replication in the region) | Holds the Gemini API key. Cloud Run mounts it as an env var. | `fineprint-api`: `roles/secretmanager.secretAccessor` on the secret | Per active secret version per month, plus per access operation | A new revision cannot start without its secret. Running instances keep the value they already have. |
 | **Cloud Build** and **Artifact Registry** (repo `fineprint`) | `gcloud run deploy --source .` builds the root `Dockerfile` and stores the image | `fineprint-build`: `roles/run.builder` | Per build-minute, and per GB-month of stored images | Deploys fail. The running service is not affected. |
@@ -189,7 +189,7 @@ Each external service FinePrint uses. `deploy.sh` creates these resources and gr
 | **Cloud Billing and Billing Budgets** | The billing check before deploy, and a $20 budget that alerts at $10 and $20 | The person who deploys needs to see the billing account and create budgets on it | Free | Only the alerts stop. A budget alert does not cap spend. |
 | **law.lis.virginia.gov** | Source of the statute text for the rule pack snapshots. Planned: no script fetches from it yet, and `jurisdictions/va/` is still empty. | None (public) | Free | Nothing at runtime. A snapshot refresh would wait. |
 
-`deploy.sh` also enables `iam`, `apikeys`, `logging`, `cloudbilling`, and `billingbudgets`, which it needs to set up the resources above.
+`deploy.sh` also enables `iam`, `iamcredentials`, `apikeys`, `logging`, `cloudbilling`, and `billingbudgets`, which it needs to set up the resources above.
 
 ## Cost
 
