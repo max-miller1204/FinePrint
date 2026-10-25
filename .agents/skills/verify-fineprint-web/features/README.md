@@ -11,6 +11,7 @@ F10) get a file each as their routes land.
 | [Firebase anonymous auth](auth.md) | `/v1/*`, `GET /v1/me`, `GET /.well-known/fineprint-client.json` | `tests/web/auth.e2e.ts` | tested |
 | [Rentals](rentals.md) | `POST /v1/rentals`, `PATCH /v1/rentals/:id` | `tests/web/rentals.e2e.ts` | tested |
 | [Evidence uploads](evidence.md) | `POST /v1/rentals/:id/evidence`, `POST /v1/rentals/:id/evidence/:itemId/complete` | `tests/web/evidence.e2e.ts` | tested |
+| [Gemma client](gemma-client.md) | none (internal; first caller #14) | `server/test/gemma.test.ts`, `pnpm smoke:gemma` (live) | unit and live tested |
 
 ## Planned features (spec §4.3)
 
