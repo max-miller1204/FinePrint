@@ -1,0 +1,26 @@
+{
+  "id": "VA_ENTRY_NOTICE_REASONABLE_TIMES",
+  "jurisdiction": "VA",
+  "citation": "Va. Code § 55.1-1229(A)(4)",
+  "sourceUrl": "https://law.lis.virginia.gov/vacode/title55.1/chapter12/section55.1-1229/",
+  "versions": [
+    {
+      "effectiveFrom": "2019-10-01",
+      "effectiveUntil": null,
+      "statuteQuote": "The landlord shall not abuse the right of access or use it to harass the tenant. Except in case of emergency or if it is impractical to do so, the landlord shall give the tenant notice of his intent to enter and may enter only at reasonable times.",
+      "snapshotFile": "snapshots/55.1-1229@2026-10-25.txt"
+    }
+  ],
+  "checkType": "semantic",
+  "summaryForModel": "Except in an emergency or when it is impractical, the landlord must give notice before entering and may enter only at reasonable times, and must not abuse the right of access or use it to harass the tenant. A lease that allows entry at any time, without notice, or at unreasonable hours conflicts with this. Routine maintenance notice (72 hours) is a separate rule.",
+  "paraphraseExamples": [
+    "Landlord may enter the Premises at any time, with or without notice.",
+    "Management reserves the right to inspect the unit at any hour without prior notice.",
+    "Owner and its agents may enter whenever Owner deems necessary."
+  ],
+  "tenantExplanation": "Outside an emergency, your landlord has to tell you before coming in and can only come in at reasonable times. They can't use entry to harass you.",
+  "action": "You can ask your landlord to change this so entry needs notice and happens at reasonable times, except in emergencies.",
+  "severityIfViolated": "unenforceable",
+  "verifiedBy": "Max Miller",
+  "verifiedAt": "2026-10-24"
+}

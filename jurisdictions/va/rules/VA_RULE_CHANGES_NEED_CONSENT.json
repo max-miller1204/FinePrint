@@ -1,0 +1,25 @@
+{
+  "id": "VA_RULE_CHANGES_NEED_CONSENT",
+  "jurisdiction": "VA",
+  "citation": "Va. Code § 55.1-1228(B)",
+  "sourceUrl": "https://law.lis.virginia.gov/vacode/title55.1/chapter12/section55.1-1228/",
+  "versions": [
+    {
+      "effectiveFrom": "2019-10-01",
+      "effectiveUntil": null,
+      "statuteQuote": "If a rule or regulation adopted or changed after the tenant enters into the rental agreement does constitute a substantial modification of his bargain, it shall not be valid unless the tenant consents to it in writing.",
+      "snapshotFile": "snapshots/55.1-1228@2026-10-25.txt"
+    }
+  ],
+  "checkType": "semantic",
+  "summaryForModel": "A landlord may adopt or change community rules after the lease starts with reasonable notice, but a new or changed rule that substantially modifies the tenant's bargain is not valid unless the tenant agrees in writing. Rules must also be reasonable, apply fairly to all tenants, and not evade the landlord's duties (subsection A). A lease that makes any future rule, including new fees, binding as soon as it is posted conflicts with this.",
+  "paraphraseExamples": [
+    "Tenant agrees to comply with all community rules as Landlord may adopt or change them from time to time, and each new rule becomes part of this Lease when posted.",
+    "New rules, including new fees, take effect when posted in the leasing office."
+  ],
+  "tenantExplanation": "Your landlord can add or change building rules with notice. But a new rule that changes your deal in a big way, like adding a fee, needs your written OK.",
+  "action": "Ask your landlord for a copy of the current rules before you sign. You can ask them to state that big rule changes need your written consent.",
+  "severityIfViolated": "ask",
+  "verifiedBy": "Max Miller",
+  "verifiedAt": "2026-10-24"
+}

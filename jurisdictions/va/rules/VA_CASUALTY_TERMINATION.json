@@ -1,0 +1,31 @@
+{
+  "id": "VA_CASUALTY_TERMINATION",
+  "jurisdiction": "VA",
+  "citation": "Va. Code § 55.1-1240",
+  "sourceUrl": "https://law.lis.virginia.gov/vacode/title55.1/chapter12/section55.1-1240/",
+  "versions": [
+    {
+      "effectiveFrom": "2019-10-01",
+      "effectiveUntil": "2027-01-01",
+      "statuteQuote": "The tenant may terminate the rental agreement by vacating the premises and within 14 days thereafter, serving on the landlord a written notice of his intention to terminate the rental agreement, in which case the rental agreement terminates as of the date of vacating.",
+      "snapshotFile": "snapshots/55.1-1240@2026-10-25.txt"
+    },
+    {
+      "effectiveFrom": "2027-01-01",
+      "effectiveUntil": null,
+      "statuteQuote": "The tenant may terminate the rental agreement by vacating the premises and, within 21 days thereafter, serving on the landlord a written notice of his intention to terminate the rental agreement, in which case the rental agreement terminates as of the date of vacating.",
+      "snapshotFile": "snapshots/55.1-1240~2027-01-01@2026-10-25.txt"
+    }
+  ],
+  "checkType": "semantic",
+  "summaryForModel": "If fire or other casualty substantially impairs the tenant's enjoyment of the unit, or repairs require the tenant to move out, either side may end the lease. The tenant moves out and gives written notice within 14 days (21 days from January 1, 2027, subsection B), and the lease ends on the move-out date. The landlord returns the deposit and prepaid rent unless the tenant's side caused the damage, and rent is prorated to the date of the casualty. From January 1, 2027 the landlord must also give 21 days' notice (was 14), meet with the tenant, and offer a similar available unit first. A lease that keeps the tenant liable for rent after the unit becomes unlivable, or bars termination, conflicts with this.",
+  "paraphraseExamples": [
+    "Tenant shall continue to pay rent in full even if the Premises are damaged by fire or other casualty.",
+    "Damage to the Premises by fire shall not release Tenant from any obligation under this Lease."
+  ],
+  "tenantExplanation": "If a fire or other disaster makes your home unlivable, Virginia lets you move out and end the lease with written notice. You get back your deposit and prepaid rent unless you caused the damage.",
+  "action": "You can ask your landlord to change this clause to match Virginia law. Take photos if damage ever happens.",
+  "severityIfViolated": "ask",
+  "verifiedBy": "Max Miller",
+  "verifiedAt": "2026-10-24"
+}

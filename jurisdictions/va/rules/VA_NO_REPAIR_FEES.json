@@ -1,0 +1,25 @@
+{
+  "id": "VA_NO_REPAIR_FEES",
+  "jurisdiction": "VA",
+  "citation": "Va. Code § 55.1-1208(C)",
+  "sourceUrl": "https://law.lis.virginia.gov/vacode/title55.1/chapter12/section55.1-1208/",
+  "versions": [
+    {
+      "effectiveFrom": "2019-10-01",
+      "effectiveUntil": null,
+      "statuteQuote": "Unless necessitated by the tenant's violation of a requirement of this chapter, no landlord shall require a tenant to pay any fee for the maintenance or repair of any dwelling unit.",
+      "snapshotFile": "snapshots/55.1-1208@2026-10-25.txt"
+    }
+  ],
+  "checkType": "semantic",
+  "summaryForModel": "A landlord may not charge the tenant a fee for maintenance or repair of the unit unless the tenant's own violation of the VRLTA (for example, damage the tenant caused) made it necessary. A lease that adds a maintenance fee, a repair request fee, or a flat repair charge conflicts with this.",
+  "paraphraseExamples": [
+    "Tenant shall pay a $50 service charge for each maintenance request.",
+    "A monthly maintenance fee of $25 will be added to rent."
+  ],
+  "tenantExplanation": "Your landlord can't charge you a fee for repairs or maintenance unless you caused the problem.",
+  "action": "You can ask your landlord to remove this fee before you sign.",
+  "severityIfViolated": "unenforceable",
+  "verifiedBy": "Max Miller",
+  "verifiedAt": "2026-10-24"
+}
