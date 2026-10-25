@@ -10,8 +10,7 @@ import { iosLaunchArguments, iosServerPort, iosServerURL } from './ios-launch';
 // The package scripts set it too; this covers a bare `npx e2e`.
 process.env.E2E_TELEMETRY_DISABLED ??= '1';
 
-// The key comes from the environment: run with `op run --env-file ../.env --`
-// or `../scripts/with-gemini-key.sh` (macOS Keychain).
+// Run through `../scripts/with-secrets.sh`: personal key first, then Secret Manager.
 // Tests without agent steps never call the model and need no key.
 const google = createGoogleGenerativeAI({ apiKey: process.env.GEMINI_API_KEY });
 
@@ -37,8 +36,8 @@ const serverCommand = (port: string, log: string, firebaseConfig: string, emulat
     'node --import tsx src/index.ts',
   ],
   cwd: server,
-  env: { PORT: port },
-  // Only set under `op run`: then triage asks Gemma as well as the keyword
+  env: { PORT: port, REPORT_FIXTURES: '1' },
+  // With a key from `with-secrets.sh`, triage asks Gemma as well as the keyword
   // backstop. Without a key the server runs the backstop alone.
   inheritEnv: ['GEMINI_API_KEY', 'GEMMA_*'],
   log,

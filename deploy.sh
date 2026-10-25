@@ -9,15 +9,10 @@
 # changes nothing except the Cloud Run revision. The script never creates the
 # project or links billing; do both in the console first.
 #
-# The Gemini API key comes from GEMINI_API_KEY in the environment
-# (GOOGLE_API_KEY also works). Load it however you keep secrets, e.g.:
-#
-#   op run --env-file ~/.config/fineprint/.env -- ./deploy.sh   (1Password)
-#   scripts/with-gemini-key.sh ./deploy.sh                      (macOS Keychain)
-#
-# In a terminal with neither (Cloud Shell), it asks with hidden input. It is
-# needed only until the secret has a version, goes straight to Secret
-# Manager, and is never printed.
+# Secret Manager holds the shared Gemini key; existing deployments reuse it.
+# Run directly with personal GEMINI_API_KEY and GOOGLE_API_KEY unset.
+# An exported key is an intentional shared-key rotation. On first setup,
+# the script can ask with hidden input. See CONTRIBUTING.md.
 #
 # Works in Cloud Shell and with macOS's bash 3.2. Needs gcloud and curl.
 
@@ -290,9 +285,7 @@ ensure_secret() {
       read -rsp "  Gemini API key from https://aistudio.google.com/apikey (input hidden): " key || true
       echo
     fi
-    [[ -n $key ]] || die "GEMINI_API_KEY is not set. Run with it in the environment, for example:
-  op run --env-file ~/.config/fineprint/.env -- ./deploy.sh   (1Password)
-  scripts/with-gemini-key.sh ./deploy.sh                      (macOS Keychain, see CONTRIBUTING.md)"
+    [[ -n $key ]] || die "GEMINI_API_KEY is not set. Supply the shared deployment key in the environment, or run interactively for hidden input. See CONTRIBUTING.md. Personal development keys must not be used for deployment."
   fi
   printf '%s' "$key" | gc secrets versions add "$SECRET" --data-file=- >/dev/null
   made "a key version"

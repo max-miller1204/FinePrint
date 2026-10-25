@@ -30,3 +30,14 @@ regression coverage, not of 95% model parity or Spanish semantic quality.
 ## Charter
 
 language-parity|web|skeptic|Validate all 20 Spanish clauses against English, run the live parity eval with Gemma quota, inspect mismatched verdict signatures and missing translations, resolve every quote to its source, and apply the human Spanish QA checklist. Do not treat English fallback or equal wrong answers as parity. Keep iOS out of scope.
+
+## Hackathon scope update
+
+Live parity measurement and ES/FR human QA are deferred follow-ups, not
+merge blockers. No live parity run was started or scheduled, and the quota
+reservation was released to #110. The checklist remains for future work.
+
+After merging current main on 2026-10-25: the full web suite passed in one
+run (`01a172d7-19c4-7430-8104-52a73cf4dcdc`), 47 passed, 2 live-model tests
+skipped, 13 files, exit 0. Server unit tests: 450 passed across 18 files.
+Typechecks passed. This verification used no model credentials.

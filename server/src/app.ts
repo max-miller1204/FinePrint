@@ -13,6 +13,8 @@ import { signerFromEnv, type Signer } from './integrity/kms.js';
 import { createLogger, type LogSink, type Logger } from './log.js';
 import { createInternal, googleSchedulerVerifier, type VerifyScheduler } from './routes/internal.js';
 import type { LeaseAnalyzer } from './routes/leases.js';
+import { createReport } from './routes/report.js';
+import type { ReportLoader } from './report/model.js';
 import { createV1 } from './routes/v1.js';
 import { firestoreStore, type Store } from './storage/firestore.js';
 import { gcsObjects, type EvidenceObjects } from './storage/gcs.js';
@@ -26,6 +28,8 @@ export type AppEnv = {
 };
 
 export interface AppDeps {
+  // #35 supplies token authorization and a redacted report projection.
+  reportLoader?: ReportLoader;
   checks?: HealthChecks;
   logSink?: LogSink;
   verifyIdToken?: VerifyIdToken;
@@ -49,6 +53,7 @@ export interface AppDeps {
 }
 
 export function createApp({
+  reportLoader = async () => null,
   checks = stubbedChecks,
   logSink,
   verifyIdToken = firebaseIdTokenVerifier(),
@@ -95,7 +100,8 @@ export function createApp({
     return c.json({ status: 'ok', checks: results });
   });
 
-  // Public: /healthz and /health above, /.well-known/*, and later /r/* and /impact.
+  // Public: /healthz and /health above, /.well-known/*, /r/*, and later /impact.
+  app.route('/r', createReport(reportLoader, signer));
   app.route('/.well-known', createWellKnown(clientConfig, signer));
   const analyzer: LeaseAnalyzer = { gemma, triage, packs };
   app.route('/v1', createV1(verifyIdToken, store, objects, signer, triage, accounts, analyzer));

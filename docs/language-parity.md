@@ -1,5 +1,10 @@
 # Language parity eval (#45, server half)
 
+Hackathon scope update: language is out of scope. Live parity measurement
+and Spanish/French human QA are deferred follow-ups, not merge blockers.
+No live parity result or human language-quality approval is claimed.
+The run instructions and QA checklist below are retained for future work.
+
 `pnpm eval --only parity` runs 20 matched lease cases in English, Spanish,
 and French (60 independent production S1 to S9 analyses). It uses the real
 triage, mapping, independent verifier, severity table, English explanation,

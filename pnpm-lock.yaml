@@ -190,6 +190,9 @@ importers:
       e2e:
         specifier: ^0.21.3
         version: 0.21.3(@ai-sdk/google@4.0.104(zod@4.6.7))(ai@7.0.151(zod@4.6.7))
+      playwright-core:
+        specifier: 1.64.0
+        version: 1.64.0
 
   eval:
     devDependencies:

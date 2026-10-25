@@ -1,7 +1,7 @@
 // `pnpm eval` (spec §12, #20): the lease eval sets against the real model,
 // plus language parity (#45), then citations over every finding produced.
 //
-//   op run --env-file ~/.config/fineprint/.env -- pnpm eval                 # all sets; writes docs/eval-results.md
+//   scripts/with-secrets.sh pnpm eval                 # all sets; writes docs/eval-results.md
 //   pnpm eval --only lease-synthetic                                        # one set (citations still runs on it)
 //   pnpm eval --stage-mode extraction=schema,mapping=schema                 # override output modes (models.ts)
 //
