@@ -12,6 +12,7 @@ feature in spec §4.3 (F1 to F10) gets its own file as its screens land
 | [Anonymous sign-in](sign-in.md) | No screen; shown in Developer Options > Account | `tests/ios/auth.e2e.ts` | tested |
 | [Evidence camera](camera.md) | Developer Options > Camera > Open Camera (full-screen camera, review); DEBUG fixture camera `-FinePrintFixtureCamera <dir>` (#22) | `tests/ios/capture.e2e.ts`, `tests/ios/camera.e2e.ts` (no-camera state), `ios/FinePrintTests/CaptureTests.swift`, `ios/FinePrintTests/FixtureCameraTests.swift` | partly tested |
 | [Evidence upload queue and seal status](evidence-upload.md) | Use Photo in the camera; Developer Options > Camera > Seal Status, Waiting to Upload, Simulate Offline | `tests/ios/capture.e2e.ts` (offline, then upload), `ios/FinePrintTests/UploadQueueTests.swift` | tested |
+| [Rentals and the rental switcher](rentals.md) | Lease tab > house button: pick a rental or Add Rental; the current rental's name under every tab's title (#46) | `tests/ios/rentals.e2e.ts`, `ios/FinePrintTests/DeadlineStoreTests.swift` (scoping) | tested |
 | [Deadlines and reminders](deadlines.md) | Next-deadline accessory; Evidence tab deadline cards, Remind Me, deposit tracker | `tests/ios/deadlines.e2e.ts`, `ios/FinePrintTests/DeadlineStoreTests.swift` | tested |
 
 ## Planned features (spec §4.3)

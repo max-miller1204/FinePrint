@@ -8,6 +8,7 @@ struct LeaseView: View {
             systemImage: "doc.text.magnifyingglass",
             description: "Add your lease and FinePrint will check it against Virginia law and explain each part in plain words."
         )
+        .rentalSwitcher()
     }
 }
 

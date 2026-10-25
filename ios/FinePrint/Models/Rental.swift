@@ -8,6 +8,17 @@ nonisolated enum RentalPhase: String, Codable, CaseIterable, Sendable {
     case living
     case moveOut = "move_out"
     case ended
+
+    /// Where the tenant is, in their words, for telling rentals apart in the switcher.
+    var title: LocalizedStringResource {
+        switch self {
+        case .preSigning: "Before signing"
+        case .moveIn: "Just moved in"
+        case .living: "Living there"
+        case .moveOut: "Moving out"
+        case .ended: "Moved out"
+        }
+    }
 }
 
 /// A calendar date with no time or time zone, such as an occupancy date. Sent to the server as
@@ -58,6 +69,8 @@ final class Rental {
     var createdAt: Date
     /// The server's `rentals/{rentalId}`, once `POST /v1/rentals` has answered.
     var serverID: String?
+    /// When the tenant last picked this rental in the switcher. See `current(in:)`.
+    var selectedAt: Date?
     /// A US state code. Only Virginia has legal checks (spec §4.2).
     var jurisdiction: String = "VA"
     /// City and county only, never a street address (spec §6.3).
@@ -78,7 +91,8 @@ final class Rental {
         county: String? = nil,
         phase: RentalPhase = .preSigning,
         occupancyDate: CalendarDay? = nil,
-        tenancyEndDate: CalendarDay? = nil
+        tenancyEndDate: CalendarDay? = nil,
+        selectedAt: Date? = nil
     ) {
         self.id = id
         self.name = name
@@ -90,10 +104,17 @@ final class Rental {
         self.phase = phase
         self.occupancyDate = occupancyDate
         self.tenancyEndDate = tenancyEndDate
+        self.selectedAt = selectedAt
     }
 
     var isInVirginia: Bool { jurisdiction == "VA" }
 
     /// The server needs a city or a county to create a rental (`POST /v1/rentals`).
     var hasPlace: Bool { city != nil || county != nil }
+
+    /// The rental every tab shows (spec §4.1): the one picked last in the switcher, else the newest.
+    /// A rental added later than the last pick wins, so adding one switches to it.
+    static func current(in rentals: [Rental]) -> Rental? {
+        rentals.max { ($0.selectedAt ?? $0.createdAt) < ($1.selectedAt ?? $1.createdAt) }
+    }
 }

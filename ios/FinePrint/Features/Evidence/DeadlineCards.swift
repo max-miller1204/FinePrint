@@ -34,6 +34,7 @@ struct EvidenceDeadlinesScreen: View {
         }
         .background(Color(.systemBackground))
         .navigationTitle("Evidence")
+        .rentalSubtitle()
         .settingsToolbar()
     }
 }

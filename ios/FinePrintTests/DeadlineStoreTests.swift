@@ -377,6 +377,42 @@ struct DeadlineStoreTests {
         #expect(store.visibleDeadlines.isEmpty)
     }
 
+    @Test func `the rental picked last is current, until a newer one is added`() {
+        let first = Rental(name: "Richmond", createdAt: now)
+        let second = Rental(name: "Norfolk", createdAt: now.addingTimeInterval(60))
+        #expect(Rental.current(in: [first, second])?.id == second.id)
+        first.selectedAt = now.addingTimeInterval(120)
+        #expect(Rental.current(in: [first, second])?.id == first.id)
+        let third = Rental(name: "Roanoke", createdAt: now.addingTimeInterval(180))
+        #expect(Rental.current(in: [first, second, third])?.id == third.id)
+        #expect(Rental.current(in: []) == nil)
+    }
+
+    @Test func `deadlines and the accessory follow the current rental, reminders cover every rental`() async {
+        scheduler.status = .authorized
+        let store = makeStore()
+        let movedIn = Rental(name: "Richmond", createdAt: now, phase: .moveIn, occupancyDate: day(2026, 8, 14))
+        container.mainContext.insert(movedIn)
+        store.seedInitialDeadlines(for: movedIn, now: now)
+        #expect(store.next?.kind == .moveInReport)
+
+        let movingOut = Rental(name: "Norfolk", createdAt: now.addingTimeInterval(60), phase: .moveOut)
+        container.mainContext.insert(movingOut)
+        store.seedInitialDeadlines(for: movingOut, now: now)
+        await store.pendingWork?.value
+        #expect(store.currentRental?.id == movingOut.id)
+        #expect(store.visibleDeadlines.isEmpty)
+        #expect(store.next == nil)
+        #expect(store.needsMoveOutDate)
+        #expect(Set(scheduler.scheduled.values.map(\.day)) == [day(2026, 8, 17), day(2026, 8, 18)])
+
+        movedIn.selectedAt = now.addingTimeInterval(120)
+        #expect(store.currentRental?.id == movedIn.id)
+        #expect(store.visibleDeadlines.map(\.kind) == [.moveInReport])
+        #expect(store.next?.kind == .moveInReport)
+        #expect(!store.needsMoveOutDate)
+    }
+
     #if DEBUG
     @Test func `the default debug build prefers real deadlines over the sample`() {
         let store = makeStore(stub: nil)
