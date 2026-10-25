@@ -57,7 +57,8 @@ Then `npx e2e run ... --target ios` does the rest:
 - Every fresh launch gets the arguments in `e2e/ios-launch.ts`:
   `-FinePrintServerURL http://127.0.0.1:18080`, `-FinePrintInMemoryStore`,
   `-FinePrintDeveloperMenu`, `-FinePrintSkipOnboarding`, and
-  `-FinePrintFixtureCamera <abs path to e2e/fixtures/photos/move-in>`.
+  `-FinePrintFixtureCamera <abs path to e2e/fixtures/photos/move-in>`, and
+  `-FinePrintFixtureLease <abs path to e2e/fixtures/lease/fixture-lease.pdf>`.
   Nothing persists between launches, so each launch signs up a new anonymous
   account (the app reads the emulator host from the server's
   `/.well-known/fineprint-client.json`), starts at the tabs with a default
@@ -158,8 +159,9 @@ handles are stable:
   `deadline.remindMe`, `deadline.remindersOn`, `deadline.openSettings`,
   `deadline.reportReceived`, `deposit.forwardingAddress`,
   `deposit.inspection`, `deposit.moveOutCard`, `deposit.addMoveOutDate`,
-  `dayEntry.save`, `dayEntry.cancel`. Rentals: `rentalSwitcher`,
-  `rentalSwitcher.add`, `addRental.cancel` (see [rentals](features/rentals.md)). iOS 26 lists a toolbar button twice
+  `dayEntry.save`, `dayEntry.cancel`. Walkthrough: `walkthrough.*` and
+  `camera.markNoDamage`, `camera.progress` (see [walkthrough](features/walkthrough.md)). Rentals: `rentalSwitcher`,
+  `rentalSwitcher.add`, `addRental.cancel` (see [rentals](features/rentals.md)). Lease: `lease.*` (see [lease scan](features/lease-scan.md)). iOS 26 lists a toolbar button twice
   (its container and the button), so drive toolbar buttons such as
   `dayEntry.save` by role and name: `getByRole('button', { name: 'Start Clock' })`.
 - Empty-state titles: "No lease yet", "No move-in photos yet".
@@ -203,7 +205,7 @@ value. On macOS without 1Password, keep the key in the login keychain
 - placeholder screens on every tab except onboarding and the Evidence
   deadline cards
 - the sample deadline in DEBUG builds when no real deadline is due
-- "Sealed" never shows: sealing is #24
+- "Sealed" shows only after Seal Move-In Report in a walkthrough, never for Developer Options photos
 
 There is one simulator, so iOS charters run **one at a time**, never
 fanned out in parallel.

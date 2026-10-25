@@ -115,7 +115,7 @@ struct AccountSection: View {
 }
 
 /// An orange warning triangle and a message, for errors inside a form.
-private struct WarningLabel: View {
+struct WarningLabel: View {
     let message: LocalizedStringResource
 
     init(_ message: LocalizedStringResource) {

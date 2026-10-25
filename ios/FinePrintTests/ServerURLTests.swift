@@ -59,6 +59,49 @@ struct ServerURLPrecedenceTests {
     }
 }
 
+@Suite("Server URL built-in default")
+struct ServerURLBuiltInDefaultTests {
+    @Test func `reads the deployed server from the Info.plist value`() {
+        let url = ServerURL.builtInDefault(infoDictionary: [ServerURL.infoPlistKey: "https://fineprint-abc123-uk.a.run.app"])
+        #expect(url.absoluteString == "https://fineprint-abc123-uk.a.run.app")
+    }
+
+    @Test func `normalizes the value like a typed address`() {
+        let url = ServerURL.builtInDefault(infoDictionary: [ServerURL.infoPlistKey: " HTTPS://Org.Example.org/ "])
+        #expect(url.absoluteString == "https://org.example.org")
+    }
+
+    @Test(arguments: [nil, "", "not a url", "ftp://example.org", "localhost:8080"] as [String?])
+    func `falls back to localhost when the value is missing or invalid`(value: String?) {
+        let info: [String: Any] = value.map { [ServerURL.infoPlistKey: $0] } ?? [:]
+        #expect(ServerURL.builtInDefault(infoDictionary: info) == ServerURL.localURL)
+    }
+
+    @Test func `a value that is not text falls back to localhost`() {
+        #expect(ServerURL.builtInDefault(infoDictionary: [ServerURL.infoPlistKey: 8080]) == ServerURL.localURL)
+    }
+
+    @Test func `no Info.plist falls back to localhost`() {
+        #expect(ServerURL.builtInDefault(infoDictionary: nil) == ServerURL.localURL)
+    }
+
+    @Test func `the built-in default beats nothing and loses to a saved value`() {
+        let deployed = ServerURL.builtInDefault(infoDictionary: [ServerURL.infoPlistKey: "https://deployed.example.org"])
+        let nothing = ServerURL.resolve(launchArgument: nil, stored: nil, builtInDefault: deployed)
+        #expect(nothing.url == deployed)
+        #expect(nothing.source == .builtInDefault)
+        let saved = ServerURL.resolve(launchArgument: nil, stored: "https://saved.example.org", builtInDefault: deployed)
+        #expect(saved.source == .developerMenu)
+        let launch = ServerURL.resolve(launchArgument: "http://127.0.0.1:1", stored: "https://saved.example.org", builtInDefault: deployed)
+        #expect(launch.source == .launchArgument)
+    }
+
+    /// Debug builds ship localhost (`Shared.xcconfig`); this runs in the Debug test host.
+    @Test func `the Debug test host defaults to localhost`() {
+        #expect(ServerURL.defaultURL == ServerURL.localURL)
+    }
+}
+
 @Suite("App configuration")
 struct AppConfigurationTests {
     let defaults: UserDefaults

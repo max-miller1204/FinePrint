@@ -12,6 +12,8 @@ struct RootView: View {
     @Environment(AppConfiguration.self) private var configuration
     @Environment(AuthSession.self) private var auth
     @Environment(DeadlineStore.self) private var deadlines
+    @Environment(DataDeletion.self) private var deletion
+    @Environment(UserSettings.self) private var settings
     @Query(sort: \Rental.createdAt) private var rentals: [Rental]
     @State private var launchTab = AppTab.lease
     @State private var foregrounds = 0
@@ -24,7 +26,14 @@ struct RootView: View {
 
     var body: some View {
         Group {
-            if !rentals.isEmpty {
+            // After "Delete everything" the receipt stands in for the screens it came from.
+            if let receipt = deletion.receipt {
+                DeletionReceiptView(receipt: receipt, onAppear: deletion.receiptDidAppear) {
+                    deletion.dismissReceipt()
+                    // A fresh anonymous account, so the next rental has somewhere to go.
+                    Task { await auth.start() }
+                }
+            } else if !rentals.isEmpty {
                 RootTabView(initialTab: launchTab)
             } else if skipsOnboarding {
                 Color(.systemBackground)
@@ -33,7 +42,7 @@ struct RootView: View {
             } else {
                 OnboardingView { draft in
                     guard let rental = draft.makeRental() else { return }
-                    draft.language.store()
+                    settings.language = draft.language
                     launchTab = draft.phase?.firstTab ?? .lease
                     save(rental)
                 }

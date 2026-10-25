@@ -9,16 +9,26 @@ struct CameraScreen: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(UploadQueue.self) private var uploads: UploadQueue?
     private let onFinish: (CapturedPhoto) -> Void
+    private let walkthrough: WalkthroughControls?
 
-    init(context: CaptureContext, store: EvidenceStore, onFinish: @escaping (CapturedPhoto) -> Void = { _ in }) {
+    /// What the move-in walkthrough adds to the camera (spec §4.3 F2): how far along the tenant is,
+    /// and a way to say an item has no damage without taking a photo.
+    struct WalkthroughControls {
+        var progress: LocalizedStringResource
+        var onMarkNoDamage: () -> Void
+    }
+
+    init(context: CaptureContext, store: EvidenceStore, walkthrough: WalkthroughControls? = nil, onFinish: @escaping (CapturedPhoto) -> Void = { _ in }) {
         _model = State(initialValue: CameraModel(context: context, store: store))
+        self.walkthrough = walkthrough
         self.onFinish = onFinish
     }
 
     #if DEBUG
     /// The camera with a folder of fixture photos in place of the hardware.
-    init(context: CaptureContext, store: EvidenceStore, fixtureDirectory: URL, onFinish: @escaping (CapturedPhoto) -> Void = { _ in }) {
+    init(context: CaptureContext, store: EvidenceStore, fixtureDirectory: URL, walkthrough: WalkthroughControls? = nil, onFinish: @escaping (CapturedPhoto) -> Void = { _ in }) {
         _model = State(initialValue: CameraModel(context: context, store: store, fixtureDirectory: fixtureDirectory))
+        self.walkthrough = walkthrough
         self.onFinish = onFinish
     }
     #endif
@@ -106,6 +116,9 @@ struct CameraScreen: View {
                     .transition(.opacity)
                 }
                 Spacer()
+                if let walkthrough {
+                    markNoDamageButton(walkthrough)
+                }
                 ShutterButton(
                     isBusy: model.phase != .ready,
                     label: "Take photo of \(model.context.checklistItem) in \(model.context.room)"
@@ -125,6 +138,12 @@ struct CameraScreen: View {
             Text(verbatim: model.context.room)
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
+            if let walkthrough {
+                Text(walkthrough.progress)
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+                    .accessibilityIdentifier("camera.progress")
+            }
         }
         .multilineTextAlignment(.center)
         .padding(.horizontal, 16)
@@ -133,6 +152,24 @@ struct CameraScreen: View {
         .accessibilityElement(children: .combine)
         .accessibilityAddTraits(.isHeader)
         .accessibilityIdentifier("camera.item")
+    }
+
+    /// The quick action for an item with nothing to photograph. It closes the camera, so the
+    /// checklist shows the item done.
+    private func markNoDamageButton(_ walkthrough: WalkthroughControls) -> some View {
+        Button {
+            walkthrough.onMarkNoDamage()
+            dismiss()
+        } label: {
+            Label("Mark No Damage", systemImage: "checkmark.circle")
+                .font(.body.weight(.semibold))
+                .multilineTextAlignment(.center)
+                .frame(minHeight: 44)
+        }
+        .buttonStyle(.glass)
+        .disabled(model.phase == .processing)
+        .accessibilityHint(Text("Records that you found nothing wrong with \(model.context.checklistItem), without a photo"))
+        .accessibilityIdentifier("camera.markNoDamage")
     }
 
     private var closeButton: some View {

@@ -86,6 +86,9 @@ export interface EvidenceObjects {
   // CRC32C, never SHA-256, so this is the only way to know the stored hash.
   sha256(path: string): Promise<string>;
   remove(path: string): Promise<void>;
+  // Every object of one rental, originals and model copies. "Delete
+  // everything" and the purge call it.
+  removeRental(rentalId: string): Promise<void>;
 }
 
 // Signed URLs need a service account key or IAM signBlob, which the Storage
@@ -130,6 +133,10 @@ export function gcsObjects(bucket: () => Bucket = () => evidenceBucket(), env: N
 
     async remove(path) {
       await files().file(path).delete({ ignoreNotFound: true });
+    },
+
+    async removeRental(rentalId) {
+      await deleteRentalObjects(files(), rentalId);
     },
   };
 }

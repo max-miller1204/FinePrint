@@ -39,6 +39,17 @@ export interface Store {
   // that land with it. A concurrent append makes the transaction retry, so
   // `build` may run more than once and must not write anything itself.
   appendLedger(rentalId: string, build: (head: LedgerHead | null) => Promise<LedgerAppend>): Promise<LedgerAppend>;
+  // The ids of every rental the user owns.
+  rentalIdsOwnedBy(uid: string): Promise<string[]>;
+  // Up to `limit` ids of rentals whose `purgeAfter` is at or before `now`.
+  // A rental with no `purgeAfter` is never listed.
+  expiredRentalIds(now: Date, limit: number): Promise<string[]>;
+  // Deletes the rental and everything under it (evidence, ledger, manifests,
+  // and the rest), plus every share link that points at it. Returns how many
+  // evidence items it held. Deleting a rental that is gone changes nothing.
+  deleteRental(rentalId: string): Promise<{ evidenceItems: number }>;
+  // Deletes `users/{uid}`. Nothing changes if there is none.
+  deleteUser(uid: string): Promise<void>;
 }
 
 export interface LedgerAppend {
@@ -174,6 +185,35 @@ export function firestoreStore(connect: () => Firestore = () => getFirestore(fir
         for (const { itemId, fields } of append.items ?? []) tx.update(evidence(rentalId).doc(itemId), toFirestore(fields));
         return append;
       });
+    },
+
+    async rentalIdsOwnedBy(uid) {
+      const snapshot = await collections().rentals.where('ownerUid', '==', uid).select().get();
+      return snapshot.docs.map((doc) => doc.id);
+    },
+
+    async expiredRentalIds(now, limit) {
+      const snapshot = await collections()
+        .rentals.where('purgeAfter', '<=', Timestamp.fromDate(now))
+        .orderBy('purgeAfter')
+        .limit(limit)
+        .select()
+        .get();
+      return snapshot.docs.map((doc) => doc.id);
+    },
+
+    async deleteRental(rentalId) {
+      const { db, rentals } = collections();
+      const count = await evidence(rentalId).count().get();
+      // Shares are top-level (spec §6.1), each with an `access` subcollection.
+      const shares = await db.collection('shares').where('rentalId', '==', rentalId).select().get();
+      for (const share of shares.docs) await db.recursiveDelete(share.ref);
+      await db.recursiveDelete(rentals.doc(rentalId));
+      return { evidenceItems: count.data().count };
+    },
+
+    async deleteUser(uid) {
+      await collections().users.doc(uid).delete();
     },
   };
 }

@@ -1,9 +1,12 @@
-// Live check of the lease pipeline, S1 to S6 (#14), against a real model:
-// the synthetic lease (test/fixtures/lease-synthetic.txt) must yield its
-// three planted deterministic violations in 8 calls or fewer, and a variant
-// with those amounts fixed must yield none. Planted semantic clauses are
-// reported, not gated: their precision and recall gate is the lease eval
-// set's (#20).
+// Live check of the lease pipeline, S1 to S9 (#14, #15), against a real
+// model: the synthetic lease (test/fixtures/lease-synthetic.txt), analyzed in
+// Spanish, must yield its three planted deterministic violations as
+// unenforceable findings, every explanation at grade 7 or lower, and
+// translations that leave the quotes untouched, in MAX_CALLS calls or fewer
+// (ANALYSIS_CALLS to S5). A variant with those amounts fixed, in English,
+// must yield no S4 finding. Planted semantic clauses, the verifier's verdicts,
+// and how many findings were translated are reported, not gated: their
+// precision and recall gate is the lease eval set's (#20).
 //
 // Usage (from server/):
 //   op run --env-file ../.env -- pnpm smoke:lease
@@ -12,7 +15,8 @@
 
 import { readFileSync } from 'node:fs';
 import { gemmaFromEnv, type GemmaClient } from '../src/ai/gemma.js';
-import { analyzeLease, MAX_CALLS, type LeaseEvent } from '../src/ai/pipeline/lease.js';
+import { ANALYSIS_CALLS, analyzeLease, MAX_CALLS, type LeaseEvent } from '../src/ai/pipeline/lease.js';
+import { meetsGrade } from '../src/ai/pipeline/readability.js';
 import { gemmaTriageProvider } from '../src/ai/triage/gemma.js';
 import { createTriage } from '../src/ai/triage/index.js';
 import { keywordBackstop } from '../src/ai/triage/keywords.js';
@@ -52,9 +56,9 @@ const check = (ok: boolean, label: string) => {
   console.log(`[${ok ? 'ok ' : 'ERR'}] ${label}`);
 };
 
-for (const [name, text, expected] of [
-  ['synthetic', LEASE, PLANTED_CHECKS],
-  ['amounts-fixed', AMOUNTS_FIXED, []],
+for (const [name, text, expected, locale] of [
+  ['synthetic', LEASE, PLANTED_CHECKS, 'es'],
+  ['amounts-fixed', AMOUNTS_FIXED, [], 'en'],
 ] as const) {
   console.log(`\n== ${name} lease (${text.length} chars)`);
   const started = Date.now();
@@ -66,7 +70,7 @@ for (const [name, text, expected] of [
   };
   let analysis: Awaited<ReturnType<typeof analyzeLease>>;
   try {
-    analysis = await analyzeLease({ leaseId: `lease-${name}`, text, locale: 'en', today: '2026-10-24' }, { gemma, pack, triage }, { onEvent });
+    analysis = await analyzeLease({ leaseId: `lease-${name}`, text, locale, today: '2026-10-24' }, { gemma, pack, triage }, { onEvent });
   } catch (err) {
     check(false, `${name}: ${(err as Error).name}: ${(err as Error).message}`);
     continue;
@@ -88,18 +92,43 @@ for (const [name, text, expected] of [
   for (const d of analysis.drops) dropCounts.set(`${d.stage} ${d.reason}`, (dropCounts.get(`${d.stage} ${d.reason}`) ?? 0) + 1);
   for (const [reason, n] of dropCounts) console.log(`  dropped ${n} x ${reason}`);
 
+  for (const f of analysis.findings) {
+    const v = f.verifier ? ` verifier ${f.verifier.verdict}${f.verifier.fallback ? ` (FALLBACK ${f.verifier.model})` : ''}` : '';
+    const tr = f.translations[locale];
+    console.log(`  ${f.id} ${f.severity} ${f.basis} ${f.ruleId ?? 'not_covered'}${v}, grade ${f.readability.grade} (${f.readability.source}): ${JSON.stringify(f.titleEn)} ${JSON.stringify(f.explanationEn)}`);
+    if (tr) console.log(`     ${locale}: ${JSON.stringify(tr.title)} ${JSON.stringify(tr.explanation)}`);
+  }
+
   const violations = analysis.checks.filter((c) => c.outcome === 'violates').map((c) => c.ruleId).sort();
   check(JSON.stringify(violations) === JSON.stringify([...expected].sort()), `${name}: deterministic violations ${JSON.stringify(violations)}`);
-  check(analysis.usage.calls <= MAX_CALLS, `${name}: ${analysis.usage.calls} calls <= ${MAX_CALLS}`);
+  const checkFindings = analysis.findings.filter((f) => f.basis === 'check');
+  check(
+    JSON.stringify(checkFindings.map((f) => f.ruleId).sort()) === JSON.stringify([...expected].sort()) && checkFindings.every((f) => f.severity === 'unenforceable'),
+    `${name}: S4 findings unenforceable ${JSON.stringify(checkFindings.map((f) => f.ruleId))}`,
+  );
+  check(analysis.findings.every((f) => meetsGrade(f.explanationEn, 'standard')), `${name}: every explanation at grade 7 or lower`);
+  const analysisCalls = usage.records.slice(recordsBefore).filter((r) => r.outcome === 'ok' && ['triage', 'extraction', 'mapping'].includes(r.stage)).length;
+  check(analysis.usage.calls <= MAX_CALLS && analysisCalls <= ANALYSIS_CALLS, `${name}: ${analysis.usage.calls} calls <= ${MAX_CALLS}, ${analysisCalls} to S5 <= ${ANALYSIS_CALLS}`);
+  if (locale !== 'en') {
+    const translated = analysis.findings.filter((f) => f.translations[locale]);
+    // Quotes are never sent to S9; a slice of the lease proves they are untouched.
+    check(
+      analysis.findings.every((f) => f.leaseQuote === null || text.slice(f.quoteSpan!.start, f.quoteSpan!.end) === f.leaseQuote),
+      `${name}: quotes byte-identical after translation`,
+    );
+    console.log(`  REPORT: translated ${translated.length}/${analysis.findings.length} findings into ${locale}`);
+  }
+  const bySeverity = (s: string) => analysis.findings.filter((f) => f.severity === s).length;
+  console.log(`  REPORT: findings ${analysis.findings.length} (unenforceable ${bySeverity('unenforceable')}, ask ${bySeverity('ask')}, info ${bySeverity('info')})`);
   check(analysis.term.source === 'lease' && analysis.term.start === '2026-11-01' && analysis.term.end === '2027-10-31', `${name}: lease term read from the lease`);
 
   if (name === 'synthetic') {
     let found = 0;
     for (const [ruleId, heading] of Object.entries(PLANTED_SEMANTIC)) {
       const clause = analysis.clauses.find((c) => c.verbatim.startsWith(heading));
-      const hit = analysis.mappings.find((m) => m.clauseId === clause?.id && m.rules.some((r) => r.ruleId === ruleId) && m.assessment !== 'complies');
+      const hit = analysis.findings.find((f) => f.clauseId === clause?.id && f.ruleId === ruleId && f.primaryAssessment !== 'complies');
       if (hit) found++;
-      console.log(`  [${hit ? 'hit' : 'miss'}] planted ${ruleId}${hit ? ` (${hit.assessment})` : ''}`);
+      console.log(`  [${hit ? 'hit' : 'miss'}] planted ${ruleId}${hit ? ` (${hit.primaryAssessment}, verifier ${hit.verifier?.verdict ?? 'n/a'}, ${hit.severity})` : ''}`);
     }
     console.log(`  REPORT: planted semantic clauses found ${found}/${Object.keys(PLANTED_SEMANTIC).length}`);
   }

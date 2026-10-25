@@ -8,11 +8,14 @@ struct FinePrintApp: App {
     @State private var deadlines: DeadlineStore
     @State private var auth: AuthSession
     @State private var uploads: UploadQueue
+    @State private var deletion = DataDeletion()
+    @State private var settings = UserSettings()
     @Environment(\.scenePhase) private var scenePhase
     private let signsInAutomatically: Bool
     private let skipsOnboarding: Bool
     private let modelContainer: ModelContainer
     private let evidenceStore: EvidenceStore
+    private let leaseStore: LeaseStore
 
     init() {
         let options = LaunchOptions.current
@@ -39,6 +42,7 @@ struct FinePrintApp: App {
         _deadlines = State(initialValue: DeadlineStore(launchOptions: options, modelContext: modelContainer.mainContext))
         let evidenceStore = EvidenceStore.live(inMemory: options.usesInMemoryStore)
         self.evidenceStore = evidenceStore
+        leaseStore = LeaseStore.live(inMemory: options.usesInMemoryStore)
         _uploads = State(initialValue: .live(store: evidenceStore, auth: auth, configuration: configuration, container: modelContainer))
     }
 
@@ -49,7 +53,10 @@ struct FinePrintApp: App {
                 .environment(deadlines)
                 .environment(auth)
                 .environment(\.evidenceStore, evidenceStore)
+                .environment(\.leaseStore, leaseStore)
                 .environment(uploads)
+                .environment(deletion)
+                .environment(settings)
                 // First launch signs in anonymously with no input; later launches reuse the account.
                 .task {
                     guard signsInAutomatically else { return }
@@ -73,7 +80,7 @@ struct FinePrintApp: App {
     private static let logger = Logger(subsystem: "org.fineprint.FinePrint", category: "Persistence")
 
     private static func makeModelContainer(inMemory: Bool) -> ModelContainer {
-        let schema = Schema([Rental.self, Deadline.self])
+        let schema = Schema([Rental.self, Deadline.self, Walkthrough.self])
         do {
             let configuration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: inMemory)
             return try ModelContainer(for: schema, configurations: configuration)
