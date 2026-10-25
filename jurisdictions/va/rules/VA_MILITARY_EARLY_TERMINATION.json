@@ -1,0 +1,25 @@
+{
+  "id": "VA_MILITARY_EARLY_TERMINATION",
+  "jurisdiction": "VA",
+  "citation": "Va. Code § 55.1-1235(A)",
+  "sourceUrl": "https://law.lis.virginia.gov/vacode/title55.1/chapter12/section55.1-1235/",
+  "versions": [
+    {
+      "effectiveFrom": "2019-10-01",
+      "effectiveUntil": null,
+      "statuteQuote": "Any member of the Armed Forces of the United States or a member of the National Guard serving on full-time duty or as a civil service technician with the National Guard may, through the procedure detailed in subsection B, terminate his rental agreement if the member (i) has received permanent change of station orders;",
+      "snapshotFile": "snapshots/55.1-1235@2026-10-25.txt"
+    }
+  ],
+  "checkType": "semantic",
+  "summaryForModel": "A service member (Armed Forces, or National Guard on full-time duty or as a civil service technician) may end the lease early for permanent change of station orders, temporary duty orders over three months, discharge or release from duty, orders to government quarters, or a stop movement order of 30 days or more. Under subsection B the tenant gives written notice effective no sooner than 30 days after the next rent due date, and gives the landlord a copy of the orders or a commanding officer's letter before that date. A lease that bars this, demands longer notice, or adds other conditions conflicts with this.",
+  "paraphraseExamples": [
+    "There is no early termination of this Lease for any reason, including military orders.",
+    "A military clause applies only with 90 days' written notice and Landlord's approval."
+  ],
+  "tenantExplanation": "If you are in the military and get orders to move, Virginia lets you end your lease early with written notice and a copy of your orders. A lease can't take that right away.",
+  "action": "If this applies to you, ask your landlord to add a military clause that matches Virginia law. Keep a copy of your orders.",
+  "severityIfViolated": "unenforceable",
+  "verifiedBy": "Max Miller",
+  "verifiedAt": "2026-10-24"
+}

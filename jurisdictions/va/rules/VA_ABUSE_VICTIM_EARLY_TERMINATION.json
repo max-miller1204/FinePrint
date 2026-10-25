@@ -1,0 +1,25 @@
+{
+  "id": "VA_ABUSE_VICTIM_EARLY_TERMINATION",
+  "jurisdiction": "VA",
+  "citation": "Va. Code § 55.1-1236(B)",
+  "sourceUrl": "https://law.lis.virginia.gov/vacode/title55.1/chapter12/section55.1-1236/",
+  "versions": [
+    {
+      "effectiveFrom": "2019-10-01",
+      "effectiveUntil": null,
+      "statuteQuote": "A tenant who qualifies to terminate such tenant's obligations under a rental agreement pursuant to subsection A shall do so by serving on the landlord a written notice of termination to be effective 28 days after the tenant serves the termination notice on the landlord.",
+      "snapshotFile": "snapshots/55.1-1236@2026-10-25.txt"
+    }
+  ],
+  "checkType": "semantic",
+  "summaryForModel": "Under subsection A, a tenant who is a victim of family abuse, sexual abuse or criminal sexual assault, stalking, or trafficking, and who has a protective order or a conviction, warrant, or charge against the perpetrator, may end their obligations under the lease. Under subsection B the tenant gives written notice effective 28 days later, with a copy of the order or charging document. Rent is owed only through that date. A lease that bars this, demands longer notice, or adds other conditions conflicts with this.",
+  "paraphraseExamples": [
+    "Tenant may not terminate this Lease early for any personal reason, including domestic situations.",
+    "Early termination requires 60 days' notice and Landlord's written approval in all cases."
+  ],
+  "tenantExplanation": "If you are a victim of family abuse, sexual assault, stalking, or trafficking and have a protective order or a criminal charge against the person, Virginia lets you end your lease with 28 days' written notice.",
+  "action": "If this applies to you, you can end the lease with written notice and a copy of the order.",
+  "severityIfViolated": "unenforceable",
+  "verifiedBy": "Max Miller",
+  "verifiedAt": "2026-10-24"
+}

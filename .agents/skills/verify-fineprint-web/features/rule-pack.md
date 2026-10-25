@@ -40,18 +40,32 @@ through `server/src/rules/`. How to add a state:
   paragraphs), `NEW` (a version on the page with no snapshot), or `GONE`.
   It exits 1 when anything differs. `--write` writes new dated files and
   names the rules to re-check. `--add <url> <state>` snapshots a new section.
-- Pack today (#13): 16 VA rules over 9 snapshots (§§ 55.1-1204, -1208,
-  -1214, -1220, -1226, -1229, -1244). Deterministic: `VA_LATE_FEE_CAP`,
+- Pack today (#13, #43, #93): 31 VA rules over 19 snapshots (§§ 55.1-1204,
+  -1208, -1214, -1220, -1226, -1228, -1229, -1235, -1236, -1240, -1244,
+  -1251, -1252, -1253, -1258). Deterministic: `VA_LATE_FEE_CAP`,
   `VA_DEPOSIT_CAP`, `VA_DEPOSIT_PLUS_INSURANCE_CAP`,
   `VA_ROUTINE_MAINTENANCE_NOTICE_72H`. Informational:
-  `VA_RENT_ESCROW_PROCESS`. The rest are semantic. Two sections have a
-  future version: § 55.1-1204 (July 1, 2027; `VA_LATE_FEE_CAP` and
-  `VA_TENANT_RIGHTS_STATEMENT`, same quote in both) and § 55.1-1244
-  (January 1, 2027; the escrow payment moves from B 2 to C, so the quote
-  changes). Every rule has `verifiedBy` and `verifiedAt` (Max Miller,
-  2026-10-24), set after a person checked every quote and subsection
-  letter against its snapshot, so the pack loads with
-  `requireVerified: true` and `verifiedThrough` is 2026-10-24.
+  `VA_RENT_ESCROW_PROCESS`. The rest are semantic. The second batch covers
+  retaliation, entry, early termination for military orders and for
+  victims of family abuse (with no liquidated damages for either), lockouts
+  and utility shutoffs, repair fees, payment processing fees, unilateral
+  lease and rule changes, renewal notice, the holdover penalty cap, the
+  duty to mitigate, and fire or casualty damage. Five sections have a
+  future version: § 55.1-1204 (July 1, 2027; same quote for
+  `VA_LATE_FEE_CAP`, `VA_TENANT_RIGHTS_STATEMENT`,
+  `VA_PAYMENT_PROCESSING_FEE`, `VA_NO_UNILATERAL_CHANGE`, but
+  `VA_RENEWAL_NOTICE` changes: rent increase notice goes from 60 to 90
+  days), § 55.1-1244 (January 1, 2027; the escrow payment moves from B 2
+  to C), § 55.1-1258 (January 1, 2027; retaliation rewritten, acts listed
+  in B), and § 55.1-1240 (January 1, 2027; casualty notice 14 to 21 days).
+  Every rule has `verifiedBy` and `verifiedAt` (Max Miller, 2026-10-24),
+  set after a person checked every quote and subsection letter against
+  its snapshot, so the pack loads with `requireVerified: true` and
+  `verifiedThrough` is 2026-10-24.
+- Golden cases: `eval/datasets/clauses-golden.jsonl` holds 45 clause
+  excerpts for the 15 rules added in #43 and #93: two that break each rule
+  (`match`) and one benign look-alike (`no_match`). The runner and cases
+  for the first 16 rules come with #20.
 
 ## How to get to it (user POV)
 
@@ -64,9 +78,11 @@ prompt, and S6 checks each cited rule against the lease dates with
 ## Driving it with e2e
 
 No e2e test until a route reads the pack. `server/test/rules.test.ts`
-covers it under `pnpm test`: it loads the real packs (all 16 VA rule ids,
+covers it under `pnpm test`: it loads the real packs (all 31 VA rule ids,
 both § 55.1-1244 versions with `quoteChanged: true` for an October 2026
-lease, and `requireVerified: true`), checks the resolver
+lease, the mid-lease changes of § 55.1-1258, -1240, and -1204(K), and
+`requireVerified: true`), checks that every `clauses-golden` case names a
+real rule and every rule added after #13 has a `match` and a `no_match`, checks the resolver
 (both § 55.1-1204 versions for an October 2026 to October 2027 lease, the
 exclusive and inclusive boundaries, open-ended terms, gaps, bad dates), runs
 every check (including the cent that tips 10% over), breaks a scratch copy
@@ -76,10 +92,10 @@ a two-version law.lis.virginia.gov page.
 
 ## Proof
 
-`pnpm check:jurisdictions` prints `jurisdictions: 18 JSON file(s) parse, 17
-rule(s) valid with quotes in their snapshots` and exits 0 (the 16 VA rules
+`pnpm check:jurisdictions` prints `jurisdictions: 33 JSON file(s) parse, 32
+rule(s) valid with quotes in their snapshots` and exits 0 (the 31 VA rules
 and the TEMPLATE example). `node scripts/refresh-snapshots.ts` prints `ok`
-for all 9 VA snapshots and exits 0 while the site's text is unchanged.
+for all 19 VA snapshots and exits 0 while the site's text is unchanged.
 
 ## Charters
 

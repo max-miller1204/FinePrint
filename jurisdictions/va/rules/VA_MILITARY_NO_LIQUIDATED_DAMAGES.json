@@ -1,0 +1,25 @@
+{
+  "id": "VA_MILITARY_NO_LIQUIDATED_DAMAGES",
+  "jurisdiction": "VA",
+  "citation": "Va. Code § 55.1-1235(C)",
+  "sourceUrl": "https://law.lis.virginia.gov/vacode/title55.1/chapter12/section55.1-1235/",
+  "versions": [
+    {
+      "effectiveFrom": "2019-10-01",
+      "effectiveUntil": null,
+      "statuteQuote": "The landlord may not charge any liquidated damages.",
+      "snapshotFile": "snapshots/55.1-1235@2026-10-25.txt"
+    }
+  ],
+  "checkType": "semantic",
+  "summaryForModel": "When a service member ends a lease early under § 55.1-1235, the landlord may not charge liquidated damages, such as a lease-break or early termination fee. A lease that charges one for a military termination conflicts with this.",
+  "paraphraseExamples": [
+    "Service members terminating under the military clause shall pay one month's rent as liquidated damages.",
+    "Any early termination, including for military orders, requires a lease-break fee equal to two months' rent."
+  ],
+  "tenantExplanation": "If you end your lease early because of military orders, your landlord can't charge you a lease-break fee.",
+  "action": "You can ask your landlord to state that the lease-break fee does not apply to a military termination.",
+  "severityIfViolated": "unenforceable",
+  "verifiedBy": "Max Miller",
+  "verifiedAt": "2026-10-24"
+}

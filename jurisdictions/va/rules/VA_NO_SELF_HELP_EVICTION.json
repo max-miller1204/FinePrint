@@ -1,0 +1,26 @@
+{
+  "id": "VA_NO_SELF_HELP_EVICTION",
+  "jurisdiction": "VA",
+  "citation": "Va. Code § 55.1-1252",
+  "sourceUrl": "https://law.lis.virginia.gov/vacode/title55.1/chapter12/section55.1-1252/",
+  "versions": [
+    {
+      "effectiveFrom": "2019-10-01",
+      "effectiveUntil": null,
+      "statuteQuote": "A landlord may not recover or take possession of the dwelling unit (i) by willful diminution of services to the tenant by interrupting or causing the interruption of an essential service required by the rental agreement or (ii) by refusal to permit the tenant access to the unit unless such refusal is pursuant to a court order for possession.",
+      "snapshotFile": "snapshots/55.1-1252@2026-10-25.txt"
+    }
+  ],
+  "checkType": "semantic",
+  "summaryForModel": "A landlord may not take back the unit by cutting off an essential service, such as water, heat, or electricity, or by locking the tenant out. Only a court order for possession allows that. A lease that lets the landlord change the locks, shut off utilities, or remove the tenant's belongings to retake the unit conflicts with this.",
+  "paraphraseExamples": [
+    "If rent is more than 10 days late, Landlord may change the locks.",
+    "Landlord may shut off utilities to the unit if Tenant is in default.",
+    "Upon any breach, Owner may remove Tenant's belongings and retake possession."
+  ],
+  "tenantExplanation": "In Virginia, your landlord can't lock you out or shut off your utilities to force you out. Only a court can order you to leave.",
+  "action": "You can ask your landlord to remove this clause. If you are ever locked out or your utilities are cut off, you can ask the general district court for help.",
+  "severityIfViolated": "unenforceable",
+  "verifiedBy": "Max Miller",
+  "verifiedAt": "2026-10-24"
+}

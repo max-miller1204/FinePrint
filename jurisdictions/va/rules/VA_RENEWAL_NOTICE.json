@@ -1,0 +1,31 @@
+{
+  "id": "VA_RENEWAL_NOTICE",
+  "jurisdiction": "VA",
+  "citation": "Va. Code § 55.1-1204(K)",
+  "sourceUrl": "https://law.lis.virginia.gov/vacode/title55.1/chapter12/section55.1-1204/",
+  "versions": [
+    {
+      "effectiveFrom": "2019-10-01",
+      "effectiveUntil": "2027-07-01",
+      "statuteQuote": "Such notices shall be provided to the tenant no less than 60 days prior to the end of the rental agreement term.",
+      "snapshotFile": "snapshots/55.1-1204@2026-10-25.txt"
+    },
+    {
+      "effectiveFrom": "2027-07-01",
+      "effectiveUntil": null,
+      "statuteQuote": "The landlord shall provide the tenant with this written notice of rent increase at least 90 days prior to the end of the rental agreement term.",
+      "snapshotFile": "snapshots/55.1-1204~2027-07-01@2026-10-25.txt"
+    }
+  ],
+  "checkType": "semantic",
+  "summaryForModel": "A landlord who owns more than four rental units in Virginia (or more than a 10% interest in more than four) must give written notice of a rent increase for a renewal term, and written notice of nonrenewal. Until July 1, 2027 both notices are due at least 60 days before the lease ends. From July 1, 2027 a rent increase notice is due at least 90 days before the lease ends and must give the tenant at least 30 days to decide whether to renew; nonrenewal notice stays at 60 days. This does not apply to a periodic tenancy under § 55.1-1253(C). A lease that allows shorter notice conflicts with this when the landlord is that size.",
+  "paraphraseExamples": [
+    "Landlord may increase rent at renewal by giving 30 days' notice.",
+    "This Lease renews automatically; any new rent will be stated in a notice sent 15 days before the end of the term."
+  ],
+  "tenantExplanation": "If your landlord owns more than four rentals, they have to tell you early if your rent is going up at renewal or if they won't renew: at least 60 days before your lease ends. From July 1, 2027, a rent increase needs at least 90 days' notice.",
+  "action": "Ask your landlord how many units they own. If it is more than four, you can ask them to change the notice period to match Virginia law.",
+  "severityIfViolated": "ask",
+  "verifiedBy": "Max Miller",
+  "verifiedAt": "2026-10-24"
+}

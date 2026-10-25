@@ -1,0 +1,31 @@
+{
+  "id": "VA_NO_UNILATERAL_CHANGE",
+  "jurisdiction": "VA",
+  "citation": "Va. Code § 55.1-1204(I)",
+  "sourceUrl": "https://law.lis.virginia.gov/vacode/title55.1/chapter12/section55.1-1204/",
+  "versions": [
+    {
+      "effectiveFrom": "2019-10-01",
+      "effectiveUntil": "2027-07-01",
+      "statuteQuote": "No unilateral change in the terms of a rental agreement by a landlord or tenant shall be valid unless (i) notice of the change is given in accordance with the terms of the rental agreement or as otherwise required by law and (ii) both parties consent in writing to the change.",
+      "snapshotFile": "snapshots/55.1-1204@2026-10-25.txt"
+    },
+    {
+      "effectiveFrom": "2027-07-01",
+      "effectiveUntil": null,
+      "statuteQuote": "No unilateral change in the terms of a rental agreement by a landlord or tenant shall be valid unless (i) notice of the change is given in accordance with the terms of the rental agreement or as otherwise required by law and (ii) both parties consent in writing to the change.",
+      "snapshotFile": "snapshots/55.1-1204~2027-07-01@2026-10-25.txt"
+    }
+  ],
+  "checkType": "semantic",
+  "summaryForModel": "Neither side can change the lease terms alone. A change is valid only with proper notice and the written consent of both landlord and tenant. A lease that lets the landlord change rent, fees, or other terms during the lease just by giving notice conflicts with this.",
+  "paraphraseExamples": [
+    "Landlord may amend the terms of this Lease at any time by giving Tenant written notice.",
+    "Owner reserves the right to change rent, fees, and policies during the term upon 30 days' notice."
+  ],
+  "tenantExplanation": "Your landlord can't change your lease on their own. Both of you have to agree to a change in writing.",
+  "action": "You can ask your landlord to remove this clause, or change it to say changes need both of you to agree in writing.",
+  "severityIfViolated": "unenforceable",
+  "verifiedBy": "Max Miller",
+  "verifiedAt": "2026-10-24"
+}
