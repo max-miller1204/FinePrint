@@ -64,17 +64,22 @@ export interface ModelConfig {
 }
 
 // `GEMMA_PRIMARY` and `GEMMA_VERIFIER` let a dev run use Flash on the same key;
-// the submission runs on the Gemma defaults.
+// the submission runs on the Gemma defaults. Self-hosted, they name the
+// server's models, and there is no Flash fallback unless `GEMMA_FALLBACK`
+// names one on the same server: falling back to the Gemini API would send
+// tenant text out of the organization (docs/self-hosting.md).
 export function modelConfigFromEnv(env: NodeJS.ProcessEnv = process.env): ModelConfig {
   const provider = env.GEMMA_PROVIDER || 'gemini';
   if (provider !== 'gemini' && provider !== 'openai_compatible') {
     throw new Error(`GEMMA_PROVIDER must be gemini or openai_compatible, not ${provider}`);
   }
+  const primary = env.GEMMA_PRIMARY || GEMMA_26B;
   return {
     provider,
-    primary: env.GEMMA_PRIMARY || GEMMA_26B,
+    primary,
     verifier: env.GEMMA_VERIFIER || GEMMA_31B,
-    fallback: env.GEMMA_FALLBACK || FLASH,
+    // `fallbackChain` drops the repeat, so self-hosted chains end at the primary.
+    fallback: env.GEMMA_FALLBACK || (provider === 'gemini' ? FLASH : primary),
     ...(env.GEMMA_BASE_URL ? { baseUrl: env.GEMMA_BASE_URL } : {}),
   };
 }
@@ -100,3 +105,7 @@ const FLASH_LIMITS: ModelLimits = { requestsPerMinute: 1_000, inputTokensPerMinu
 export function limitsFor(model: string): ModelLimits {
   return model.startsWith('gemini-') ? FLASH_LIMITS : GEMMA_LIMITS;
 }
+
+// A self-hosted server has no per-project quota: it queues requests itself,
+// so the limiter only stops a runaway loop.
+export const SELF_HOSTED_LIMITS: ModelLimits = { requestsPerMinute: 600, inputTokensPerMinute: 10_000_000 };

@@ -1,12 +1,13 @@
 // The seam between the Gemma client and an API (spec §15.2). `gemini` calls
-// the Gemini API through @google/genai. `openai_compatible` (an Ollama or vLLM
-// server running Gemma 4 open weights, `GEMMA_BASE_URL`) is declared but not
-// built yet: the client depends only on this interface, so adding it touches
-// this file alone.
+// the Gemini API through @google/genai. `openai_compatible` calls an Ollama or
+// vLLM server running Gemma 4 open weights at `GEMMA_BASE_URL`
+// (openai-compatible.ts, docs/self-hosting.md). The client depends only on
+// this interface.
 
 import { ApiError, GoogleGenAI, ThinkingLevel as SdkThinkingLevel, type GenerateContentResponse } from '@google/genai';
 import type { Part } from './documents.js';
 import type { ModelConfig, ThinkingLevel } from './models.js';
+import { openAiCompatibleProvider } from './openai-compatible.js';
 import type { ResponseSchema } from './response-schema.js';
 
 export interface ProviderRequest {
@@ -110,7 +111,11 @@ function retryDelayMs(message: string): number | null {
 
 export function providerFromConfig(config: ModelConfig, env: NodeJS.ProcessEnv = process.env): ModelProvider {
   if (config.provider === 'openai_compatible') {
-    throw new Error('GEMMA_PROVIDER=openai_compatible is not built yet; see docs/ai-pipeline.md');
+    if (!config.baseUrl) throw new Error('GEMMA_BASE_URL is not set; see docs/self-hosting.md');
+    if (!/^https?:\/\//.test(config.baseUrl)) throw new Error('GEMMA_BASE_URL must start with http:// or https://');
+    // Optional: only for a server that checks a key (vLLM `--api-key`).
+    const apiKey = env.GEMMA_API_KEY;
+    return openAiCompatibleProvider({ baseUrl: config.baseUrl, ...(apiKey ? { apiKey } : {}) });
   }
   const apiKey = env.GEMINI_API_KEY ?? env.GOOGLE_API_KEY;
   if (!apiKey) throw new Error('GEMINI_API_KEY is not set');

@@ -28,6 +28,14 @@ AI features reach it through `generate(stage, schema, docs, { task })` in
   `model call` log line, each naming the model, with no content.
 - `GEMMA_PRIMARY`, `GEMMA_VERIFIER`, `GEMMA_FALLBACK`, and `GEMMA_PROVIDER`
   choose the models and the provider.
+- Self-hosted provider (#56): `GEMMA_PROVIDER=openai_compatible` with
+  `GEMMA_BASE_URL` (and `GEMMA_API_KEY` if the server checks one) calls an
+  Ollama or vLLM server's Chat Completions API
+  (`server/src/ai/openai-compatible.ts`, `docs/self-hosting.md`). Schema
+  stages send `response_format: json_schema`; `reasoning_effort` is `high`
+  on a `json` stage at `high`, else `none`. No Flash fallback unless
+  `GEMMA_FALLBACK` names a model on the same server, and the Gemini quota
+  does not apply.
 
 ## How to get to it (user POV)
 
@@ -38,12 +46,23 @@ Not yet reachable from a route. The first caller is `POST
 
 No e2e test until a route calls it. `pnpm --filter @fineprint/server test`
 covers it with the SDK mocked (`test/gemma.test.ts`,
-`test/ratelimit.test.ts`, `test/response-schema.test.ts`). The live check
-calls the real API:
+`test/ratelimit.test.ts`, `test/response-schema.test.ts`) and `fetch`
+mocked for the self-hosted provider (`test/openai-compatible.test.ts`).
+The live check calls the real API:
 
 ```bash
 cd server
 op run --env-file ../.env -- pnpm smoke:gemma
+```
+
+Self-hosted, against a local Ollama (no GPU needed for the small model):
+
+```bash
+docker run -d --name fineprint-ollama -p 127.0.0.1:11434:11434 -v fineprint-ollama:/root/.ollama ollama/ollama
+docker exec fineprint-ollama ollama pull gemma4:e2b      # 4.6 GB; use gemma4:26b and gemma4:31b on a GPU host
+cd server
+GEMMA_PROVIDER=openai_compatible GEMMA_BASE_URL=http://127.0.0.1:11434/v1 \
+  GEMMA_PRIMARY=gemma4:e2b GEMMA_VERIFIER=gemma4:e2b pnpm smoke:gemma
 ```
 
 ## Proof
@@ -52,7 +71,9 @@ op run --env-file ../.env -- pnpm smoke:gemma
 `gemma-4-26b-a4b-it` and for `verification (schema)` and `verification
 (json)` on `gemma-4-31b-it`, with no `(FALLBACK)`, 0 thought tokens on the
 `schema` lines and more than 0 on the `json` lines, one usage record per
-request, and `PASS` with exit 0. Rerun
+request, and `PASS` with exit 0. Self-hosted, the same four `[ok ]` lines
+name the server's models (`gemma4:e2b` on 2026-10-24: 3 to 4 s per
+`schema` call and about 18 s per `json` call on CPU). Rerun
 `scripts/smoke/gemma-capabilities.ts` after changes to the request shape.
 
 ## Charters
@@ -70,3 +91,10 @@ cover document injection end to end.
   take a minute of retries, or answer from a fallback. That is reported, not
   a failure.
 - The fallback model (Flash) is billed. Gemma is free.
+- Gemma 4 on Ollama thinks by default, which makes `minimal` stages take
+  10 to 20 s on CPU. The provider sends `reasoning_effort: none`; Ollama's
+  native `think: false` is ignored on its OpenAI endpoint.
+- Ollama reports no reasoning token count: self-hosted thought tokens are
+  an estimate (4 characters per token of the `reasoning` text).
+- A wrong `GEMMA_PRIMARY` on a self-hosted server is a 404 and fails the
+  first call at once (`GemmaRequestError`), with no retries.

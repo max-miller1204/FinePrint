@@ -13,7 +13,7 @@ F10) get a file each as their routes land.
 | [Evidence uploads](evidence.md) | `POST /v1/rentals/:id/evidence`, `POST /v1/rentals/:id/evidence/:itemId/complete` | `tests/web/evidence.e2e.ts` | tested |
 | [Evidence sealing and ledger](integrity.md) | `POST /v1/rentals/:id/seal`, `GET /v1/rentals/:id/ledger`, `GET /v1/rentals/:id/manifests/:manifestId`, `DELETE /v1/rentals/:id/evidence/:itemId`, `GET /.well-known/fineprint-keys.json` | `tests/web/integrity.e2e.ts` | tested |
 | [Rule pack](rule-pack.md) | none (internal; first caller #14) | `server/test/rules.test.ts`, `pnpm check:jurisdictions`, `node scripts/refresh-snapshots.ts` (live) | unit and CI tested |
-| [Gemma client](gemma-client.md) | none (internal; first caller #14) | `server/test/gemma.test.ts`, `pnpm smoke:gemma` (live) | unit and live tested |
+| [Gemma client](gemma-client.md) | none (internal; first caller #14) | `server/test/gemma.test.ts`, `server/test/openai-compatible.test.ts`, `pnpm smoke:gemma` (live: Gemini API or self-hosted) | unit and live tested; self-hosted live on Ollama with `gemma4:e2b` |
 | [Deploy to Cloud Run](deploy.md) | `./deploy.sh`, the Cloud Run URL | `tests/deployed/deploy.e2e.ts`, `tests/deployed/evidence.e2e.ts` (`e2e.deployed.config.ts`) | tested |
 
 ## Planned features (spec §4.3)
