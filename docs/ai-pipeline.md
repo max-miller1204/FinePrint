@@ -1,6 +1,6 @@
 # AI pipeline
 
-This document records what the Gemma 4 models and the iOS 26 SDK actually support, so each lane builds on measured facts. The Gemma client (#9) is described at the end. The rest of the pipeline description lands with the lanes that build it (#14, #15).
+This document records what the Gemma 4 models and the iOS 26 SDK actually support, so each lane builds on measured facts. The Gemma client (#9) and triage (#37) are described at the end. The rest of the pipeline description lands with the lanes that build it (#14, #15).
 
 ## Day-one smoke test (#8)
 
@@ -128,3 +128,36 @@ cd server && op run --env-file ../.env -- pnpm smoke:gemma          # live: one 
 ```
 
 `smoke:gemma` runs `mapping` and `verification` in both output modes. It exits `0` when every call returns schema-valid output and every `json` call thinks, and prints the model that answered, the thought tokens, any fallback, and the usage records.
+
+## Triage (#37)
+
+Spec §7.9. Every tenant input that reaches a model is checked first, and either provider firing escalates to the handoff (F10, #38):
+
+```ts
+const triage = triageFromEnv(log);   // Gemma + keyword backstop, or the backstop alone without a key
+const { escalate, category, model, keywords } = await triage.check({ source: 'lease', text, locale: 'en' }, { log });
+```
+
+| File | What it does |
+| --- | --- |
+| `server/src/ai/triage/index.ts` | `TriageProvider`, the categories, and `createTriage`: both providers in parallel, escalate on either, a `triage` log line with no content |
+| `server/src/ai/triage/gemma.ts` | `GemmaTriageProvider`: the `triage` stage (26B, `minimal`, `schema` mode) with a category enum and a 0 to 1 confidence. Sends the first 8,000 characters |
+| `server/src/ai/triage/keywords.ts` | `KeywordBackstop`: EN and ES regex terms on accent-folded text, with ids. `any` terms (court papers, self-harm) run on every source; `message` terms only on Ask and repair text, so lease boilerplate does not fire |
+| `server/src/ai/prompts/triage.ts` | The instruction (about 300 tokens) and a per-source note: a lease clause about default is `none`, a summons uploaded as a lease is not |
+| `server/src/routes/triage.ts` | `POST /v1/triage`, for the app to call before a model-backed flow. The lease, Ask, repair, and landlord report routes call `triage.check` themselves when they land |
+
+- **Failure:** if Gemma throws (every model down, invalid output twice, a 400), the decision reports `model: { status: "unavailable" }` and the backstop decides alone. Without `GEMINI_API_KEY` it reports `off`.
+- **Gate:** `server/test/triage.test.ts` (CI) requires the backstop alone to catch all 40 high-stakes cases in `eval/datasets/escalation.jsonl`, so the combined recall holds when Gemma misses or is down. `eval/runners/escalation.ts` scores Gemma, the backstop, and the combined decision live, and fails on any combined miss or any case Gemma could not answer.
+- **Alternatives:** other `TriageProvider`s (OpenAI Decisions, TypeSafe Jev) and their trade-offs are for `docs/triage-providers.md` (#56).
+
+### Escalation eval, 2026-10-24
+
+`cd eval && op run --env-file ~/.config/fineprint/.env -- pnpm escalation`, 80 cases (40 high-stakes across 8 categories, 40 benign including look-alikes; 48 EN, 32 ES), all answered by `gemma-4-26b-a4b-it` in 156 s:
+
+| Provider | Recall | Precision | False alarms |
+| --- | --- | --- | --- |
+| Gemma 26B | 100% (40/40) | 95.2% | `benign-13-es` (landlord report: locks changed before move-in, as `lockout`), `benign-32-en` (weak heat, as `utility_shutoff`) |
+| Keyword backstop | 100% (40/40) | 100% | none |
+| Combined (either) | **100%** | 95.2% | the two above |
+
+The backstop's 100% precision is on a set its terms were written alongside; expect false alarms on real input.

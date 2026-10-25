@@ -1,5 +1,7 @@
 import { Hono } from 'hono';
 import { requestId } from 'hono/request-id';
+import { triageFromEnv } from './ai/triage/from-env.js';
+import type { Triage } from './ai/triage/index.js';
 import { firebaseIdTokenVerifier, type VerifyIdToken } from './auth.js';
 import { ApiError } from './errors.js';
 import { runChecks, stubbedChecks, type HealthChecks } from './health.js';
@@ -23,6 +25,8 @@ export interface AppDeps {
   objects?: EvidenceObjects;
   // Null: sealing and the key set answer 503.
   signer?: Signer | null;
+  // Gemma plus the keyword backstop, or the backstop alone without a key.
+  triage?: Triage;
 }
 
 export function createApp({
@@ -33,6 +37,7 @@ export function createApp({
   store = firestoreStore(),
   objects = gcsObjects(),
   signer = signerFromEnv(),
+  triage = triageFromEnv(createLogger(null, logSink)),
 }: AppDeps = {}) {
   const app = new Hono<AppEnv>();
 
@@ -68,7 +73,7 @@ export function createApp({
 
   // Public: /healthz and /health above, /.well-known/*, and later /r/* and /impact.
   app.route('/.well-known', createWellKnown(clientConfig, signer));
-  app.route('/v1', createV1(verifyIdToken, store, objects, signer));
+  app.route('/v1', createV1(verifyIdToken, store, objects, signer, triage));
 
   // Returned, not thrown: a throw here skips the access line above.
   app.notFound((c) => c.json(new ApiError(404, 'NOT_FOUND', 'No route matches this request').toEnvelope(), 404));
