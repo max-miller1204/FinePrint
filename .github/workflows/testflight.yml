@@ -10,7 +10,7 @@ name: TestFlight
 on:
   workflow_dispatch:
   push:
-    branches: [main]
+    branches: [main, 53-testflight-beta] # TEMP: remove 53-testflight-beta before merge
     paths:
       - ios/**
       - .github/workflows/testflight.yml
