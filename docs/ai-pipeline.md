@@ -226,6 +226,7 @@ const analysis = await analyzeLease({ leaseId, text, locale: 'es', readingLevel:
 pnpm --filter @fineprint/server test                         # server/test/lease-pipeline.test.ts, model scripted
 cd server && op run --env-file ../.env -- pnpm smoke:lease    # live: the synthetic lease (in Spanish) and a variant with its amounts fixed
 cd eval && op run --env-file ../.env -- pnpm verifier         # live: S7 on clauses-golden in schema and json mode
+op run --env-file ~/.config/fineprint/.env -- pnpm eval      # live: the lease eval sets and the citations gate (#20)
 ```
 
 `smoke:lease` exits `0` when the synthetic lease yields exactly its three planted deterministic violations as `unenforceable` findings, every explanation reads at grade 7 or lower, its Spanish run leaves every quote a slice of the lease, each run makes 12 calls or fewer (8 to S5) (`VA_DEPOSIT_CAP`, `VA_LATE_FEE_CAP`, `VA_ROUTINE_MAINTENANCE_NOTICE_72H`), the variant with those amounts fixed yields none, each run takes 8 calls or fewer, and the term is read from the lease. It reports, without gating, how many of the five planted semantic clauses became findings (with the verifier's verdict and the severity), the findings per severity, and how many were translated.
@@ -250,6 +251,42 @@ cd eval && op run --env-file ../.env -- pnpm verifier         # live: S7 on clau
 `smoke:lease`, final config. Synthetic lease in Spanish: 9 calls (triage, S2, four mapping batches, S7, S8, S9), 30,828 input and 5,973 output tokens, 401 s with many 429 waits (the project's quota was shared with another run). 13 findings: 7 `unenforceable` (the three S4 violations and the four planted clauses 31B agreed with), 1 `ask` (HVAC repairs: 31B agreed, but the rule is capped at `ask`), 5 `info`. Every explanation came from the model's first answer at grade 1 to 6.9; all 13 were translated, quotes untouched. Amounts-fixed lease in English: 9 calls, no S4 finding, 4 `unenforceable`, 1 `ask`, 9 `info`; one explanation passed only on its regeneration.
 
 An earlier run with `explanation` and `translation` on `schema` passed the gates but showed why they moved to `json`: 26B answered `"text"` as a whole title and explanation (grade -3.4, which passes a grade check) and `"explicación"` as a translation. S8 now also needs a 2 to 12 word title and an explanation of 8 words or more, and S9 rejects a translation under half or over three times its English length.
+
+## Lease eval sets (#20)
+
+Spec §12. Measured precision and recall for the lease pipeline, and a hard gate on citations. The latest run is in [eval-results.md](eval-results.md), which `pnpm eval` rewrites.
+
+```sh
+node scripts/make-synthetic-lease.ts                                         # regenerate the lease set (no model)
+op run --env-file ~/.config/fineprint/.env -- pnpm eval                      # all three sets, about 30 minutes
+op run --env-file ~/.config/fineprint/.env -- pnpm eval --only lease-synthetic
+op run --env-file ~/.config/fineprint/.env -- pnpm eval --stage-mode extraction=schema,mapping=schema
+```
+
+| Set | What runs | Scored | Gate |
+| --- | --- | --- | --- |
+| `lease-synthetic` | `eval/datasets/lease-synthetic/`: a 12-page Virginia lease (about 28,600 characters, 76 numbered sections and a community rules addendum) with the 8 plants of spec §12, the same lease with each plant fixed (`clean`), and a lease with other parties, amounts, and compliant wording close to each plant (`clean-alt`). Each through `analyzeLease`, S1 to S8, in English | Findings that name a rule at `unenforceable` or `ask`. A true positive has a planted rule and its quote in that plant's section (by offset). Per-rule TP, FP, FN; severity accuracy over the plants found | Recall >= 0.9, precision >= 0.85, every lease `analyzed` |
+| `clauses-golden` | The 60 excerpts in `eval/datasets/clauses-golden.jsonl` (2 violations and 1 compliant look-alike for each of 20 semantic rules), 10 a call, through S5, S6, S7, and the severity table, as `analyzeLease` runs them | Per rule: a flagged violation is a TP, a flagged look-alike an FP. Verifier agreement where S5 said `violates` | Report |
+| `citations` | Every finding from both sets | The lease quote is the exact slice at its span (an `absence` finding: the wording is really missing); the rule, citation, and source URL are the pack's; every version's `statuteQuote` is verbatim in its snapshot | **100%** |
+
+- **Generator:** `scripts/make-synthetic-lease.ts` writes the three leases and `eval/datasets/lease-synthetic.jsonl` (per lease: the rule, section heading, and severity of each plant). The HVAC plant expects `ask`: `VA_LANDLORD_MAINTAIN_FIT` is capped there. Every other section follows the rule pack, so any other flag is a false positive. Sections whose law changes during the term (casualty notice on January 1, 2027, renewal notice on July 1, 2027) cite the statute instead of a number of days. `server/test/fixtures/lease-synthetic.txt` (the short lease the unit tests, `smoke:lease`, and the adversarial set use) is unchanged.
+- **CI:** `server/test/lease-eval.test.ts` needs no model. The files are what the generator writes; the 8 plants are in the planted lease only; no lease trips the keyword backstop, the injection pattern, or the required-wording check; with a correct S2 reading, S4 finds exactly the 3 deterministic plants and none on the clean leases; and the scoring and every citation failure mode work on hand-built findings.
+- **Output:** the report prints, `eval/out/eval.json` (gitignored) holds every score, finding, and usage record, and a full run with default output modes rewrites `docs/eval-results.md`. Exit 1 on a failed gate or a lease that could not be analyzed (a model outage is not a result), 2 on a setup error.
+- **Output modes:** `--stage-mode` overrides a stage's `schema` or `json` mode for one run (the issue asked to re-measure `extraction` and `mapping`, gap 7). It never writes `eval-results.md`.
+
+### Lease eval sets, 2026-10-25
+
+`pnpm eval`, default output modes (all four lease stages `json`), 25 minutes, no fallback, every S7 check answered by `gemma-4-31b-it`.
+
+| Set | Result |
+| --- | --- |
+| `lease-synthetic` | Recall **8/8**, precision **8/8**, severity 8/8 (the HVAC plant `ask`, the other seven `unenforceable`). No flag on either clean lease. 10 calls per lease (triage, S2, six mapping batches, S7 or none, S8), 316 to 413 s each |
+| `clauses-golden` | 40/40 violations flagged for their own rule, 0/20 look-alikes flagged, no flag for another rule. S5 said `violates` on every violation and never on a look-alike, so the verifier saw no look-alike; it agreed on all 40 |
+| `citations` | **136/136** findings resolve (every `info` finding included) |
+
+**`schema` against `json` for S2 and S5** (asked on #20, gap 7): `pnpm eval --only lease-synthetic --stage-mode extraction=schema,mapping=schema`, 17 minutes. 26B returned invalid output on 8 mapping requests, so the `clean` and `clean-alt` analyses failed (`GemmaOutputError` after the retry), and on the planted lease recall fell to 6/8: no `VA_ROUTINE_MAINTENANCE_NOTICE_72H` finding for the 24-hour notice and no `VA_LANDLORD_MAINTAIN_FIT` finding. Precision stayed 6/6 and citations 15/15. `extraction` and `mapping` stay on `json`.
+
+One run; the clean leases and the look-alikes were written by the same agent that wrote the plants, so read 100% as "no error found on this set", not as a rate. `lease-real` (spec §12) needs real redacted leases and is not built.
 
 ## Adversarial input (#19)
 
