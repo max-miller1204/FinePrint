@@ -85,8 +85,9 @@ final class PathMonitor: NetworkMonitoring {
 private let rentalsLogger = Logger(subsystem: "org.fineprint.FinePrint", category: "Uploads")
 
 extension CaptureContext {
-    /// The rental the developer menu's camera files photos under: the first one the server knows or
-    /// can create, else a sample rental in Richmond, made once, so test photos can upload.
+    /// The rental the developer menu's camera files photos under: the current one if the server knows
+    /// it or can create it, else the first such rental, else a sample rental in Richmond, made once,
+    /// so test photos can upload.
     static func developer(in context: ModelContext) -> CaptureContext {
         let rentals: [Rental]
         do {
@@ -96,7 +97,9 @@ extension CaptureContext {
             rentals = []
         }
         defer { rentalsLogger.info("Developer camera: \(rentals.count) rentals") }
-        let rental = rentals.first { $0.serverID != nil || $0.hasPlace } ?? {
+        let canUpload = { (rental: Rental) in rental.serverID != nil || rental.hasPlace }
+        let current = Rental.current(in: rentals).flatMap { canUpload($0) ? $0 : nil }
+        let rental = current ?? rentals.first(where: canUpload) ?? {
             let sample = Rental(id: developerSample.rentalID, name: String(localized: "Sample rental"), city: "Richmond")
             context.insert(sample)
             try? context.save()
