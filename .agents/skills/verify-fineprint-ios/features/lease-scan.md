@@ -30,9 +30,11 @@ it, and stops there.
   numbered in text order: `[TENANT_1]`, `[LANDLORD_1]`, `[SSN_1]`, `[HIDDEN_1]`
   for the tenant's own additions. A name's single words and a company name
   without "LLC" are hidden with it, ignoring case and accents.
-- Redaction review screen, pushed onto the Lease tab's stack (opens by itself
-  after reading; again from Review Hidden Details, `lease.review`): Details / Lease Text segmented control
-  (`lease.review.mode`). Details lists each detail as one toggle button
+- Redaction review, shown in place of the Lease tab's content (opens by itself
+  after reading; again from Review Hidden Details, `lease.review`), with its
+  own "Hidden Details" heading, Cancel (`lease.review.cancel`) and Done
+  (`lease.review.done`) buttons. Details / Lease Text segmented control
+  (`lease.review.mode`, its segments are `tab` nodes). Details lists each detail as one toggle button
   (`lease.redaction.<PLACEHOLDER>`, e.g. `lease.redaction.TENANT_1`; VoiceOver
   value "Hidden" or "Sent as written"), grouped by People, Companies,
   Addresses and Places, Phone, Email, and Web, Numbers and IDs, Added by You.
@@ -45,15 +47,13 @@ it, and stops there.
   Security, account, routing, card, or license number or a date of birth
   asks first in rows under it ("Send as Written",
   `lease.review.confirmShow`, or "Keep Hidden", `lease.review.keepHidden`).
-  Cancel and Done
-  are toolbar buttons (drive them by role and name).
 - After Done: the summary (`lease.status` "Personal details hidden"), pages,
   how they were read ("Scanned pages", "The PDF's text", or a mix), the
   hidden count (`lease.hiddenCount`), See What Gets Sent (`lease.sentPreview`,
   enabled once reviewed), and Remove Lease (`lease.remove`, then an
   inline question: `lease.remove.confirm` or `lease.remove.cancel`).
-- What Gets Sent shows the upload body's `redactedText`
-  (`lease.sentText`), built by `LeaseUpload.body(for:)`. `LeaseUpload.make`
+- What Gets Sent (in place of the summary, Back is `lease.sent.close`) shows
+  the upload body's `redactedText` (`lease.sentText`), built by `LeaseUpload.body(for:)`. `LeaseUpload.make`
   only builds an upload for the current rental's reviewed lease once the
   rental has a server ID; the body is `{redactedText, pageCount,
   ocrConfidence}` and nothing else.
@@ -103,14 +103,18 @@ lease-review-worst-case|ios|fuzzer|Import the lease, then in the review hide ver
 
 ## Gotchas
 
-- No sheet, alert, or dialog may be presented from inside the Lease tab. With
-  the deadline accessory (`tabViewBottomAccessory`) showing and accessibility
-  on (VoiceOver or e2e), one sends SwiftUI into an AttributeGraph cycle: the
-  main thread spins in `print_cycle`, snapshots time out with "Daemon request
-  timed out", and the app never recovers. A host-side bisect (#17) showed
-  that a review sheet stalled, the same screen pushed did not, and removing
-  the accessory removed the stall. Push screens, ask in rows, or present
-  from `RootTabView` (#99).
+- No sheet, alert, or dialog may be presented from inside the Lease tab, and
+  no screen pushed and popped. With the deadline accessory
+  (`tabViewBottomAccessory`) showing and accessibility on (VoiceOver or e2e),
+  either sends SwiftUI into an AttributeGraph cycle: the main thread spins
+  in `print_cycle`, snapshots time out with "Daemon request timed out", and
+  the app never recovers. A host-side bisect (#17) showed that a review
+  sheet stalled, removing the accessory removed the stall, and a pushed
+  review opened but stalled on the way back. A menu (the rental switcher)
+  opened over a `List` in the tab stalled too, so the lease screens are
+  `ScrollView` cards. Swap content in place, ask in rows, or present from
+  `RootTabView` (#99).
+- The engine cannot scroll the review list back up; drive its top first.
 
 - `NLTagger` results vary by OS version; the labelled-field detector is what
   makes the fixture deterministic. Fixture names all appear in a labelled

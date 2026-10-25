@@ -4,10 +4,12 @@ import SwiftUI
 /// off one by one, plus a way to hide more text. A second view shows the lease with the hidden
 /// details highlighted. Nothing is sent from here.
 ///
-/// It is pushed onto the Lease tab's stack and asks nothing in sheets, alerts, or dialogs: a
-/// presentation from inside a tab while the deadline accessory shows sends SwiftUI into an
-/// AttributeGraph update cycle whenever accessibility is on (VoiceOver, UI automation).
+/// It replaces the Lease tab's content in place, with its own Cancel and Done buttons, and asks
+/// nothing in sheets, alerts, or dialogs. Presenting, pushing, popping, or changing the navigation
+/// bar from inside a tab while the deadline accessory shows sends SwiftUI into an AttributeGraph
+/// update cycle whenever accessibility is on (VoiceOver, UI automation), #99.
 struct RedactionReviewView: View {
+    let onCancel: () -> Void
     let onDone: (LeaseScan) -> Void
     @State private var draft: LeaseScan
     @State private var mode = Mode.details
@@ -19,20 +21,21 @@ struct RedactionReviewView: View {
     /// A sensitive number waiting for the tenant to confirm it may be sent as written.
     @State private var pendingShow: UUID?
     @FocusState private var isTextFieldFocused: Bool
-    @Environment(\.dismiss) private var dismiss
 
     enum Mode: Hashable {
         case details
         case leaseText
     }
 
-    init(scan: LeaseScan, onDone: @escaping (LeaseScan) -> Void) {
+    init(scan: LeaseScan, onCancel: @escaping () -> Void, onDone: @escaping (LeaseScan) -> Void) {
         _draft = State(initialValue: scan)
+        self.onCancel = onCancel
         self.onDone = onDone
     }
 
     var body: some View {
         VStack(spacing: 0) {
+            header
             Picker("Show", selection: $mode) {
                 Text("Details").tag(Mode.details)
                 Text("Lease Text").tag(Mode.leaseText)
@@ -48,75 +51,113 @@ struct RedactionReviewView: View {
             }
         }
         .background(Color(.systemGroupedBackground))
-        .navigationTitle("Hidden Details")
-        .navigationBarTitleDisplayMode(.inline)
-        .navigationBarBackButtonHidden()
-        .toolbar {
-            ToolbarItem(placement: .cancellationAction) {
-                Button("Cancel", role: .cancel) { dismiss() }
-                    .accessibilityIdentifier("lease.review.cancel")
-            }
-            ToolbarItem(placement: .confirmationAction) {
-                Button("Done") { onDone(draft) }
-                    .accessibilityIdentifier("lease.review.done")
-            }
-        }
         .task(id: draft.redactions.redactions.map(\.id)) {
             layout = await RedactionLayout.make(text: draft.text, map: draft.redactions)
         }
         .sensoryFeedback(.selection, trigger: changeCount)
     }
 
-    // MARK: Details
-
-    private var details: some View {
-        List {
-            Section {
-                Text("FinePrint hides these before your lease leaves this phone. Tap one to send it as written, or hide more text.")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-                if isAddingText {
-                    hideTextRows
-                } else {
-                    Button {
-                        isAddingText = true
-                        isTextFieldFocused = true
-                    } label: {
-                        Label("Hide More Text", systemImage: "plus.circle")
-                    }
-                    .accessibilityIdentifier("lease.review.add")
-                }
-            } footer: {
-                Text("^[\(draft.redactions.hiddenCount) detail](inflect: true) hidden")
-                    .accessibilityIdentifier("lease.review.hiddenCount")
+    /// The screen's title with Cancel and Done, as content rather than navigation bar items.
+    private var header: some View {
+        ViewThatFits(in: .horizontal) {
+            HStack {
+                cancelButton
+                Spacer()
+                title
+                Spacer()
+                doneButton
             }
-
-            if draft.redactions.redactions.isEmpty {
-                Section {
-                    Text("FinePrint didn't find any names, addresses, or numbers to hide. Check the lease text, and hide anything personal yourself.")
-                        .foregroundStyle(.secondary)
-                }
-            }
-
-            ForEach(RedactionGroup.allCases, id: \.self) { group in
-                let indices = draft.redactions.redactions.indices.filter { group.contains(draft.redactions.redactions[$0]) }
-                if !indices.isEmpty {
-                    Section {
-                        ForEach(indices, id: \.self) { index in
-                            let redaction = draft.redactions.redactions[index]
-                            RedactionRow(redaction: redaction, count: layout?.counts[redaction.id]) {
-                                requestToggle(redaction.id)
-                            }
-                            if pendingShow == redaction.id {
-                                confirmShowRows(redaction)
-                            }
-                        }
-                    } header: {
-                        Text(group.title)
-                    }
+            VStack(alignment: .leading, spacing: 8) {
+                title
+                HStack {
+                    cancelButton
+                    Spacer()
+                    doneButton
                 }
             }
         }
+        .padding(.horizontal)
+        .padding(.vertical, 8)
+    }
+
+    private var title: some View {
+        Text("Hidden Details")
+            .font(.headline)
+            .accessibilityAddTraits(.isHeader)
+    }
+
+    private var cancelButton: some View {
+        Button("Cancel", role: .cancel, action: onCancel)
+            .frame(minHeight: 44)
+            .accessibilityIdentifier("lease.review.cancel")
+    }
+
+    private var doneButton: some View {
+        Button("Done") { onDone(draft) }
+            .buttonStyle(.borderedProminent)
+            .frame(minHeight: 44)
+            .accessibilityIdentifier("lease.review.done")
+    }
+
+    // MARK: Details
+
+    private var details: some View {
+        ScrollView {
+            LazyVStack(alignment: .leading, spacing: 20) {
+                VStack(alignment: .leading, spacing: 6) {
+                    LeaseCard {
+                        Text("FinePrint hides these before your lease leaves this phone. Tap one to send it as written, or hide more text.")
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                        Divider()
+                        if isAddingText {
+                            hideTextRows
+                        } else {
+                            Button {
+                                isAddingText = true
+                                isTextFieldFocused = true
+                            } label: {
+                                Label("Hide More Text", systemImage: "plus.circle")
+                                    .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
+                            }
+                            .accessibilityIdentifier("lease.review.add")
+                        }
+                    }
+                    Text("^[\(draft.redactions.hiddenCount) detail](inflect: true) hidden")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                        .padding(.horizontal)
+                        .accessibilityIdentifier("lease.review.hiddenCount")
+                }
+
+                if draft.redactions.redactions.isEmpty {
+                    LeaseCard {
+                        Text("FinePrint didn't find any names, addresses, or numbers to hide. Check the lease text, and hide anything personal yourself.")
+                            .foregroundStyle(.secondary)
+                    }
+                }
+
+                ForEach(RedactionGroup.allCases, id: \.self) { group in
+                    let indices = draft.redactions.redactions.indices.filter { group.contains(draft.redactions.redactions[$0]) }
+                    if !indices.isEmpty {
+                        LeaseCard(title: group.title) {
+                            ForEach(indices, id: \.self) { index in
+                                let redaction = draft.redactions.redactions[index]
+                                if index != indices.first { Divider() }
+                                RedactionRow(redaction: redaction, count: layout?.counts[redaction.id]) {
+                                    requestToggle(redaction.id)
+                                }
+                                if pendingShow == redaction.id {
+                                    confirmShowRows(redaction)
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            .padding()
+        }
+        .leaseBottomClearance()
     }
 
     /// Hide More Text, inline: type the words, and FinePrint hides them everywhere they appear.
@@ -137,14 +178,17 @@ struct RedactionReviewView: View {
                 Image(systemName: "exclamationmark.triangle.fill")
                     .foregroundStyle(.orange)
             }
+            .accessibilityElement(children: .combine)
             .accessibilityIdentifier("lease.hide.notFound")
         }
         Button("Hide Everywhere", action: hideTypedText)
+            .frame(minHeight: 44)
             .disabled(textToHide.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
             .accessibilityIdentifier("lease.hide.confirm")
         Button("Cancel", role: .cancel) {
             closeHideText()
         }
+        .frame(minHeight: 44)
         .accessibilityIdentifier("lease.hide.cancel")
     }
 
@@ -191,6 +235,7 @@ struct RedactionReviewView: View {
                 .padding()
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
+            .leaseBottomClearance()
             .background(Color(.systemBackground))
             .accessibilityRotor(
                 "Hidden Details",
@@ -451,14 +496,15 @@ struct LeaseParagraphView: View {
 }
 
 #Preview {
-    NavigationStack {
+    let text = "Tenant: Jordan Lee\nLandlord: Harbor Point Properties LLC\nRent is $1,450.00 per month."
     RedactionReviewView(
         scan: LeaseScan(
             rentalID: UUID(),
             source: .pdf,
-            pages: [LeasePage(text: "Tenant: Jordan Lee\nLandlord: Harbor Point Properties LLC\nRent is $1,450.00 per month.", method: .textLayer)],
-            redactions: PIIDetector().redactionMap(for: "Tenant: Jordan Lee\nLandlord: Harbor Point Properties LLC\nRent is $1,450.00 per month.")
-        )
-    ) { _ in }
-}
+            pages: [LeasePage(text: text, method: .textLayer)],
+            redactions: PIIDetector().redactionMap(for: text)
+        ),
+        onCancel: {},
+        onDone: { _ in }
+    )
 }

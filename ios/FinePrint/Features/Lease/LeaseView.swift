@@ -6,10 +6,11 @@ import VisionKit
 /// The Lease tab (spec §4.3 F1): scan or import the current rental's lease, read it on the phone,
 /// and review what is hidden before anything is sent.
 ///
-/// Nothing here is presented from inside the tab: the review is pushed, questions are inline rows,
-/// and the file picker and document camera are `SystemPicker`s that `RootTabView` presents. A sheet,
-/// alert, or dialog from inside a tab while the deadline accessory shows sends SwiftUI into an
-/// AttributeGraph update cycle whenever accessibility is on (VoiceOver, UI automation).
+/// Nothing here is presented or pushed from inside the tab: the review replaces the summary in
+/// place, questions are inline rows, and the file picker and document camera are `SystemPicker`s
+/// that `RootTabView` presents. A sheet, alert, or dialog from inside a tab while the deadline
+/// accessory shows sends SwiftUI into an AttributeGraph update cycle whenever accessibility is on
+/// (VoiceOver, UI automation), and so did popping a pushed review (#99).
 struct LeaseView: View {
     @Environment(\.leaseStore) private var store
     @Environment(AppConfiguration.self) private var configuration
@@ -17,11 +18,12 @@ struct LeaseView: View {
     @Query(sort: \Rental.createdAt) private var rentals: [Rental]
     @State private var model = LeaseModel()
     @State private var isScannerUnavailable = false
+    /// What Gets Sent, shown in place of the summary.
+    @State private var isShowingSent = false
 
     private var currentRentalID: UUID? { Rental.current(in: rentals)?.id }
 
     var body: some View {
-        @Bindable var model = model
         content
             .background(Color(.systemBackground))
             .navigationTitle("Lease")
@@ -29,6 +31,7 @@ struct LeaseView: View {
             .settingsToolbar()
             .rentalSwitcher()
             .task(id: currentRentalID) {
+                isShowingSent = false
                 await model.load(rentalID: currentRentalID, store: store)
             }
             .onChange(of: navigation.systemPickerResult?.id) {
@@ -39,15 +42,29 @@ struct LeaseView: View {
                 case .scan(let images): model.importScan(images, store: store)
                 }
             }
-            .navigationDestination(item: $model.reviewing) { scan in
-                RedactionReviewView(scan: scan) { reviewed in
-                    Task { await model.finishReview(reviewed, store: store) }
-                }
-            }
     }
 
     @ViewBuilder
     private var content: some View {
+        if let reviewing = model.reviewing {
+            // In place of the summary, not pushed or in a sheet (see the type's comment).
+            RedactionReviewView(scan: reviewing) {
+                model.reviewing = nil
+            } onDone: { reviewed in
+                Task { await model.finishReview(reviewed, store: store) }
+            }
+            .id(reviewing.id)
+        } else if isShowingSent, case .ready(let scan) = model.phase {
+            LeaseSentTextView(scan: scan) {
+                isShowingSent = false
+            }
+        } else {
+            phaseContent
+        }
+    }
+
+    @ViewBuilder
+    private var phaseContent: some View {
         switch model.phase {
         case .loading:
             Color.clear
@@ -60,6 +77,8 @@ struct LeaseView: View {
         case .ready(let scan):
             LeaseSummaryView(scan: scan) {
                 model.reviewing = scan
+            } onShowSent: {
+                isShowingSent = true
             } onRemove: {
                 Task { await model.removeLease(store: store) }
             }
@@ -194,105 +213,170 @@ struct LegalFooter: View {
     }
 }
 
+extension View {
+    /// Room below a lease screen's scrolling content, so its last rows scroll fully clear of the
+    /// floating tab bar and the next-deadline accessory, which float over content.
+    func leaseBottomClearance() -> some View {
+        safeAreaPadding(.bottom, 72)
+    }
+}
+
+/// A grouped block on the lease screens: an optional heading, rows on a rounded card, an optional
+/// footer. The lease screens use these in a `ScrollView` rather than a `List`: a `List` in this tab
+/// with a menu, sheet, or navigation transition over it stalls SwiftUI under accessibility (#99).
+struct LeaseCard<Content: View>: View {
+    var title: LocalizedStringResource?
+    var footer: LocalizedStringResource?
+    @ViewBuilder var content: Content
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            if let title {
+                Text(title)
+                    .font(.footnote.weight(.semibold))
+                    .foregroundStyle(.secondary)
+                    .padding(.horizontal)
+                    .accessibilityAddTraits(.isHeader)
+            }
+            VStack(alignment: .leading, spacing: 12) {
+                content
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding()
+            .background(Color(.secondarySystemGroupedBackground), in: .rect(cornerRadius: 12))
+            if let footer {
+                Text(footer)
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+                    .padding(.horizontal)
+            }
+        }
+    }
+}
+
 /// The current rental's lease once it has been read: what was read, what is hidden, and what
 /// would be sent.
 struct LeaseSummaryView: View {
     let scan: LeaseScan
     let onReview: () -> Void
+    let onShowSent: () -> Void
     let onRemove: () -> Void
     @State private var isConfirmingRemove = false
 
     var body: some View {
-        List {
-            Section {
-                if scan.isReviewed {
-                    Label {
+        ScrollViewReader { proxy in
+        ScrollView {
+            VStack(alignment: .leading, spacing: 20) {
+                LeaseCard {
+                    status
+                    Divider()
+                    Button(action: onReview) {
+                        Label("Review Hidden Details", systemImage: "list.bullet.rectangle")
+                            .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
+                    }
+                    .accessibilityIdentifier("lease.review")
+                    Divider()
+                    Button(action: onShowSent) {
+                        Label("See What Gets Sent", systemImage: "paperplane")
+                            .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
+                    }
+                    .disabled(!scan.isReviewed)
+                    .accessibilityIdentifier("lease.sentPreview")
+                }
+
+                LeaseCard(title: "Your Lease") {
+                    LabeledContent("Pages") {
+                        Text(scan.pages.count, format: .number)
+                    }
+                    Divider()
+                    LabeledContent("Read From") {
+                        Text(readFrom)
+                    }
+                    .accessibilityIdentifier("lease.readFrom")
+                    Divider()
+                    LabeledContent("Hidden Details") {
+                        Text(scan.redactions.hiddenCount, format: .number)
+                    }
+                    .accessibilityIdentifier("lease.hiddenCount")
+                }
+
+                LeaseCard(footer: "Your scan, its full text, and the hidden details stay on this phone.") {
+                    if isConfirmingRemove {
+                        // Asked in a row, not a dialog (see `LeaseView`).
                         VStack(alignment: .leading, spacing: 4) {
-                            Text("Personal details hidden")
-                                .font(.headline)
-                            Text("Only the text with them hidden will be sent. Checking it against Virginia law is the next step and isn't available yet.")
-                                .font(.subheadline)
+                            Text("Remove this lease from your phone?")
+                                .font(.subheadline.weight(.semibold))
+                            Text("The scan, its text, and the list of hidden details are deleted from this phone.")
+                                .font(.footnote)
                                 .foregroundStyle(.secondary)
                         }
-                    } icon: {
-                        Image(systemName: "checkmark.shield.fill")
-                            .foregroundStyle(.green)
-                    }
-                    .accessibilityElement(children: .combine)
-                    .accessibilityIdentifier("lease.status")
-                } else {
-                    Label {
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text("Check what's hidden")
-                                .font(.headline)
-                            Text("Look over the names, addresses, and numbers FinePrint will hide before your lease leaves this phone.")
-                                .font(.subheadline)
-                                .foregroundStyle(.secondary)
+                        .accessibilityElement(children: .combine)
+                        Button("Remove Lease", role: .destructive, action: onRemove)
+                            .frame(minHeight: 44)
+                            .accessibilityIdentifier("lease.remove.confirm")
+                        Button("Keep Lease") { isConfirmingRemove = false }
+                            .frame(minHeight: 44)
+                            .accessibilityIdentifier("lease.remove.cancel")
+                    } else {
+                        Button("Remove Lease", role: .destructive) {
+                            isConfirmingRemove = true
+                            AccessibilityNotification.Announcement(String(localized: "Remove this lease from your phone? Choose Remove Lease or Keep Lease.")).post()
                         }
-                    } icon: {
-                        Image(systemName: "eye.slash")
-                            .foregroundStyle(.orange)
+                        .frame(minHeight: 44)
+                        .accessibilityIdentifier("lease.remove")
                     }
-                    .accessibilityElement(children: .combine)
-                    .accessibilityIdentifier("lease.status")
                 }
-                Button(action: onReview) {
-                    Label("Review Hidden Details", systemImage: "list.bullet.rectangle")
-                }
-                .accessibilityIdentifier("lease.review")
-                NavigationLink {
-                    LeaseSentTextView(scan: scan)
-                } label: {
-                    Label("See What Gets Sent", systemImage: "paperplane")
-                }
-                .disabled(!scan.isReviewed)
-                .accessibilityIdentifier("lease.sentPreview")
-            }
+                .id(Self.removeCardID)
 
-            Section("Your Lease") {
-                LabeledContent("Pages") {
-                    Text(scan.pages.count, format: .number)
-                }
-                LabeledContent("Read From") {
-                    Text(readFrom)
-                }
-                LabeledContent("Hidden Details") {
-                    Text(scan.redactions.hiddenCount, format: .number)
-                }
-                .accessibilityIdentifier("lease.hiddenCount")
-            }
-
-            Section {
-                if isConfirmingRemove {
-                    // Asked in a row, not a dialog (see `LeaseView`).
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("Remove this lease from your phone?")
-                            .font(.subheadline.weight(.semibold))
-                        Text("The scan, its text, and the list of hidden details are deleted from this phone.")
-                            .font(.footnote)
-                            .foregroundStyle(.secondary)
-                    }
-                    .accessibilityElement(children: .combine)
-                    Button("Remove Lease", role: .destructive, action: onRemove)
-                        .accessibilityIdentifier("lease.remove.confirm")
-                    Button("Keep Lease") { isConfirmingRemove = false }
-                        .accessibilityIdentifier("lease.remove.cancel")
-                } else {
-                    Button("Remove Lease", role: .destructive) {
-                        isConfirmingRemove = true
-                        AccessibilityNotification.Announcement(String(localized: "Remove this lease from your phone? Choose Remove Lease or Keep Lease.")).post()
-                    }
-                    .accessibilityIdentifier("lease.remove")
-                }
-            } footer: {
-                Text("Your scan, its full text, and the hidden details stay on this phone.")
-            }
-
-            Section {
                 LegalFooter()
                     .frame(maxWidth: .infinity)
-                    .listRowBackground(Color.clear)
             }
+            .padding()
+        }
+        .leaseBottomClearance()
+        .background(Color(.systemGroupedBackground))
+        .onChange(of: isConfirmingRemove) { _, isConfirming in
+            // The question shows where the button was; bring all of it above the tab bar.
+            guard isConfirming else { return }
+            withAnimation { proxy.scrollTo(Self.removeCardID, anchor: .bottom) }
+        }
+        }
+    }
+
+    private static let removeCardID = "lease.removeCard"
+
+    @ViewBuilder
+    private var status: some View {
+        if scan.isReviewed {
+            Label {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Personal details hidden")
+                        .font(.headline)
+                    Text("Only the text with them hidden will be sent. Checking it against Virginia law is the next step and isn't available yet.")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                }
+            } icon: {
+                Image(systemName: "checkmark.shield.fill")
+                    .foregroundStyle(.green)
+            }
+            .accessibilityElement(children: .combine)
+            .accessibilityIdentifier("lease.status")
+        } else {
+            Label {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Check what's hidden")
+                        .font(.headline)
+                    Text("Look over the names, addresses, and numbers FinePrint will hide before your lease leaves this phone.")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                }
+            } icon: {
+                Image(systemName: "eye.slash")
+                    .foregroundStyle(.orange)
+            }
+            .accessibilityElement(children: .combine)
+            .accessibilityIdentifier("lease.status")
         }
     }
 

@@ -61,6 +61,8 @@ final class LeaseModel {
 
     /// Shows `rentalID`'s lease, or the empty state.
     func load(rentalID: UUID?, store: LeaseStore) async {
+        // A review in progress belongs to the rental it was opened for.
+        if reviewing?.rentalID != rentalID { reviewing = nil }
         self.rentalID = rentalID
         guard let rentalID else {
             phase = .empty
@@ -148,10 +150,7 @@ final class LeaseModel {
             Self.logger.error("Review failed to save: \(error.localizedDescription, privacy: .public)")
             setPhase(.failed(.couldNotSave), for: reviewed.rentalID)
         }
-        // Back to the summary only once it shows the saved review, so the screen behind the
-        // review does not change while the pop animates (that, with accessibility on, stalled
-        // SwiftUI the same way as #99). Returning to the summary is the confirmation.
-        try? await Task.sleep(for: .milliseconds(300))
+        // In the same update as the phase, so the summary replaces the review in one step.
         reviewing = nil
     }
 

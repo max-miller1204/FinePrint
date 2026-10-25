@@ -70,11 +70,13 @@ test('an imported lease is read on the phone and sent only with personal details
   await expect(screen.getByTestId('lease.hide.field')).not.toBeVisible();
   await expect.poll(() => hiddenCount(screen)).toBe(detected + 1);
 
-  // Turn one detection off: the payment portal link is sent as written.
-  const link = screen.getByTestId('lease.redaction.LINK_1');
-  await screen.scrollUntilVisible(link);
-  await link.tap();
-  await expect(link).toContainText('Sent as written');
+  // Turn one detection off: the tenant's name is sent as written. (The first row: the engine's
+  // scroll can skip rows further down.)
+  await screen.scrollUntilVisible(tenant);
+  await expect(tenant).toHaveValue('Hidden');
+  await tenant.tap();
+  // Each detail is one switch; its state is the accessibility value, not its text.
+  await expect(tenant).toHaveValue('Sent as written');
 
   // The SSN comes from the OCR'd page.
   const ssn = screen.getByTestId('lease.redaction.SSN_1');
@@ -83,22 +85,22 @@ test('an imported lease is read on the phone and sent only with personal details
 
   // The lease text view marks each hidden detail for VoiceOver.
   await screen.getByRole('tab', { name: 'Lease Text' }).tap();
-  await expect(screen.getByText(/Jordan Lee, hidden,/).first()).toBeVisible();
+  await expect(screen.getByText(/Harbor Point Properties LLC, hidden,/).first()).toBeVisible();
 
   await screen.getByRole('button', { name: 'Done' }).tap();
   await expect(screen.getByTestId('lease.status')).toContainText('Personal details hidden');
-  // Detected details, plus "grace period", minus the portal link.
+  // Detected details, plus "grace period", minus the tenant.
   await expect(screen.getByTestId('lease.hiddenCount')).toContainText(String(detected));
 
   // What gets sent is the upload body's redacted text, built from the reviewed lease.
   await screen.getByTestId('lease.sentPreview').tap();
   const sent = flatten(await screen.getByTestId('lease.sentText').textContent());
-  for (const placeholder of ['[TENANT_1]', '[LANDLORD_1]', '[SSN_1]', '[DOB_1]', '[HIDDEN_1]']) {
+  for (const placeholder of ['[LANDLORD_1]', '[TENANT_2]', '[SSN_1]', '[DOB_1]', '[HIDDEN_1]']) {
     expect(sent).toContain(placeholder);
   }
   // The detection the tenant turned off is the only detail sent as written.
-  expect(sent).toContain('portal.harborpoint-example.com');
-  for (const detail of fixture.details.filter((value) => value !== 'harborpoint-example.com')) {
+  expect(sent).toContain('Jordan Lee');
+  for (const detail of fixture.details.filter((value) => value !== 'Jordan Lee' && value !== 'Jordan')) {
     expect(sent, `${detail} is in the upload`).not.toContain(detail);
   }
   expect(sent).not.toContain('grace period');
@@ -113,7 +115,7 @@ test('a scanned lease belongs to the rental it was scanned for', { platforms: ['
   await expect(screen.getByTestId('lease.redaction.TENANT_1')).toBeVisible(readTimeout);
   await screen.getByRole('button', { name: 'Done' }).tap();
   await expect(screen.getByTestId('lease.status')).toContainText('Personal details hidden');
-  await expect(screen.getByText('Scanned pages')).toBeVisible();
+  await expect(screen.getByTestId('lease.readFrom')).toContainText('Scanned pages');
 
   // A second rental starts with no lease.
   await screen.getByRole('button', { name: 'Rentals' }).tap();
