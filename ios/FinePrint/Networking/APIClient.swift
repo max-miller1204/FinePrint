@@ -35,8 +35,8 @@ struct APIClient {
         try await get("v1/me")
     }
 
-    func get<Reply: Decodable>(_ path: String) async throws(APIError) -> Reply {
-        try await send("GET", path, body: nil)
+    func get<Reply: Decodable>(_ path: String, query: [URLQueryItem] = []) async throws(APIError) -> Reply {
+        try await send("GET", path, body: nil, query: query)
     }
 
     /// Sends `body` as JSON. Swift property names go out as they are, so name them as the server does.
@@ -60,8 +60,10 @@ struct APIClient {
         }
     }
 
-    private func send<Reply: Decodable>(_ method: String, _ path: String, body: Data?) async throws(APIError) -> Reply {
-        let url = serverURL.appending(path: path)
+    private func send<Reply: Decodable>(_ method: String, _ path: String, body: Data?, query: [URLQueryItem] = []) async throws(APIError) -> Reply {
+        var components = URLComponents(url: serverURL.appending(path: path), resolvingAgainstBaseURL: false)
+        if !query.isEmpty { components?.queryItems = query }
+        guard let url = components?.url else { throw .malformedResponse }
         var (data, status) = try await send(method, url, body: body, forceRefresh: false)
         if status == 401 {
             (data, status) = try await send(method, url, body: body, forceRefresh: true)

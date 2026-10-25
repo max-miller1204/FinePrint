@@ -54,7 +54,7 @@ describe('Firebase anonymous auth on /v1', { platforms: ['web'] }, () => {
     expect(res.status).toBe(200);
     // The web target runs the Auth emulator, so the app is pointed at it.
     expect(await res.json()).toEqual({
-      firebase: { apiKey: expect.any(String), projectId: 'demo-fineprint', authEmulatorHost: `127.0.0.1:${process.env.E2E_AUTH_PORT ?? '9099'}` },
+      firebase: { apiKey: expect.any(String), projectId: 'demo-fineprint', authEmulatorHost: process.env.E2E_WEB_AUTH_HOST ?? `127.0.0.1:${process.env.E2E_AUTH_PORT ?? '9099'}` },
     });
   });
 

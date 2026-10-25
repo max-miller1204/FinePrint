@@ -1,8 +1,8 @@
 import { join } from 'node:path';
 import type { E2EConfig } from 'e2e';
 import base from './e2e.config';
-process.env.E2E_FIRESTORE_PORT = '18090';
-process.env.E2E_AUTH_PORT = '19099';
+process.env.E2E_FIRESTORE_PORT ??= '18090';
+process.env.E2E_AUTH_PORT ??= '19099';
 const target = base.targets[0]!;
 const command = target.app!.command as { executable: string; args: string[]; cwd: string; env: Record<string, string>; log: string; startupTimeout: number };
 export default {

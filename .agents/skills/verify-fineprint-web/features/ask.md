@@ -23,3 +23,13 @@ history turns return 400. Logs hold metadata only.
 ask|web|skeptic|Try to cite a different rental, inject instructions in history, invent a rule ID, send seven turns, and ask a high-stakes question. Prove no unauthorized or uncited content survives and no conversation is persisted.
 
 See `docs/grounded-ask.md` for the contract, eval, limitations and TestFlight steps.
+
+## Dev integration verification
+
+Merged dev's sharing and accessibility changes. Preserved the Ask and report
+feature entries, and both emulator-port configuration forms so the default and
+isolated Ask suites remain usable. Ask configuration permits caller-provided
+ports. Smoke, Ask, auth, rentals and triage passed together: 18 passed, exit 0,
+no retries or cache. Proof: `e2e/.e2e/proof/dev-ask-sharing/`. Server unit tests:
+484 passed; workspace typecheck: exit 0. iOS runtime acceptance uses TestFlight
+from dev by @max-miller1204; no iOS test file was authored or edited.
