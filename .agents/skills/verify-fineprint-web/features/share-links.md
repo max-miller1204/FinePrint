@@ -98,3 +98,11 @@ unconfigured live-model skips, exit 0. It includes smoke, all sharing and
 browser verification tests, plus parity CLI checks. Unit tests: 452 passed;
 typecheck and lint passed. iOS test authoring and execution remain assigned
 to @maddoxrjohnson's Mac agents. No iOS test file was added from Linux.
+
+## Dev integration verification
+
+Merged `origin/dev` with the report accessibility gate, preserving both feature
+maps. `dev-share-merge` ran smoke, sharing, report, browser verification and
+accessibility together: 26 passed, exit 0, no retries or cache. Server unit tests:
+476 passed; workspace typecheck: exit 0. iOS acceptance is the user-approved
+TestFlight device check by @max-miller1204 from dev.

@@ -377,8 +377,9 @@ struct EvidenceAPITests {
         #expect(request.value(forHTTPHeaderField: "Authorization") == "Bearer id-1")
         let body = try #require(request.httpBody.flatMap { try JSONSerialization.jsonObject(with: $0) as? [String: [[String: Any]]] })
         let sent = try #require(body["items"]?.first)
-        #expect(Set(sent.keys) == ["itemId", "room", "checklistItem", "sha256", "bytes", "mime", "capturedAtDevice", "deviceUptimeMs", "source", "appVersion"])
+        #expect(Set(sent.keys) == ["itemId", "room", "checklistItem", "sha256", "bytes", "mime", "capturedAtDevice", "deviceUptimeMs", "source", "appVersion", "session"])
         #expect(sent["source"] as? String == "in_app_camera")
+        #expect(sent["session"] as? String == "move_in")
     }
 
     @Test func `completes with the lowercase item ID`() async throws {

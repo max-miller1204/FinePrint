@@ -1,10 +1,19 @@
 import Foundation
 
+/// Which capture session a photo is part of. Raw values match the server's `session` (spec §6.1).
+nonisolated enum EvidenceSession: String, Codable, Sendable {
+    case moveIn = "move_in"
+    case moveOut = "move_out"
+    /// A photo of something that broke during the tenancy, taken for a repair (spec §4.3 F4).
+    case incident
+}
+
 /// Where a photo belongs: the rental, the room, and the checklist item being photographed.
 nonisolated struct CaptureContext: Equatable, Sendable {
     var rentalID: UUID
     var room: String
     var checklistItem: String
+    var session: EvidenceSession = .moveIn
 }
 
 /// The record written on device at shutter time (spec §8.1). The server later checks the
@@ -28,11 +37,12 @@ nonisolated struct CaptureRecord: Codable, Equatable, Sendable {
     var room: String
     var checklistItem: String
     var appVersion: String
+    var session: EvidenceSession = .moveIn
 
     enum CodingKeys: String, CodingKey {
         case itemID = "itemId"
         case rentalID = "rentalId"
-        case sha256, bytes, mime, capturedAtDevice, deviceUptimeMs, source, room, checklistItem, appVersion
+        case sha256, bytes, mime, capturedAtDevice, deviceUptimeMs, source, room, checklistItem, appVersion, session
     }
 
     /// Formats the shutter time with the offset of `timeZone`, never as UTC "Z", so the record
@@ -51,5 +61,24 @@ nonisolated struct CaptureRecord: Codable, Equatable, Sendable {
         let version = bundle.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "0"
         let build = bundle.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "0"
         return "\(version) (\(build))"
+    }
+}
+
+nonisolated extension CaptureRecord {
+    /// Records saved before photos had a session were all move-in photos.
+    init(from decoder: any Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        itemID = try container.decode(UUID.self, forKey: .itemID)
+        rentalID = try container.decode(UUID.self, forKey: .rentalID)
+        sha256 = try container.decode(String.self, forKey: .sha256)
+        bytes = try container.decode(Int.self, forKey: .bytes)
+        mime = try container.decode(String.self, forKey: .mime)
+        capturedAtDevice = try container.decode(String.self, forKey: .capturedAtDevice)
+        deviceUptimeMs = try container.decode(Int.self, forKey: .deviceUptimeMs)
+        source = try container.decode(Source.self, forKey: .source)
+        room = try container.decode(String.self, forKey: .room)
+        checklistItem = try container.decode(String.self, forKey: .checklistItem)
+        appVersion = try container.decode(String.self, forKey: .appVersion)
+        session = try container.decodeIfPresent(EvidenceSession.self, forKey: .session) ?? .moveIn
     }
 }
