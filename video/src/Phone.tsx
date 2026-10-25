@@ -107,7 +107,13 @@ export const Phone: React.FC<{ segs: Seg[]; left?: number; children?: React.Reac
         }}
       >
         {segs.map((seg, i) => (
-          <Sequence key={`${seg.clip}-${seg.from}-${i}`} from={starts[i]} durationInFrames={segFrames(seg)} layout="none">
+          <Sequence
+            key={`${seg.clip}-${seg.from}-${i}`}
+            from={starts[i]}
+            // The last segment (always a hold) runs to the end of the scene, however long the voiceover makes it.
+            durationInFrames={i === segs.length - 1 ? undefined : segFrames(seg)}
+            layout="none"
+          >
             <div style={{ position: "absolute", inset: 0 }}>
               <Clip seg={seg} />
             </div>

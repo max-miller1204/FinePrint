@@ -7,7 +7,8 @@ import { KokoroTTS } from "kokoro-js";
 import { normalizeWav } from "./normalize-vo.mjs";
 import { readCaptions } from "./read-script.mjs";
 
-const VOICE = process.env.VO_VOICE ?? "af_heart";
+const VOICE = process.env.VO_VOICE ?? "am_michael";
+const SPEED = Number(process.env.VO_SPEED ?? 1);
 const FPS = 30;
 
 // How to say things the model would read oddly. Captions keep the written form.
@@ -17,6 +18,8 @@ const SAY = [
   [/Cloud KMS/g, "Cloud K M S"],
   [/Apache-2\.0/g, "Apache two point oh"],
   [/Gemma 4/g, "Gemma four"],
+  [/FinePrint/g, "Fine Print"],
+  [/\b65\b/g, "sixty-five"],
   [/\b26B\b/g, "twenty-six B"],
   [/\b31B\b/g, "thirty-one B"],
   [/29,000/g, "twenty-nine thousand"],
@@ -36,7 +39,7 @@ for (const [scene, cues] of Object.entries(readCaptions())) {
   manifest[scene] = [];
   for (const [i, cue] of cues.entries()) {
     const file = `${scene}-${i}.wav`;
-    const audio = await tts.generate(spoken(cue.text), { voice: VOICE, speed: 1 });
+    const audio = await tts.generate(spoken(cue.text), { voice: VOICE, speed: SPEED });
     await audio.save(fileURLToPath(new URL(file, out)));
     normalizeWav(fileURLToPath(new URL(file, out)));
     const frames = Math.ceil((audio.audio.length / audio.sampling_rate) * FPS);

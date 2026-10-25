@@ -103,9 +103,9 @@ export const MoveInFootage: React.FC = () => (
       top={280}
       beats={[
         { at: 0, eyebrow: "Move-in walkthrough", title: "Five days to object. FinePrint keeps the clock." },
-        { at: 175, eyebrow: "Checked on the phone", title: "Too dark? It tells you why.", color: colors.orange },
-        { at: 330, eyebrow: "SHA-256 at the shutter", title: "Fingerprinted. Location data stripped." },
-        { at: 490, eyebrow: "Signed with Cloud KMS", title: "Sealed into a hash-chained ledger." },
+        { at: 184, eyebrow: "Checked on the phone", title: "Too dark? It tells you why.", color: colors.orange },
+        { at: 357, eyebrow: "SHA-256 at the shutter", title: "Fingerprinted. Location data stripped." },
+        { at: 540, eyebrow: "Signed with Cloud KMS", title: "Sealed into a hash-chained ledger." },
       ]}
     />
   </Scene>
@@ -113,14 +113,14 @@ export const MoveInFootage: React.FC = () => (
 
 // ── Lease check: clips 08, 09, 10 ──────────────────────────────────────────────
 
-const RAMP = 20;
+const RAMP = 15;
 const LEASE: Seg[] = [
   { clip: "c08", from: 0.7, to: 4.5, taps: [{ t: 1.0, x: 0.5, y: 0.52 }] },
   { clip: "c09", from: 0.7, to: 4.2, taps: [{ t: 1.0, x: 0.34, y: 0.371 }] },
   { clip: "c10", from: 0.6, to: 3.0, taps: [{ t: 1.0, x: 0.5, y: 0.647 }] },
   { clip: "c10", from: 3.0, to: 221.5, speed: RAMP },
   { clip: "c10", from: 221.5, to: 223.2 },
-  { clip: "c10", from: 223.2, hold: 3.4, taps: [{ t: 226.1, x: 0.4, y: 0.496 }] },
+  { clip: "c10", from: 223.2, hold: 4.7, taps: [{ t: 227.4, x: 0.4, y: 0.496 }] },
   { clip: "c10", from: 223.9, hold: 5.0 },
 ];
 const L = segStarts(LEASE);

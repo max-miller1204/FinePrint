@@ -67,7 +67,7 @@ const Edge: React.FC<{ from: Node; to: Node; start: number }> = ({ from, to, sta
   );
 };
 
-const OUTRO = 392;
+const OUTRO = 480;
 
 // Measured on the lease in the demo footage (SHOTS.md, clip 10).
 const COST = [
@@ -100,7 +100,7 @@ export const Close: React.FC = () => {
           ))}
         </svg>
         <div style={{ position: "absolute", left: 130, top: 640, width: 1040 }}>
-          <Rise delay={140}>
+          <Rise delay={163}>
             <Eyebrow color={colors.orange}>Inference cost · one lease</Eyebrow>
             {COST.map((c) => (
               <div key={c.model} style={{ display: "flex", gap: 20, marginTop: 16, fontSize: 28 }}>

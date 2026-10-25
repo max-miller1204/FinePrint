@@ -1,93 +1,93 @@
 {
-  "voice": "af_heart",
+  "voice": "am_michael",
   "scenes": {
     "Hook": [
       {
         "file": "Hook-0.wav",
-        "frames": 297
+        "frames": 365
       }
     ],
     "Stakes": [
       {
         "file": "Stakes-0.wav",
-        "frames": 184
+        "frames": 216
       }
     ],
     "Title": [],
     "MoveIn": [
       {
         "file": "MoveIn-0.wav",
-        "frames": 135
+        "frames": 168
       },
       {
         "file": "MoveIn-1.wav",
-        "frames": 127
+        "frames": 168
       },
       {
         "file": "MoveIn-2.wav",
-        "frames": 167
+        "frames": 189
       },
       {
         "file": "MoveIn-3.wav",
-        "frames": 151
+        "frames": 185
       }
     ],
     "Lease": [
       {
         "file": "Lease-0.wav",
-        "frames": 200
+        "frames": 213
       },
       {
         "file": "Lease-1.wav",
-        "frames": 210
+        "frames": 256
       },
       {
         "file": "Lease-2.wav",
-        "frames": 171
+        "frames": 227
       },
       {
         "file": "Lease-3.wav",
-        "frames": 153
+        "frames": 192
       },
       {
         "file": "Lease-4.wav",
-        "frames": 132
+        "frames": 161
       }
     ],
     "Ask": [
       {
         "file": "Ask-0.wav",
-        "frames": 182
+        "frames": 193
       },
       {
         "file": "Ask-1.wav",
-        "frames": 105
+        "frames": 159
       }
     ],
     "Safety": [
       {
         "file": "Safety-0.wav",
-        "frames": 153
+        "frames": 186
       }
     ],
     "Delete": [
       {
         "file": "Delete-0.wav",
-        "frames": 129
+        "frames": 161
       }
     ],
     "Close": [
       {
         "file": "Close-0.wav",
-        "frames": 122
+        "frames": 148
       },
       {
         "file": "Close-1.wav",
-        "frames": 240
+        "frames": 307
       },
       {
         "file": "Close-2.wav",
-        "frames": 126
+        "frames": 144
       }
     ]
   }

@@ -1,6 +1,6 @@
 # Render handoff: FinePrint demo video (final cut)
 
-This folder is the finished Remotion project for the hackathon demo video. The cut is locked, so rendering it again gives the same video. A reference render is already in `render/fineprint-demo-final.mp4` (1:56.3, 1920x1080, 30 fps, H.264 + AAC, 15.5 MB). Re-render only if that file is lost or you change something.
+This folder is the finished Remotion project for the hackathon demo video. The cut is locked, so rendering it again gives the same video. A reference render is already in `render/fineprint-demo-final.mp4` (2:13.3, 1920x1080, 30 fps, H.264 + AAC). The voice is Kokoro `am_michael`, a US male voice, at speed 1. The earlier 1:56 cut with the female voice `af_heart` is not in the repo. Re-render only if that file is lost or you change something.
 
 ## Render on a faster machine (about 5 minutes)
 
@@ -13,8 +13,8 @@ npm run music            # rebuilds public/music-bed.wav (30 MB, left out of git
 npx remotion render FinePrintDemo out/fineprint-demo-final.mp4 --concurrency=<number of CPU cores>
 ```
 
-- Do **not** run `npm run vo`. The voiceover WAVs in `public/vo/` and `public/vo/manifest.json` are committed and match `src/script.ts`. Re-running it is only needed after a script change, and it downloads a 330 MB model.
-- Check the length: `npx remotion compositions` should list `FinePrintDemo` at 3489 frames (116.30 s).
+- Do **not** run `npm run vo`. The voiceover WAVs in `public/vo/` and `public/vo/manifest.json` are committed and match `src/script.ts`. Re-running it is only needed after a script change, and it downloads a 330 MB model. The voice and speed are set by `VO_VOICE` (default `am_michael`) and `VO_SPEED` (default 1). Pronunciation fixes are in the `SAY` map in `scripts/make-vo.mjs`.
+- Check the length: `npx remotion compositions` should list `FinePrintDemo` at 3999 frames (133.30 s). The cut runs over MLH's 2-minute ask, which the team chose in exchange for a more natural read.
 - On the original machine (6-core Mac running the x64 build of Node), the render took 16 minutes at `--concurrency=6`.
 - Preview and scrub: `npm run studio`.
 
@@ -25,14 +25,14 @@ Problem → Solution → AI and track fit → Impact. Every phone screen is real
 | Scene | Time | Content |
 |---|---|---|
 | Hook | 0:00 | Va. Code § 55.1-1214(A) five-day rule, Jordan (VT junior) |
-| Stakes | 0:10 | 64% of Blacksburg households rent; 24% of recent movers got no deposit back |
-| Title | 0:16 | FinePrint |
-| MoveIn | 0:18 | Clips 03, 04, 06: walkthrough, "Too dark" warning, retake, SHA-256 fingerprint, seal |
-| Lease | 0:41 | Clips 08, 09, 10: on-device redaction, What Gets Sent, live Gemma 4 lease check (3:40 real wait shown 20× faster and labeled), stage tracker with real server timings (26B, 31B verifier, code checks), 12 findings, the late-fee finding against § 55.1-1204(E) |
-| Ask | 1:12 | Clips 11, 12: grounded answer with citation chip; out-of-scope handoff to Virginia Legal Aid (waits shown 3× faster and labeled) |
-| Safety | 1:26 | Eval numbers: 100% of 65 high-stakes cases flagged (docs/ai-pipeline.md) |
-| Delete | 1:32 | Clip 13: Delete Everything and the receipt |
-| Close | 1:38 | Architecture, `./deploy.sh`, cost per lease (8 calls, 29,351 prompt tokens), Apache-2.0, repo link |
+| Stakes | 0:12 | 64% of Blacksburg households rent; 24% of recent movers got no deposit back |
+| Title | 0:20 | FinePrint |
+| MoveIn | 0:22 | Clips 03, 04, 06: walkthrough, "Too dark" warning, retake, SHA-256 fingerprint, seal |
+| Lease | 0:47 | Clips 08, 09, 10: on-device redaction, What Gets Sent, live Gemma 4 lease check (3:40 real wait shown 15× faster and labeled), stage tracker with real server timings (26B, 31B verifier, code checks), 12 findings, the late-fee finding against § 55.1-1204(E) |
+| Ask | 1:23 | Clips 11, 12: grounded answer with citation chip; out-of-scope handoff to Virginia Legal Aid (waits shown 3× faster and labeled) |
+| Safety | 1:38 | Eval numbers: 100% of 65 high-stakes cases flagged (docs/ai-pipeline.md) |
+| Delete | 1:45 | Clip 13: Delete Everything and the receipt |
+| Close | 1:51 | Architecture, `./deploy.sh`, cost per lease (8 calls, 29,351 prompt tokens), Apache-2.0, repo link |
 
 ## Files
 
