@@ -1,6 +1,6 @@
 # AI pipeline
 
-This document records what the Gemma 4 models and the iOS 26 SDK actually support, so each lane builds on measured facts. The Gemma client (#9) and triage (#37) are described at the end. The rest of the pipeline description lands with the lanes that build it (#14, #15).
+This document records what the Gemma 4 models and the iOS 26 SDK actually support, so each lane builds on measured facts. The Gemma client (#9) and triage (#37) are described at the end. The lease pipeline (#14, #15) follows them; the rest of the pipeline description lands with the lanes that build it.
 
 ## Day-one smoke test (#8)
 
@@ -117,9 +117,9 @@ const { data, model, fallback } = await gemma.generate('mapping', FindingSchema,
 ### Behavior
 
 - **Thinking:** `minimal` for triage, vision, ask, explanation, and translation; `high` for extraction, mapping, verification, and responsibility. `high` takes effect only on a `json` stage (gap 6).
-- **Output mode:** `schema` (every stage but `extraction` and `mapping`, gap 7) sends `responseSchema` and the fence stop sequence. `json` sends the Zod schema as JSON Schema text after the document rule, no `responseSchema`, and no stop sequence. Both strip fences and validate with Zod. Set it per stage in `STAGES`.
+- **Output mode:** `json` for the lease stages: `extraction` and `mapping` (gap 7), `verification` (picked on `clauses-golden`, see "Lease pipeline"), and `explanation` and `translation` (26B garbled them in `schema` mode). `schema` (every other stage) sends `responseSchema` and the fence stop sequence. `json` sends the Zod schema as JSON Schema text after the document rule, no `responseSchema`, and no stop sequence. Both strip fences and validate with Zod. Set it per stage in `STAGES`.
 - **Retries:** 429, 500, 502, 503, 504, and network errors retry 4 times per model with exponential backoff (2, 4, 8, 16 s, equal jitter), or after the API's `retryDelay` on a 429. A 429 also empties that model's buckets. Other errors (such as 400) throw `GemmaRequestError` at once.
-- **Fallback:** when a model runs out of retries, the next one in the chain answers. Primary: 26B, then Flash. Verifier: 31B, then 26B, then Flash. Each step emits a `fallback` event and a `model fallback` warning, and the result carries `model` and `fallback: true`. When every model fails, `GemmaUnavailableError` lets the verifier mark findings "unverified" (#15).
+- **Fallback:** when a model runs out of retries, the next one in the chain answers. Primary: 26B, then Flash. Verifier: 31B, then 26B, then Flash. Each step emits a `fallback` event and a `model fallback` warning, and the result carries `model` and `fallback: true`. When every model fails, `GemmaUnavailableError` lets the verifier mark findings "unverified" (#15), and S8 and S9 fall back to fixed or English text.
 - **Output cap:** `maxOutputTokens` in the options caps the answer (Gemini `maxOutputTokens`, Chat Completions `max_tokens`). A cut-off answer fails validation and is retried once.
 - **Rate limits:** input tokens are estimated at 4 characters per token (260 per image) before the call, then corrected with the API's `promptTokenCount`. A wait emits a `waiting` event with the ms, for the SSE stream.
 
@@ -185,13 +185,13 @@ On round 2 they caught nothing new. Its 13 misses: a padlock on the door, power 
 
 What this means: phrase lists patched after each miss catch about half of unseen crisis wording, and patching does not move that number. The combined 100% rests on Gemma. When Gemma is off or unavailable, expect the backstop alone to miss about half of high-stakes inputs, including indirect self-harm. Round 2 was written before the term changes, but by the same agent that then wrote them, so its "after" score is not fully independent; each round is small, so read the numbers as a range. A round written by a person outside the project would be stronger evidence.
 
-## Lease pipeline (#14)
+## Lease pipeline (#14, #15)
 
-Spec §7.3, S1 to S6. Gemma interprets; code verifies. S7 to S9 (31B verifier, severity, explanation, translation) are #15, and the route and SSE stream are #16.
+Spec §7.3, S1 to S9. Gemma interprets; code verifies. The route and SSE stream are #16.
 
 ```ts
 const pack = loadRulePack(join(JURISDICTIONS_ROOT, 'va'), { requireVerified: true });
-const analysis = await analyzeLease({ leaseId, text, locale: 'en', term }, { gemma, pack, triage }, { onEvent });
+const analysis = await analyzeLease({ leaseId, text, locale: 'es', readingLevel: 'standard', term }, { gemma, pack, triage }, { onEvent });
 // status: 'escalated' (S1) | 'not_a_lease' (S2) | 'analyzed'
 ```
 
@@ -202,23 +202,49 @@ const analysis = await analyzeLease({ leaseId, text, locale: 'en', term }, { gem
 | S3 quote resolution | `server/src/ai/pipeline/quotes.ts`, `resolve.ts` | Clauses run from one start to the next, so they cover the lease with no gaps and hold no model text; a start that is not found is dropped. A key term stays only if its quote is in the lease, its value is in the quote, and code can read the value (`$1,500`, `fifteen percent (15%)`, `three months' rent`, `twenty-four (24) hours`, `November 1, 2026`). Percent and months of rent become dollars with the verified rent |
 | S4 deterministic checks | `pipeline/checks.ts` | Every deterministic rule in force during the term, on the verified key terms (`server/src/rules/checks.ts`) |
 | S5 mapping | `mapping` stage, `json`, 26B | Batches of about 10 clauses (fewer calls when the budget is short), every rule in force in the instruction with its summary and paraphrase examples, rule ids as an enum. Per clause: `ruleIds`, `assessment` (`violates`, `unclear`, `complies`, `not_covered`), `leaseQuote`, `reasoning` |
-| S6 verification | `pipeline/verify.ts` | The clause is in the batch, the quote is in that clause, every rule exists and has a version in force during the term, and S4 has not already decided the rule. Failures are dropped and counted, never repaired |
+| S6 verification | `pipeline/verify.ts` | The clause is in the batch, the quote is in that clause, every rule exists and has a version in force during the term, and S4 (or a required-wording check) has not already decided the rule. Failures are dropped and counted, never repaired |
+| Required wording | `pipeline/checks.ts`, `REQUIRED_WORDING` | Code, with S4. A lease with no mention of "Tenant Rights and Responsibilities" gets a `VA_TENANT_RIGHTS_STATEMENT` finding with no quote (`basis: absence`). S5 cannot report it: S6 needs a quote |
+| S7 legal verifier | `verification` stage, `json`, 31B (`pipeline/verifier.ts`) | One call for every S5 `violates` (split only past the token cap). It sees each clause and its statute's exact words (each version in force when the quote changes mid-lease), and nothing else: no rule summary, no S5 assessment or reasoning. It answers `violates`, `complies`, or `unclear`; code reads those as `agree`, `disagree`, `unclear`. A check it skips, or a call no model answers, is `unverified` |
+| Severity | `pipeline/severity.ts`, `findings.ts` | The table below, capped at the rule's `severityIfViolated`. One finding per rule per clause; sorted by severity, then lease position; ids `f1`, `f2`, ... |
+| S8 explanation | `explanation` stage, `json`, 26B (`pipeline/explain.ts`) | One call: a title (2 to 12 words) and an explanation (8 words or more) per finding. Facts are ours (the rule's `tenantExplanation`, code's numbers); lease quotes are documents. Code grades each with Flesch-Kincaid (`readability.ts`): 7 or lower, 5 for `simpler`. Failures get one regeneration with a stricter instruction; then the rule's own explanation if it passes, else a fixed sentence per severity that passes grade 5. `actionEn` is the rule's verified `action` |
+| S9 translation | `translation` stage, `json`, 26B (`pipeline/translate.ts`) | Only when `locale` is not `en` or `en-*`. One call over the distinct titles, explanations, and actions. Lease and statute quotes are never sent. A finding keeps only its English when a text is missing, far shorter or longer than its English, or changes a phrase inside quotation marks |
+
+**Severity table** (spec §7.3): an S4 or required-wording violation is `unenforceable`; S5 `violates` with the verifier agreeing is `unenforceable`, and with it disagreeing, unsure, or unverified is `ask`; `unclear` is `ask`; `complies` is `info`; `not_covered` is `info` with no rule and no legal claim. A rule marked `ask` in the pack (such as `VA_LANDLORD_MAINTAIN_FIT`, `VA_TENANT_RIGHTS_STATEMENT`) never reads as `unenforceable`. A verifier answer from a fallback model (26B or Flash when 31B is down) counts, and is labeled `verifier.fallback: true`.
 
 - **Matching:** literal after folding whitespace runs, curly quotes, dashes, the ellipsis character, and soft hyphens. Case, words, and numbers must match. A quote with `...` matches when each fragment (12 characters or more) is verbatim and in order; the span covers the skipped words too.
 - **Lease term:** `leaseStart` and `leaseEnd` from the lease, else the caller's `term` (the rental's dates), else the day of the analysis with no end (`term.source` says which). Rules resolve against the whole term, so § 55.1-1204's July 1, 2027 version applies to a lease that spans it.
-- **Budget:** at most 8 `generate()` calls (`MAX_CALLS`), each request estimated at 12,000 input tokens or fewer, so it fits a minute of Gemma's 16K input tokens. The limiter queues the rest and reports each wait as a `waiting` event. The issue's "split across models" option was not taken: 31B is the verifier (#15) and has transient 5xx (gap 5).
-- **Prompt injection:** S2's `aiInstructions` flag and a code pattern (`detectInjection`) set `injection.detected`. The analysis continues; #15 turns it into the `info` finding.
+- **Budget:** at most 8 `generate()` calls to S5 (`ANALYSIS_CALLS`) and 12 in all (`MAX_CALLS`: S7, S8, its regeneration, and S9 add one each), each request estimated at 12,000 input tokens or fewer, so it fits a minute of Gemma's 16K input tokens. S7 runs on 31B's own quota. The limiter queues the rest and reports each wait as a `waiting` event. The issue's "split across models" option was not taken: 31B is the verifier and has transient 5xx (gap 5).
+- **Prompt injection:** S2's `aiInstructions` flag and a code pattern (`detectInjection`) set `injection.detected`. The analysis continues; the `info` finding for it is #19.
+- **Events:** `stage` S1 to S9, `keyterms`, one `finding` per finding in display order after S8 (or S9), and `model`.
 - **Drops:** `drops[]` lists `{ stage, reason, ref }` with ids, key term names, or rule ids only. The `lease pipeline` log line has counts, never text.
 
 ### Check it
 
 ```sh
 pnpm --filter @fineprint/server test                         # server/test/lease-pipeline.test.ts, model scripted
-cd server && op run --env-file ../.env -- pnpm smoke:lease    # live: the synthetic lease and a variant with its amounts fixed
+cd server && op run --env-file ../.env -- pnpm smoke:lease    # live: the synthetic lease (in Spanish) and a variant with its amounts fixed
+cd eval && op run --env-file ../.env -- pnpm verifier         # live: S7 on clauses-golden in schema and json mode
 ```
 
-`smoke:lease` exits `0` when the synthetic lease yields exactly its three planted deterministic violations (`VA_DEPOSIT_CAP`, `VA_LATE_FEE_CAP`, `VA_ROUTINE_MAINTENANCE_NOTICE_72H`), the variant with those amounts fixed yields none, each run takes 8 calls or fewer, and the term is read from the lease. It reports, without gating, how many of the five planted semantic clauses S5 mapped.
+`smoke:lease` exits `0` when the synthetic lease yields exactly its three planted deterministic violations as `unenforceable` findings, every explanation reads at grade 7 or lower, its Spanish run leaves every quote a slice of the lease, each run makes 12 calls or fewer (8 to S5) (`VA_DEPOSIT_CAP`, `VA_LATE_FEE_CAP`, `VA_ROUTINE_MAINTENANCE_NOTICE_72H`), the variant with those amounts fixed yields none, each run takes 8 calls or fewer, and the term is read from the lease. It reports, without gating, how many of the five planted semantic clauses became findings (with the verifier's verdict and the severity), the findings per severity, and how many were translated.
 
 ### Synthetic lease, 2026-10-24
 
 `gemma-4-26b-a4b-it` on both stages, no fallback: 6 calls (triage, one S2, four mapping batches), 15,414 input and 3,068 output tokens, 50 s. All 6 key terms verified, S4 found the three planted violations (deposit $4,500 against a $3,000 cap, late fee $225 against $150, 24 hours' notice against 72), and S5 mapped all 5 planted semantic clauses as `violates` (rights waiver, confession of judgment, exculpation, attorney fees, HVAC repairs). S6 dropped 3 mappings to deterministic rules that S4 had decided. The second lease of the run waited out one 429 (56 s), since two leases back to back exceed 16K input tokens in a minute.
+
+### Verifier output mode, 2026-10-25 (#15)
+
+`pnpm verifier` in `eval/`: the 45 `clauses-golden` cases (30 violations, 15 look-alikes that comply) through S7 on `gemma-4-31b-it`, in batches of 8, as if S5 had said each clause violates its rule.
+
+| Mode | Agrees on violations | Agrees on look-alikes | Unclear | Skipped | Thought tokens | Per call |
+| --- | --- | --- | --- | --- | --- | --- |
+| `schema` | 27/30 | 0/15 | 3 | 2 | 0 | 19 s |
+| `json` | 29/30 | 0/15 | 1 | 0 | 7,090 | 52 s |
+
+`verification` moved to `json`: more agreement on real violations, no false agreement, and no skipped checks, for about 33 s more per lease (one S7 call). The misses in `json` mode: `VA_RENEWAL_NOTICE-02` (30 days' notice not to renew; disagree) and `VA_RULE_CHANGES_NEED_CONSENT-03` (unclear). One run each; read the numbers as a range.
+
+### S7 to S9 on the synthetic lease, 2026-10-25 (#15)
+
+`smoke:lease`, final config. Synthetic lease in Spanish: 9 calls (triage, S2, four mapping batches, S7, S8, S9), 30,828 input and 5,973 output tokens, 401 s with many 429 waits (the project's quota was shared with another run). 13 findings: 7 `unenforceable` (the three S4 violations and the four planted clauses 31B agreed with), 1 `ask` (HVAC repairs: 31B agreed, but the rule is capped at `ask`), 5 `info`. Every explanation came from the model's first answer at grade 1 to 6.9; all 13 were translated, quotes untouched. Amounts-fixed lease in English: 9 calls, no S4 finding, 4 `unenforceable`, 1 `ask`, 9 `info`; one explanation passed only on its regeneration.
+
+An earlier run with `explanation` and `translation` on `schema` passed the gates but showed why they moved to `json`: 26B answered `"text"` as a whole title and explanation (grade -3.4, which passes a grade check) and `"explicación"` as a translation. S8 now also needs a 2 to 12 word title and an explanation of 8 words or more, and S9 rejects a translation under half or over three times its English length.
