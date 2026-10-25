@@ -16,7 +16,7 @@ are #15. Details: `docs/ai-pipeline.md`, "Lease pipeline (#14)".
   `"analyzed"` with `term`, `clauses`, `keyTerms`, `checks`, `mappings`,
   `injection`, `drops`, and `usage`.
 - S1: `triage.check({ source: "lease" })`; escalation stops before any lease call.
-- S2: the `extraction` stage (26B, `json` mode, output cap 8,192 tokens),
+- S2: the `extraction` stage (26B, `json` mode, output cap of half the chunk's characters in tokens, 4,096 to 16,384),
   per chunk of at most 40,000 characters: `documentType`, `aiInstructions`,
   clause headings and starts, and key terms (`monthlyRent`,
   `securityDeposit`, `lateFee`, `damageInsurancePremium`,
@@ -31,7 +31,7 @@ are #15. Details: `docs/ai-pipeline.md`, "Lease pipeline (#14)".
   (`VA_DEPOSIT_CAP`, `VA_DEPOSIT_PLUS_INSURANCE_CAP`, `VA_LATE_FEE_CAP`,
   `VA_ROUTINE_MAINTENANCE_NOTICE_72H` today), with `limit`, `actual`, the
   key terms read, and the rule versions and mid-lease changes.
-- S5: the `mapping` stage (26B, `json` mode, output cap 4,096 tokens),
+- S5: the `mapping` stage (26B, `json` mode, output cap 400 tokens per clause, 4,096 to 16,384),
   about 10 clauses a call, every rule in force in the instruction, rule ids
   as an enum.
 - S6: drops a mapping whose clause is not in its batch or whose quote is
