@@ -31,21 +31,36 @@ describe('the real rule packs', () => {
   it('load with every quote in its snapshot', () => {
     expect([...packs.keys()]).toEqual(['VA']);
     expect(va?.rules.map((rule) => rule.id)).toEqual([
+      'VA_ABUSE_VICTIM_EARLY_TERMINATION',
+      'VA_ABUSE_VICTIM_NO_LIQUIDATED_DAMAGES',
+      'VA_CASUALTY_TERMINATION',
       'VA_DEPOSIT_CAP',
       'VA_DEPOSIT_PLUS_INSURANCE_CAP',
       'VA_DEPOSIT_RETURN_45_DAYS',
       'VA_DEPOSIT_WEAR_AND_TEAR',
+      'VA_ENTRY_NOTICE_REASONABLE_TIMES',
+      'VA_HOLDOVER_PENALTY_CAP',
       'VA_LANDLORD_MAINTAIN_FIT',
       'VA_LATE_FEE_CAP',
+      'VA_MILITARY_EARLY_TERMINATION',
+      'VA_MILITARY_NO_LIQUIDATED_DAMAGES',
+      'VA_MITIGATE_NO_ACCELERATED_RENT',
       'VA_MOVE_IN_REPORT_5_DAYS',
       'VA_MOVE_OUT_INSPECTION_PRESENCE',
       'VA_NO_CONFESSION_OF_JUDGMENT',
       'VA_NO_EXCULPATION_INDEMNITY',
       'VA_NO_LANDLORD_ATTORNEY_FEES',
+      'VA_NO_REPAIR_FEES',
+      'VA_NO_RETALIATION',
       'VA_NO_RIGHTS_WAIVER',
       'VA_NO_SCRA_WAIVER',
+      'VA_NO_SELF_HELP_EVICTION',
+      'VA_NO_UNILATERAL_CHANGE',
+      'VA_PAYMENT_PROCESSING_FEE',
+      'VA_RENEWAL_NOTICE',
       'VA_RENT_ESCROW_PROCESS',
       'VA_ROUTINE_MAINTENANCE_NOTICE_72H',
+      'VA_RULE_CHANGES_NEED_CONSENT',
       'VA_TENANT_RIGHTS_STATEMENT',
     ]);
   });
@@ -60,9 +75,62 @@ describe('the real rule packs', () => {
     expect(resolved?.changes).toEqual([{ on: '2027-01-01', quoteChanged: true }]);
   });
 
+  it('tell an October 2026 lease which of the newer rules change mid-lease', () => {
+    const ids = ['VA_NO_RETALIATION', 'VA_CASUALTY_TERMINATION', 'VA_RENEWAL_NOTICE', 'VA_PAYMENT_PROCESSING_FEE', 'VA_NO_SELF_HELP_EVICTION'];
+    const resolved = resolveRules(ids.map((id) => va?.byId.get(id) as Rule), { start: '2026-10-01', end: '2027-09-30' });
+    expect(resolved.map((r) => [r.rule.id, r.changes])).toEqual([
+      // § 55.1-1258 is rewritten on January 1, 2027 (retaliatory acts move to subsection B).
+      ['VA_NO_RETALIATION', [{ on: '2027-01-01', quoteChanged: true }]],
+      // § 55.1-1240: the tenant's notice after a fire goes from 14 to 21 days.
+      ['VA_CASUALTY_TERMINATION', [{ on: '2027-01-01', quoteChanged: true }]],
+      // § 55.1-1204(K): rent increase notice goes from 60 to 90 days.
+      ['VA_RENEWAL_NOTICE', [{ on: '2027-07-01', quoteChanged: true }]],
+      ['VA_PAYMENT_PROCESSING_FEE', [{ on: '2027-07-01', quoteChanged: false }]],
+      ['VA_NO_SELF_HELP_EVICTION', []],
+    ]);
+  });
+
+  it('have clauses-golden cases, a match and a benign look-alike, for every rule added after #13', () => {
+    const cases: { id: string; ruleId: string; expected: string; text: string }[] = readFileSync(
+      new URL('../../eval/datasets/clauses-golden.jsonl', import.meta.url),
+      'utf8',
+    )
+      .trim()
+      .split('\n')
+      .map((line) => JSON.parse(line));
+    expect(new Set(cases.map((c) => c.id)).size).toBe(cases.length);
+    for (const c of cases) {
+      expect(va?.byId.has(c.ruleId), c.id).toBe(true);
+      expect(['match', 'no_match']).toContain(c.expected);
+      expect(c.text.length).toBeGreaterThan(0);
+    }
+    const added = [
+      'VA_ABUSE_VICTIM_EARLY_TERMINATION',
+      'VA_ABUSE_VICTIM_NO_LIQUIDATED_DAMAGES',
+      'VA_CASUALTY_TERMINATION',
+      'VA_ENTRY_NOTICE_REASONABLE_TIMES',
+      'VA_HOLDOVER_PENALTY_CAP',
+      'VA_MILITARY_EARLY_TERMINATION',
+      'VA_MILITARY_NO_LIQUIDATED_DAMAGES',
+      'VA_MITIGATE_NO_ACCELERATED_RENT',
+      'VA_NO_REPAIR_FEES',
+      'VA_NO_RETALIATION',
+      'VA_NO_SELF_HELP_EVICTION',
+      'VA_NO_UNILATERAL_CHANGE',
+      'VA_PAYMENT_PROCESSING_FEE',
+      'VA_RENEWAL_NOTICE',
+      'VA_RULE_CHANGES_NEED_CONSENT',
+    ];
+    for (const id of added) {
+      const expected = cases.filter((c) => c.ruleId === id).map((c) => c.expected);
+      expect(expected, id).toContain('match');
+      expect(expected, id).toContain('no_match');
+    }
+  });
+
   it('are verified by a person, so they load when verification is required', () => {
     expect(va?.verifiedThrough).toBe('2026-10-24');
-    expect(loadRulePacks(JURISDICTIONS_ROOT, { requireVerified: true }).get('VA')?.rules).toHaveLength(16);
+    expect(loadRulePacks(JURISDICTIONS_ROOT, { requireVerified: true }).get('VA')?.rules).toHaveLength(31);
   });
 });
 

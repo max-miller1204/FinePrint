@@ -1,0 +1,6 @@
+Source: https://law.lis.virginia.gov/vacode/title55.1/chapter12/section55.1-1252/
+Fetched: 2026-10-25
+Heading: § 55.1-1252. Recovery of possession limited.
+---
+A landlord may not recover or take possession of the dwelling unit (i) by willful diminution of services to the tenant by interrupting or causing the interruption of an essential service required by the rental agreement or (ii) by refusal to permit the tenant access to the unit unless such refusal is pursuant to a court order for possession.
+1974, c. 680, § 55-248.36; 1978, c. 520; 2019, c. 712.

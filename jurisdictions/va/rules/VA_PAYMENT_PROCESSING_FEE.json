@@ -1,0 +1,31 @@
+{
+  "id": "VA_PAYMENT_PROCESSING_FEE",
+  "jurisdiction": "VA",
+  "citation": "Va. Code § 55.1-1204(J)(1)",
+  "sourceUrl": "https://law.lis.virginia.gov/vacode/title55.1/chapter12/section55.1-1204/",
+  "versions": [
+    {
+      "effectiveFrom": "2019-10-01",
+      "effectiveUntil": "2027-07-01",
+      "statuteQuote": "No landlord shall charge a tenant any fee for the collection or processing of any payment of rent, security deposit, or any other fees, unless the landlord offers an alternative method of payment that does not include additional fees.",
+      "snapshotFile": "snapshots/55.1-1204@2026-10-25.txt"
+    },
+    {
+      "effectiveFrom": "2027-07-01",
+      "effectiveUntil": null,
+      "statuteQuote": "No landlord shall charge a tenant any fee for the collection or processing of any payment of rent, security deposit, or any other fees, unless the landlord offers an alternative method of payment that does not include additional fees.",
+      "snapshotFile": "snapshots/55.1-1204~2027-07-01@2026-10-25.txt"
+    }
+  ],
+  "checkType": "semantic",
+  "summaryForModel": "A landlord may not charge a fee to collect or process a payment of rent, deposit, or other fees unless it also offers a way to pay with no added fee. The landlord must accept checks and money orders. A card or electronic payment fee may not exceed the actual third-party cost. A lease that requires a paid payment method with no free option conflicts with this.",
+  "paraphraseExamples": [
+    "All rent must be paid through the online portal, which charges a $4.95 convenience fee.",
+    "A processing fee of 3% applies to every rent payment."
+  ],
+  "tenantExplanation": "Your landlord has to give you a way to pay rent without an extra fee. They also have to take checks and money orders.",
+  "action": "Ask your landlord which payment method has no fee, and ask them to write it into the lease.",
+  "severityIfViolated": "ask",
+  "verifiedBy": "Max Miller",
+  "verifiedAt": "2026-10-24"
+}

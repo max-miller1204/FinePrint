@@ -1,0 +1,25 @@
+{
+  "id": "VA_ABUSE_VICTIM_NO_LIQUIDATED_DAMAGES",
+  "jurisdiction": "VA",
+  "citation": "Va. Code § 55.1-1236(D)",
+  "sourceUrl": "https://law.lis.virginia.gov/vacode/title55.1/chapter12/section55.1-1236/",
+  "versions": [
+    {
+      "effectiveFrom": "2019-10-01",
+      "effectiveUntil": null,
+      "statuteQuote": "The landlord may not charge any liquidated damages.",
+      "snapshotFile": "snapshots/55.1-1236@2026-10-25.txt"
+    }
+  ],
+  "checkType": "semantic",
+  "summaryForModel": "When a victim of family abuse, sexual abuse, stalking, or trafficking ends a lease early under § 55.1-1236, the landlord may not charge liquidated damages, such as a lease-break or early termination fee. A lease that charges one in that case conflicts with this.",
+  "paraphraseExamples": [
+    "All early terminations, for any reason, are subject to a termination fee of two months' rent.",
+    "Tenant who vacates before the end of the term forfeits the deposit as liquidated damages, without exception."
+  ],
+  "tenantExplanation": "If you end your lease early because of abuse, stalking, or trafficking, your landlord can't charge you a lease-break fee.",
+  "action": "You can ask your landlord to state that the lease-break fee does not apply in this case.",
+  "severityIfViolated": "unenforceable",
+  "verifiedBy": "Max Miller",
+  "verifiedAt": "2026-10-24"
+}

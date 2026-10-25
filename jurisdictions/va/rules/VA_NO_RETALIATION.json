@@ -1,0 +1,32 @@
+{
+  "id": "VA_NO_RETALIATION",
+  "jurisdiction": "VA",
+  "citation": "Va. Code § 55.1-1258",
+  "sourceUrl": "https://law.lis.virginia.gov/vacode/title55.1/chapter12/section55.1-1258/",
+  "versions": [
+    {
+      "effectiveFrom": "2019-10-01",
+      "effectiveUntil": "2027-01-01",
+      "statuteQuote": "a landlord may not retaliate by increasing rent or decreasing services or by bringing or threatening to bring an action for possession or by causing a termination of the rental agreement pursuant to § 55.1-1253 or 55.1-1410",
+      "snapshotFile": "snapshots/55.1-1258@2026-10-25.txt"
+    },
+    {
+      "effectiveFrom": "2027-01-01",
+      "effectiveUntil": null,
+      "statuteQuote": "the landlord shall be prohibited from taking any retaliatory action against the tenant, including (i) increasing the tenant's rental amount or amount of fees; (ii) selectively decreasing services, selectively enforcing a rule or imposing a different rule on the tenant, or otherwise materially altering the terms of the rental agreement without the tenant's consent; (iii) threatening, harassing, or coercing the tenant; (iv) bringing an action or threatening to bring an action for possession against the tenant;",
+      "snapshotFile": "snapshots/55.1-1258~2027-01-01@2026-10-25.txt"
+    }
+  ],
+  "checkType": "semantic",
+  "summaryForModel": "A landlord may not retaliate against a tenant for complaining to a housing code agency, complaining to or suing the landlord under the VRLTA, joining or organizing a tenants' organization, or testifying against the landlord. Retaliation includes raising rent, cutting services, threatening or bringing an eviction, or ending the tenancy. Until January 1, 2027 the quote is from subsection A. From January 1, 2027 subsection B also covers raising fees, selective rule enforcement, harassment, and refusing to renew a voucher tenant, and subsection A adds complaints to the media and fair housing complaints. A lease clause that punishes these acts conflicts with this.",
+  "paraphraseExamples": [
+    "If Tenant reports Landlord to any government agency, Landlord may terminate this Lease on 30 days' notice.",
+    "Rent will increase by $100 per month if Tenant files a complaint about the property.",
+    "Joining or organizing a tenant association is grounds for nonrenewal."
+  ],
+  "tenantExplanation": "Virginia law protects you if you report code problems, complain about your landlord, join a tenants' group, or testify in court. Your landlord can't raise your rent, cut services, or try to evict you to get back at you.",
+  "action": "You can ask your landlord to remove this clause. Keep copies of any complaints you make and the dates you made them.",
+  "severityIfViolated": "unenforceable",
+  "verifiedBy": "Max Miller",
+  "verifiedAt": "2026-10-24"
+}

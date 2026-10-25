@@ -1,0 +1,25 @@
+{
+  "id": "VA_MITIGATE_NO_ACCELERATED_RENT",
+  "jurisdiction": "VA",
+  "citation": "Va. Code § 55.1-1251",
+  "sourceUrl": "https://law.lis.virginia.gov/vacode/title55.1/chapter12/section55.1-1251/",
+  "versions": [
+    {
+      "effectiveFrom": "2019-10-01",
+      "effectiveUntil": null,
+      "statuteQuote": "provided that nothing contained in this section shall diminish the duty of the landlord to mitigate actual damages for breach of the rental agreement. In obtaining post-possession judgments for actual damages as defined in this section, the landlord shall not seek a judgment for accelerated rent through the end of the term of the tenancy.",
+      "snapshotFile": "snapshots/55.1-1251@2026-10-25.txt"
+    }
+  ],
+  "checkType": "semantic",
+  "summaryForModel": "If the lease ends because the tenant breached it, the landlord can claim rent until the term ends or a new tenant starts, whichever is first, but has a duty to mitigate (try to re-rent). After getting possession, the landlord may not seek a judgment for accelerated rent through the end of the term. A lease that makes all remaining rent due at once, or says the landlord need not try to re-rent, conflicts with this.",
+  "paraphraseExamples": [
+    "If Tenant breaks this Lease, all rent for the remainder of the term becomes immediately due and payable.",
+    "Landlord has no obligation to re-rent the Premises if Tenant vacates early."
+  ],
+  "tenantExplanation": "If you move out early, your landlord has to try to rent the place again. They can't get a court judgment for all the rest of your rent at once.",
+  "action": "You can ask your landlord to remove the clause that makes all remaining rent due at once, or that says they don't have to re-rent.",
+  "severityIfViolated": "ask",
+  "verifiedBy": "Max Miller",
+  "verifiedAt": "2026-10-24"
+}

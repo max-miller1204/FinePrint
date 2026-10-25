@@ -1,0 +1,25 @@
+{
+  "id": "VA_HOLDOVER_PENALTY_CAP",
+  "jurisdiction": "VA",
+  "citation": "Va. Code § 55.1-1253(C)",
+  "sourceUrl": "https://law.lis.virginia.gov/vacode/title55.1/chapter12/section55.1-1253/",
+  "versions": [
+    {
+      "effectiveFrom": "2019-10-01",
+      "effectiveUntil": null,
+      "statuteQuote": "The landlord may include in the rental agreement a reasonable liquidated damage penalty, not to exceed an amount equal to 150 percent of the per diem of the monthly rent, for each day the tenant remains in the dwelling unit after the termination date specified in the landlord's notice.",
+      "snapshotFile": "snapshots/55.1-1253@2026-10-25.txt"
+    }
+  ],
+  "checkType": "semantic",
+  "summaryForModel": "If the tenant stays after the termination date in the landlord's notice, the lease may set a holdover penalty of no more than 150% of the daily rent (monthly rent divided by days in the month) for each day. For public housing or other HUD-regulated units the cap is 100% of the daily rent. A lease with a higher holdover charge, such as double rent, conflicts with this.",
+  "paraphraseExamples": [
+    "If Tenant holds over, Tenant shall pay double the monthly rent, prorated daily.",
+    "Holdover occupancy will be charged at 200% of the daily rent."
+  ],
+  "tenantExplanation": "If you stay past your move-out date, Virginia limits the daily penalty to 1.5 times your daily rent.",
+  "action": "You can ask your landlord to lower the holdover charge to 150% of your daily rent or less.",
+  "severityIfViolated": "unenforceable",
+  "verifiedBy": "Max Miller",
+  "verifiedAt": "2026-10-24"
+}
