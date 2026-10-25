@@ -10,7 +10,7 @@ contains at most six previous turns. A rental switch clears the draft and source
 expansion. A request returning after a switch stays with its original rental.
 
 Linux cannot build or drive this screen. The macOS `iOS build` workflow compiles
-it; `docs/grounded-ask.md` lists TestFlight device checks. No screenshots, iOS e2e
+it, including the typed API error handler; `docs/grounded-ask.md` lists TestFlight device checks. No screenshots, iOS e2e
 pass, VoiceOver check, or AX5 visual pass is claimed here.
 
 Stress review from source: question 2,000 characters, response twenty sentences,

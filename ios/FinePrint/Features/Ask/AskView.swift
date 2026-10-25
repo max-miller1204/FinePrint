@@ -162,10 +162,8 @@ struct AskView: View {
             sessions[rentalID, default: []].append(Exchange(question: message, reply: reply))
             if sessions[rentalID, default: []].count > 20 { sessions[rentalID]?.removeFirst() }
             if self.rental?.id == rentalID { question = ""; composerFocused = false }
-        } catch let failure as APIError {
-            if self.rental?.id == rentalID { error = failure }
         } catch {
-            if self.rental?.id == rentalID { error = .malformedResponse }
+            if self.rental?.id == rentalID { self.error = error }
         }
     }
 }
