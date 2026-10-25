@@ -14,10 +14,12 @@ const provider = createServer(async (req, res) => {
     const match = /<document id="conversation">\n([\s\S]*)\n<\/document>/.exec(dataText);
     const data = JSON.parse(match![1]!);
     if (data.message.includes('football')) content = JSON.stringify({ type: 'answer', answer: { outOfScope: true, sentences: [] } });
-    else if (!data.transcript.length) {
+    else if (!data.transcript.length && data.message.includes('without tools')) {
+      content = JSON.stringify({ type: 'answer', answer: { outOfScope: false, sentences: [{ text: 'A direct answer must be retried.', citations: [] }] } });
+    } else if (!data.transcript.some((entry: { call?: unknown }) => entry.call)) {
       tool_calls = [{ id: 'call_1', type: 'function', function: { name: 'get_deadlines', arguments: '{}' } }];
     } else {
-      const source = data.transcript[0].result[0];
+      const source = data.transcript.find((entry: { call?: unknown }) => entry.call).result[0];
       content = JSON.stringify({ type: 'answer', answer: { outOfScope: false, sentences: [
         { text: 'The move-in report is due on November 6, 2026.', citations: source ? [{ kind: source.kind, ref: source.ref }] : [] },
         { text: 'This uncited claim must never appear.', citations: [] },

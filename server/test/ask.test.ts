@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { join } from 'node:path';
 import { z } from 'zod';
-import { AskInput, AskTurn, citationGate, groundedAsk, rentalTools, type Source } from '../src/ai/ask.js';
+import { AskInput, AskTurn, HANDOFF, citationGate, groundedAsk, rentalTools, type Source } from '../src/ai/ask.js';
 import { createGemma } from '../src/ai/gemma.js';
 import { modelConfigFromEnv } from '../src/ai/models.js';
 import { createTriage } from '../src/ai/triage/index.js';
@@ -10,6 +10,7 @@ import { createApp } from '../src/app.js';
 import { newRental, CreateRentalInput } from '../src/models/rental.js';
 import { newLease } from '../src/models/lease.js';
 import { loadRulePack, JURISDICTIONS_ROOT } from '../src/rules/loader.js';
+import { createLogger } from '../src/log.js';
 import { memoryUsageSink } from '../src/usage.js';
 import { memoryStore } from './memory-store.js';
 
@@ -18,7 +19,7 @@ const rule = pack.rules[0]!;
 const source: Source = { kind: 'rule', ref: rule.id, label: rule.citation, text: rule.versions[0]!.statuteQuote };
 const sentence = (citations: { kind: 'rule'; ref: string }[] = [{ kind: 'rule', ref: rule.id }], text = 'A sourced sentence.') => ({ text, citations });
 function model(turns: z.infer<typeof AskTurn>[]) {
-  const generate = vi.fn(async () => ({ text: JSON.stringify(turns.shift()), promptTokens: 1, outputTokens: 1, thoughtTokens: 0 }));
+  const generate = vi.fn(async (_request: import('../src/ai/provider.js').ProviderRequest) => ({ text: JSON.stringify(turns.shift()), promptTokens: 1, outputTokens: 1, thoughtTokens: 0 }));
   return { generate, gemma: createGemma({ provider: { name: 'fake', generate }, config: modelConfigFromEnv({}), usage: memoryUsageSink(), retry: { retries: 0, baseDelayMs: 0, maxDelayMs: 0 } }) };
 }
 const input = AskInput.parse({ message: 'What are the rules?' });
@@ -49,10 +50,54 @@ describe('Ask tool loop', () => {
     expect(generate.mock.calls).toHaveLength(5);
   });
   it('answers from tool results and isolates successive requests', async () => {
-    const { gemma } = model([{ type: 'tool', call: { name: 'get_rule', rule_id: rule.id } }, { type: 'answer', answer: { outOfScope: false, sentences: [sentence()] } }, { type: 'answer', answer: { outOfScope: false, sentences: [sentence()] } }]);
+    const { gemma } = model([{ type: 'tool', call: { name: 'get_rule', rule_id: rule.id } }, { type: 'answer', answer: { outOfScope: false, sentences: [sentence()] } }, { type: 'answer', answer: { outOfScope: false, sentences: [sentence()] } }, { type: 'answer', answer: { outOfScope: false, sentences: [sentence()] } }]);
     const execute = vi.fn(async () => [source]);
     expect((await groundedAsk(gemma, input, execute, [rule.id])).sentences).toHaveLength(1);
     expect((await groundedAsk(gemma, input, execute, [rule.id])).outOfScope).toBe(true);
+  });
+  it.each([false, true])('re-prompts a direct source-free answer (outOfScope=%s) before accepting grounded output', async outOfScope => {
+    const { gemma, generate } = model([
+      { type: 'answer', answer: { outOfScope, sentences: [sentence()] } },
+      { type: 'tool', call: { name: 'get_rule', rule_id: rule.id } },
+      { type: 'answer', answer: { outOfScope: false, sentences: [sentence()] } },
+    ]);
+    const lines: string[] = [];
+    const answer = await groundedAsk(gemma, input, async () => [source], [rule.id], undefined, createLogger('test-request', line => lines.push(line)));
+    expect(answer.outOfScope).toBe(false);
+    expect(answer.sentences[0]!.citations).toEqual([source]);
+    expect(generate).toHaveBeenCalledTimes(3);
+    expect(JSON.stringify(generate.mock.calls[1]![0].parts)).toContain('Call a read-only tool now');
+    const gates = lines.map(line => JSON.parse(line)).filter(line => line.message === 'ask citation gate');
+    expect(gates[0]).toMatchObject({ requestId: 'test-request', sentencesIn: 1, sentencesKept: 0, sourcesLength: 0, outOfScope });
+    expect(gates[0].rejectionReasons).toContain('retry_without_sources');
+    expect(gates[1]).toMatchObject({ sentencesIn: 1, sentencesKept: 1, sourcesLength: 1, toolNames: 'get_rule', outOfScope: false });
+    expect(lines.join('')).not.toContain(input.message);
+    expect(lines.join('')).not.toContain(source.text);
+  });
+  it('still hands off genuinely out-of-scope questions after a tool checks the rental', async () => {
+    const { gemma, generate } = model([
+      { type: 'tool', call: { name: 'search_lease_clauses', query: 'football' } },
+      { type: 'answer', answer: { outOfScope: true, sentences: [] } },
+      { type: 'answer', answer: { outOfScope: true, sentences: [] } },
+    ]);
+    expect((await groundedAsk(gemma, input, async () => [], [rule.id])).message).toBe(HANDOFF);
+    expect(generate).toHaveBeenCalledTimes(3);
+  });
+  it('bounds recovery if the model keeps refusing tools', async () => {
+    const { gemma, generate } = model(Array(2).fill({ type: 'answer', answer: { outOfScope: false, sentences: [sentence()] } }));
+    const execute = vi.fn(async () => [source]);
+    expect((await groundedAsk(gemma, input, execute, [rule.id])).message).toBe(HANDOFF);
+    expect(generate).toHaveBeenCalledTimes(2);
+    expect(execute).not.toHaveBeenCalled();
+  });
+  it('retains tool metadata when invalid model output causes a handoff', async () => {
+    const { gemma } = model([{ type: 'tool', call: { name: 'get_rule', rule_id: rule.id } }]);
+    const lines: string[] = [];
+    const result = await groundedAsk(gemma, input, async () => [source], [rule.id], undefined, createLogger('invalid-output', line => lines.push(line)));
+    expect(result.message).toBe(HANDOFF);
+    const gate = lines.map(line => JSON.parse(line)).find(line => line.message === 'ask citation gate');
+    expect(gate).toMatchObject({ sourcesLength: 1, toolNames: 'get_rule', sentencesKept: 0 });
+    expect(gate.rejectionReasons).toContain('invalid_output');
   });
   it('searches only analyzed leases of this rental and versions rules by date', async () => {
     const { store } = memoryStore();
@@ -73,7 +118,7 @@ describe('Ask tool loop', () => {
 describe('Ask HTTP route', () => {
   it('authorizes before triage, escalates before Ask, and does not store the conversation', async () => {
     const memory = memoryStore(); memory.rentals.set(rental.id, rental);
-    const { gemma, generate } = model([{ type: 'answer', answer: { outOfScope: true, sentences: [] } }]);
+    const { gemma, generate } = model(Array(2).fill({ type: 'answer', answer: { outOfScope: true, sentences: [] } }));
     const app = createApp({ store: memory.store, gemma, triage: createTriage({ model: null, keywords: keywordBackstop() }), verifyIdToken: async token => ({ uid: token, provider: 'anonymous' }), logSink: () => {}, packs: () => new Map([['VA', pack]]) });
     const ask = (token: string, message: string) => app.request('/v1/rentals/r1/ask', { method: 'POST', headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ message }) });
     expect((await ask('mallory', 'question')).status).toBe(403);

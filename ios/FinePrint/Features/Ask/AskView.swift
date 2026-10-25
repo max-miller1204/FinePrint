@@ -70,7 +70,15 @@ struct AskView: View {
                     }
                 }
                 ForEach(exchanges) { exchange in exchangeView(exchange) }
-                if isSending { ProgressView("Checking your sources…").accessibilityLabel("Checking your sources") }
+                if isSending {
+                    VStack(alignment: .leading, spacing: 8) {
+                        ProgressView("Checking your sources…")
+                            .accessibilityLabel("Checking your sources")
+                        Text("This can take a couple of minutes. Keep Ask open while we check.")
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
+                    }
+                }
                 if let error { Text(error.message).foregroundStyle(.secondary) }
                 if rental?.serverID == nil {
                     Text("Connect to sync this rental before asking a question.").foregroundStyle(.secondary)
@@ -156,7 +164,7 @@ struct AskView: View {
         error = nil
         defer { isSending = false }
         do {
-            let reply: AskReply = try await APIClient(auth: auth, serverURL: configuration.serverURL)
+            let reply: AskReply = try await APIClient(auth: auth, serverURL: configuration.serverURL, transport: HTTP.modelTransport)
                 .post("v1/rentals/\(serverID)/ask", body: RequestBody(message: message, history: Array(history.suffix(6)), locale: Locale.current.identifier.replacingOccurrences(of: "_", with: "-")))
             guard rentals.contains(where: { $0.id == rentalID }) else { return }
             sessions[rentalID, default: []].append(Exchange(question: message, reply: reply))
