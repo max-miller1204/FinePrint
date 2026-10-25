@@ -125,8 +125,10 @@ Run it from the repo root of your worktree. What it does for you:
 - **Names the failure** for each file: `APP_HANG` (do not rerun),
   `APP_FAIL` (an assertion, a locator, a covered tap: read the trace),
   `SETUP` (the server never answered: read `.e2e/logs/server-ios.log`,
-  and after a rebase run `pnpm install`), or `INFRA` (driver or simulator:
-  the gate resets the driver and runs those files once more on its own).
+  and after a rebase run `pnpm install`), or `INFRA` (driver or simulator,
+  or a Firebase emulator that crashed mid-run, which then fails every later
+  test on sign-in or a 503: the gate resets the driver and runs those files
+  once more on its own).
 - **Won't repeat a failure.** A step whose inputs haven't changed since it
   failed is refused (exit 4) until you change something, or pass `--force`.
   The same failure twice in a row prints `STOP`: diagnose before another run.

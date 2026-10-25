@@ -14,7 +14,7 @@ export interface ReportResult {
   file: string;
   titlePath: string[];
   status: string;
-  attempts: { error?: ReportError; secondaryErrors?: ReportError[] }[];
+  attempts: { startedAt?: string; durationMs?: number; error?: ReportError; secondaryErrors?: ReportError[] }[];
 }
 
 const infraPattern = /Daemon request timed out|boot failed|starting an attempt on engine|disposing the engine timed out|device did not answer/i;

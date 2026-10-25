@@ -24,8 +24,10 @@
 // Failure classes, from e2e/.e2e/gate/<run>/report.json and the app's hang log:
 //   APP_HANG  the app's watchdog stopped a frozen main thread: do not rerun.
 //   INFRA     the driver or the simulator failed (boot, launch, "Daemon
-//             request timed out" with no hang): the driver is reset and the
-//             failed files run once more, in the same turn of the lock.
+//             request timed out" with no hang), or the Firebase emulators
+//             crashed while the test ran (server/firebase-debug.log): the
+//             driver is reset and the failed files run once more, with fresh
+//             emulators, in the same turn of the lock.
 //   SETUP     the server never answered or the build would not install.
 //   APP_FAIL  everything else: an assertion, a locator, a covered tap.
 // Each step's result goes to e2e/.e2e/gate/history.jsonl. A step whose inputs
@@ -213,6 +215,25 @@ function hangAborts(since: Date): string[] {
     .filter((line) => line.includes(' abort ') && new Date(line.split(' ')[0]) >= since);
 }
 
+const emulatorLog = join(root, 'server', 'firebase-debug.log');
+
+/**
+ * The first error the Firebase emulators logged at or after `since`, and the time of the debug
+ * line before it. firebase-tools rewrites the log on every start, so lines are matched by time.
+ * The Storage emulator can crash on its own (an unhandled ENOENT on a blob), which takes Auth
+ * down too, and every later test then fails on sign-in or a 503 that reads like an app bug.
+ */
+function emulatorCrash(since: Date): { at: Date; line: string } | undefined {
+  if (!existsSync(emulatorLog)) return undefined;
+  let last: { at: Date; line: string } | undefined;
+  for (const line of readFileSync(emulatorLog, 'utf8').split('\n')) {
+    const debug = /^\[debug\] \[([^\]]+)\] (.*)$/.exec(line);
+    if (debug) last = { at: new Date(debug[1]), line: debug[2].slice(0, 200) };
+    else if (/^\[error\] \S/.test(line) && last && last.at >= since) return last;
+  }
+  return undefined;
+}
+
 function e2e(files: string[], runDir: string, attempt: number): StepResult[] {
   const output = join(runDir, `e2e-${attempt}`);
   const log = join(runDir, `e2e-${attempt}.log`);
@@ -225,6 +246,7 @@ function e2e(files: string[], runDir: string, attempt: number): StepResult[] {
   }
   const report = JSON.parse(readFileSync(reportFile, 'utf8')).run as { results: ReportResult[]; summary: { executed: number } };
   const hung = hangAborts(startedAt).length > 0;
+  const crash = emulatorCrash(startedAt);
   return files.map((name) => {
     const results = report.results.filter((result) => result.file === name && result.status !== 'skipped');
     if (results.length === 0) return { name, outcome: 'INFRA', detail: `no tests executed (e2e exit ${npx}); log: ${relative(root, log)}` };
@@ -232,7 +254,11 @@ function e2e(files: string[], runDir: string, attempt: number): StepResult[] {
     if (failed.length === 0) return { name, outcome: 'PASS', detail: `${results.length} passed` };
     const classes = failed.map((result) => {
       const last = result.attempts.at(-1);
-      return { result, error: last?.error, outcome: classify(last?.error, last?.secondaryErrors ?? [], hung) };
+      let outcome = classify(last?.error, last?.secondaryErrors ?? [], hung);
+      // A test still running when the emulators crashed failed on them, not on the app.
+      const endedAt = last?.startedAt ? new Date(last.startedAt).getTime() + (last.durationMs ?? 0) : Number.POSITIVE_INFINITY;
+      if (outcome === 'APP_FAIL' && crash && endedAt >= crash.at.getTime()) outcome = 'INFRA';
+      return { result, error: last?.error, outcome };
     });
     // The most serious class wins: a hang explains the tooling errors around it.
     const order: FailureClass[] = ['APP_HANG', 'SETUP', 'APP_FAIL', 'INFRA'];
@@ -242,7 +268,8 @@ function e2e(files: string[], runDir: string, attempt: number): StepResult[] {
       const message = (error?.message ?? 'no error recorded').split('\n')[0].slice(0, 220);
       return `${each} ${error?.code ?? ''}${where}: "${result.titlePath.join(' > ')}": ${message}`;
     });
-    return { name, outcome, detail: `${failed.length} of ${results.length} failed\n    ${lines.join('\n    ')}\n    traces: ${relative(root, output)}/results/` };
+    const emulator = crash ? `\n    Firebase emulator error at ${crash.at.toISOString()}: ${crash.line} (server/firebase-debug.log)` : '';
+    return { name, outcome, detail: `${failed.length} of ${results.length} failed\n    ${lines.join('\n    ')}${emulator}\n    traces: ${relative(root, output)}/results/` };
   });
 }
 
