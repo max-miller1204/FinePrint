@@ -1,0 +1,26 @@
+{
+  "name": "fineprint-video",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "studio": "remotion studio",
+    "render": "remotion render FinePrintDemo out/fineprint-demo.mp4",
+    "still": "remotion still",
+    "music": "node scripts/make-music.mjs",
+    "vo-script": "node scripts/make-vo-script.mjs",
+    "vo": "node scripts/make-vo.mjs"
+  },
+  "dependencies": {
+    "@remotion/cli": "4.0.538",
+    "@remotion/google-fonts": "4.0.538",
+    "@remotion/transitions": "4.0.538",
+    "react": "19.1.0",
+    "react-dom": "19.1.0",
+    "remotion": "4.0.538"
+  },
+  "devDependencies": {
+    "@types/react": "19.1.8",
+    "kokoro-js": "1.2.1",
+    "typescript": "5.8.3"
+  }
+}
