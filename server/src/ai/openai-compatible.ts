@@ -64,6 +64,7 @@ export function openAiCompatibleProvider({ baseUrl, apiKey, fetch: fetchFn = fet
         // Only a `json` stage thinks, as on the Gemini API (docs/ai-pipeline.md, gap 6).
         // Gemma 4 on Ollama thinks unless told `none`; vLLM maps this to `enable_thinking`.
         reasoning_effort: !request.responseSchema && request.thinking === 'high' ? 'high' : 'none',
+        ...(request.maxOutputTokens ? { max_tokens: request.maxOutputTokens } : {}),
       };
 
       let response: Response;

@@ -17,6 +17,8 @@ export interface ProviderRequest {
   // Omitted in `json` mode: the API then allows thinking (docs/ai-pipeline.md, gap 6).
   responseSchema?: ResponseSchema;
   thinking: ThinkingLevel;
+  // Ends a runaway answer: it comes back cut off, fails validation, and is retried.
+  maxOutputTokens?: number;
   signal?: AbortSignal;
 }
 
@@ -75,6 +77,7 @@ export function geminiProvider(models: GenAiModels): ModelProvider {
             responseMimeType: 'application/json',
             ...(request.responseSchema ? { responseSchema: request.responseSchema, stopSequences: [JSON_FENCE] } : {}),
             thinkingConfig: { thinkingLevel: THINKING[request.thinking] },
+            ...(request.maxOutputTokens ? { maxOutputTokens: request.maxOutputTokens } : {}),
             ...(request.signal ? { abortSignal: request.signal } : {}),
           },
         });

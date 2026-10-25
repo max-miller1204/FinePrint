@@ -82,6 +82,7 @@ Checked with Xcode 27.1 (27A9275), Swift 6.4, and the iOS 27.1 simulator SDK. Th
 4. **Structured output is not strictly guaranteed on any model.** 26B was strict in every sample here, but one sample per call is not a guarantee. Every call must validate with Zod and retry once on failure, as spec §7.1 already plans. Affects #9.
 5. **31B has transient server errors.** On 2026-10-24, `gemma-4-31b-it` returned HTTP 503 ("experiencing high demand") and HTTP 500 ("Internal error") between successful calls over several minutes. 26B was unaffected. The client must retry 500 and 503 with backoff, not only 429. The verifier also needs a fallback for when 31B stays down, such as marking findings "unverified" instead of failing the analysis. The smoke script retries these up to 3 times (10, 20, 40 s). Affects #9 and #15.
 6. **Schema-constrained output turns thinking off.** Measured on 2026-10-24 (#9): with `responseSchema` or `responseJsonSchema` set, both models report 0 thought tokens at `thinkingLevel: "high"` (26B in 9 of 9 answers, 31B in the 1 answer it gave; its other calls returned HTTP 500). With `responseMimeType: "application/json"` alone, `high` still thinks (26B 147 to 339 thought tokens, 31B 59). So `high` on a schema call costs nothing and adds nothing. **Fix (#9):** each stage has an output mode. `schema` (the default for every stage) sends `responseSchema` and gets no thinking. `json` sends the schema as text in the system instruction with `responseMimeType: "application/json"` only, so the model thinks, and Zod still rejects anything off the schema. A `json` call sends no fence stop sequence: with thinking on, 31B returned an empty answer in 2 of 3 calls with the stop set, and 3 of 3 valid answers without it; fence stripping covers the trailing fence instead. Through `generate()`, `json` mode gave 390 thought tokens on 26B and 338 on 31B, at about 10 s per call against 1.5 s for `schema`. Which stages switch is decided on the eval set (#14, #15).
+7. **In `schema` mode, 26B loops on long structured answers.** Measured on 2026-10-24 (#14) with the synthetic lease (`server/test/fixtures/lease-synthetic.txt`, 7,837 characters, 30 clauses). S2 (clause starts and key terms) in `schema` mode: 2 of 4 runs repeated a fragment (`-based-based-based...`, `PARKING/SMOKING/PETS/...`) until the 8,192-token output cap (172 s each), 1 returned a single clause, and 1 was usable but dropped 3 clause starts. In `json` mode: 2 of 2 returned all 30 clauses and all 6 key terms with no drops, in 36 s and about 1,700 output tokens. S5 (mapping 10 clauses) in `schema` mode returned garbled quotes (`generaliken`, `<unused2402>`), a clause id that is not in the batch, and a repeated `Landlord-Landlord-...` reasoning; without an output cap, a full run hung for over 10 minutes. In `json` mode it returned clean, verbatim quotes in 11 s. 26B reported 0 thought tokens in `json` mode on these calls. **Fix (#14):** `extraction` and `mapping` are `json` stages, and both cap their answers (`maxOutputTokens`: 8,192 for S2, 4,096 per mapping batch), so a loop ends as invalid output and is retried once instead of running for minutes. Affects #14, #15.
 
 ## Gemma client (#9)
 
@@ -116,9 +117,10 @@ const { data, model, fallback } = await gemma.generate('mapping', FindingSchema,
 ### Behavior
 
 - **Thinking:** `minimal` for triage, vision, ask, explanation, and translation; `high` for extraction, mapping, verification, and responsibility. `high` takes effect only on a `json` stage (gap 6).
-- **Output mode:** `schema` (every stage today) sends `responseSchema` and the fence stop sequence. `json` sends the Zod schema as JSON Schema text after the document rule, no `responseSchema`, and no stop sequence. Both strip fences and validate with Zod. Set it per stage in `STAGES`.
+- **Output mode:** `schema` (every stage but `extraction` and `mapping`, gap 7) sends `responseSchema` and the fence stop sequence. `json` sends the Zod schema as JSON Schema text after the document rule, no `responseSchema`, and no stop sequence. Both strip fences and validate with Zod. Set it per stage in `STAGES`.
 - **Retries:** 429, 500, 502, 503, 504, and network errors retry 4 times per model with exponential backoff (2, 4, 8, 16 s, equal jitter), or after the API's `retryDelay` on a 429. A 429 also empties that model's buckets. Other errors (such as 400) throw `GemmaRequestError` at once.
 - **Fallback:** when a model runs out of retries, the next one in the chain answers. Primary: 26B, then Flash. Verifier: 31B, then 26B, then Flash. Each step emits a `fallback` event and a `model fallback` warning, and the result carries `model` and `fallback: true`. When every model fails, `GemmaUnavailableError` lets the verifier mark findings "unverified" (#15).
+- **Output cap:** `maxOutputTokens` in the options caps the answer (Gemini `maxOutputTokens`, Chat Completions `max_tokens`). A cut-off answer fails validation and is retried once.
 - **Rate limits:** input tokens are estimated at 4 characters per token (260 per image) before the call, then corrected with the API's `promptTokenCount`. A wait emits a `waiting` event with the ms, for the SSE stream.
 
 ### Check it
@@ -182,3 +184,41 @@ Round 1's 12 misses (now `escalation.jsonl` cases `eviction-or-court-07` to `-09
 On round 2 they caught nothing new. Its 13 misses: a padlock on the door, power cut at the breaker, "sin gas para cocinar", a 30-day notice after a code complaint, "como castigo por pedir", a wheelchair user turned away, "people like you" after learning the tenant is gay, "no le rentan a mexicanos", rotted stairs that are the only way out, "huele mucho a gas", "im going to end it", "not waking up", and "no vale la pena seguir viviendo". The false alarm is `benign-13-en` (an emotional support animal pet fee question; `service-animal` fires). Gemma flagged the same case.
 
 What this means: phrase lists patched after each miss catch about half of unseen crisis wording, and patching does not move that number. The combined 100% rests on Gemma. When Gemma is off or unavailable, expect the backstop alone to miss about half of high-stakes inputs, including indirect self-harm. Round 2 was written before the term changes, but by the same agent that then wrote them, so its "after" score is not fully independent; each round is small, so read the numbers as a range. A round written by a person outside the project would be stronger evidence.
+
+## Lease pipeline (#14)
+
+Spec §7.3, S1 to S6. Gemma interprets; code verifies. S7 to S9 (31B verifier, severity, explanation, translation) are #15, and the route and SSE stream are #16.
+
+```ts
+const pack = loadRulePack(join(JURISDICTIONS_ROOT, 'va'), { requireVerified: true });
+const analysis = await analyzeLease({ leaseId, text, locale: 'en', term }, { gemma, pack, triage }, { onEvent });
+// status: 'escalated' (S1) | 'not_a_lease' (S2) | 'analyzed'
+```
+
+| Stage | Where | What it does |
+| --- | --- | --- |
+| S1 triage | `triage.check` (#37) | The whole lease, as `source: lease`. Escalation stops the analysis and returns the decision for the handoff |
+| S2 segmentation | `extraction` stage, `json`, 26B | Per chunk of at most 40,000 characters: `documentType`, `aiInstructions`, each clause's heading and first 6 to 12 words, and key terms as `{ name, value as written, quote }`. Not a `residential_lease`: stop |
+| S3 quote resolution | `server/src/ai/pipeline/quotes.ts`, `resolve.ts` | Clauses run from one start to the next, so they cover the lease with no gaps and hold no model text; a start that is not found is dropped. A key term stays only if its quote is in the lease, its value is in the quote, and code can read the value (`$1,500`, `fifteen percent (15%)`, `three months' rent`, `twenty-four (24) hours`, `November 1, 2026`). Percent and months of rent become dollars with the verified rent |
+| S4 deterministic checks | `pipeline/checks.ts` | Every deterministic rule in force during the term, on the verified key terms (`server/src/rules/checks.ts`) |
+| S5 mapping | `mapping` stage, `json`, 26B | Batches of about 10 clauses (fewer calls when the budget is short), every rule in force in the instruction with its summary and paraphrase examples, rule ids as an enum. Per clause: `ruleIds`, `assessment` (`violates`, `unclear`, `complies`, `not_covered`), `leaseQuote`, `reasoning` |
+| S6 verification | `pipeline/verify.ts` | The clause is in the batch, the quote is in that clause, every rule exists and has a version in force during the term, and S4 has not already decided the rule. Failures are dropped and counted, never repaired |
+
+- **Matching:** literal after folding whitespace runs, curly quotes, dashes, the ellipsis character, and soft hyphens. Case, words, and numbers must match. A quote with `...` matches when each fragment (12 characters or more) is verbatim and in order; the span covers the skipped words too.
+- **Lease term:** `leaseStart` and `leaseEnd` from the lease, else the caller's `term` (the rental's dates), else the day of the analysis with no end (`term.source` says which). Rules resolve against the whole term, so § 55.1-1204's July 1, 2027 version applies to a lease that spans it.
+- **Budget:** at most 8 `generate()` calls (`MAX_CALLS`), each request estimated at 12,000 input tokens or fewer, so it fits a minute of Gemma's 16K input tokens. The limiter queues the rest and reports each wait as a `waiting` event. The issue's "split across models" option was not taken: 31B is the verifier (#15) and has transient 5xx (gap 5).
+- **Prompt injection:** S2's `aiInstructions` flag and a code pattern (`detectInjection`) set `injection.detected`. The analysis continues; #15 turns it into the `info` finding.
+- **Drops:** `drops[]` lists `{ stage, reason, ref }` with ids, key term names, or rule ids only. The `lease pipeline` log line has counts, never text.
+
+### Check it
+
+```sh
+pnpm --filter @fineprint/server test                         # server/test/lease-pipeline.test.ts, model scripted
+cd server && op run --env-file ../.env -- pnpm smoke:lease    # live: the synthetic lease and a variant with its amounts fixed
+```
+
+`smoke:lease` exits `0` when the synthetic lease yields exactly its three planted deterministic violations (`VA_DEPOSIT_CAP`, `VA_LATE_FEE_CAP`, `VA_ROUTINE_MAINTENANCE_NOTICE_72H`), the variant with those amounts fixed yields none, each run takes 8 calls or fewer, and the term is read from the lease. It reports, without gating, how many of the five planted semantic clauses S5 mapped.
+
+### Synthetic lease, 2026-10-24
+
+`gemma-4-26b-a4b-it` on both stages, no fallback: 6 calls (triage, one S2, four mapping batches), 15,414 input and 3,068 output tokens, 50 s. All 6 key terms verified, S4 found the three planted violations (deposit $4,500 against a $3,000 cap, late fee $225 against $150, 24 hours' notice against 72), and S5 mapped all 5 planted semantic clauses as `violates` (rights waiver, confession of judgment, exculpation, attorney fees, HVAC repairs). S6 dropped 3 mappings to deterministic rules that S4 had decided. The second lease of the run waited out one 429 (56 s), since two leases back to back exceed 16K input tokens in a minute.

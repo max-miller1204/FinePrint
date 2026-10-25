@@ -65,7 +65,7 @@ function setup(steps: Step[], { env = ENV as NodeJS.ProcessEnv, stages = STAGES,
 describe('openai_compatible provider', () => {
   it('posts a chat completion with the documents and a JSON Schema, and returns typed data', async () => {
     const { run, fetchFn, body, usage } = setup([completion(JSON.stringify(ANSWER))]);
-    const result = await run();
+    const result = await run('triage');
 
     expect(result).toMatchObject({ data: ANSWER, model: 'gemma4:26b', fallback: false, promptTokens: 120, outputTokens: 30 });
     expect(fetchFn.mock.calls[0]![0]).toBe(`${BASE_URL}/chat/completions`);
@@ -83,6 +83,14 @@ describe('openai_compatible provider', () => {
     expect(sent.reasoning_effort).toBe('none');
     expect(usage.records).toHaveLength(1);
     expect(usage.records[0]).toMatchObject({ model: 'gemma4:26b', outcome: 'ok', promptTokens: 120 });
+  });
+
+  it('sends the output cap as max_tokens', async () => {
+    const { fetchFn } = setup([]);
+    const provider = openAiCompatibleProvider({ baseUrl: BASE_URL, fetch: fetchFn });
+    fetchFn.mockResolvedValueOnce(completion('{}'));
+    await provider.generate({ model: 'gemma4:26b', systemInstruction: 'rule', parts: [{ text: 'x' }], thinking: 'minimal', maxOutputTokens: 512 });
+    expect(JSON.parse(fetchFn.mock.calls[0]![1]!.body as string).max_tokens).toBe(512);
   });
 
   it('sends images as data URLs', async () => {
