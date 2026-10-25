@@ -270,7 +270,7 @@ export async function analyzeLease(input: LeaseInput, deps: LeaseDeps, { signal,
     drops,
   );
   onEvent?.({ type: 'keyterms', keyTerms });
-  injection = withInjectionFinding(injection, clauses);
+  injection = withInjectionFinding(injection, clauses, input.locale);
   const term = chooseTerm(keyTerms, input, drops);
   const resolved = resolveRules(pack.rules, term);
   const inForce = new Map<string, ResolvedRule>(resolved.map((r) => [r.rule.id, r]));
