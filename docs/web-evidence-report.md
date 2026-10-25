@@ -8,14 +8,16 @@ print or save a PDF. Names and full addresses have no fields in its model.
 
 ## Data boundary
 
-`server/src/report/model.ts` defines a public projection. `ReportLoader` is
-injected into `createApp`; it must authorize a token before assembling data.
-The default returns null, so production links remain closed until #35 adds
-share resolution. This avoids publishing a rental by guessing its ID.
-Missing, expired and revoked links should all return null, with the same 404.
-Storage failures return a generic HTML 503. Report responses use `no-store`,
-`no-referrer`, `noindex`, a restrictive CSP and `nosniff`. Logs name the route
-pattern and omit the raw path and error message.
+`server/src/report/model.ts` defines a public projection. The sharing route
+authorizes a hashed capability before assembling it. Missing tokens return
+404; expired and revoked tokens return clear HTML 410 pages without report
+details. PIN-protected reports require a short-lived, link-scoped grant.
+`ReportLoader` remains available as a renderer-test injection seam. Storage
+failures return a generic HTML 503. Responses use `no-store`, `no-referrer`,
+`noindex`, a restrictive CSP and `nosniff`. Logs name the matched route
+pattern and omit raw paths and error messages. See the
+[sharing verification map](../.agents/skills/verify-fineprint-web/features/share-links.md)
+for the API, security contract and proof.
 
 Populate only the sections authorized by the link's scope. Load the persisted
 findings from `getLeaseResults`, preserve the lease locale, and include only
@@ -29,7 +31,7 @@ reports, objections, move-out and deadlines as those records become available.
 Do not invent missing events or calculate legal deadlines in the renderer.
 
 `ReportExhibit` uses the evidence model's public fields and an authorized
-short-lived image URL. It excludes storage paths and owner IDs. Deleted
+photo route that rechecks the capability on every request. It excludes storage paths and owner IDs. Deleted
 exhibits retain a numbered record but never request their image URL. Pending
 and unsupported-preview records display an explanation. The loader should
 return a null preview URL when an original is unavailable; HEIC does not
@@ -78,6 +80,30 @@ unrestricted. Safe-area padding and per-scheme theme colors are present.
 Hardware-specific behavior still needs a real phone; Linux emulation cannot
 prove sticky hover, safe areas or touch latency.
 
+
+
+## Sharing UI review (#35)
+
+| Before | After | Why |
+| --- | --- | --- |
+| Generic unavailable state for every production link | PIN, wrong PIN, expired, revoked and throttled pages | Recipients have a clear next step without exposing report details |
+| No PIN entry surface | Labeled numeric PIN field, 44px controls, visible focus and native form submission | Keyboard and phone entry work without JavaScript |
+| No owner sharing controls | Native Settings forms, vertical wrapping rows, status words, retry and empty states | Dynamic Type and VoiceOver can use system layout and controls |
+
+Motion review: **Approve**. No custom animation was added. Press feedback
+is immediate; no transitions delay forms, errors or revocation.
+
+| Severity | Field | Worst case | Result or fix |
+| --- | --- | --- | --- |
+| Fragile, addressed | PIN input | Browser default text below 16px on a phone | Inherited 1rem text avoids input zoom; hardware Safari check remains |
+| Fragile, addressed | Access history | More than 100 views with identical timestamps | 100-row pages and a timestamp plus document-ID cursor avoid skipped views |
+| Held | Error copy and headings | 320px, dark mode, 200% text | Wraps; form controls remain reachable by scrolling |
+| Held | Report text and hashes | Existing Worst case / Empty / One fixture toggle | Full report regression suite passes; long evidence remains printable |
+
+The fixture toggle stays at `/r/fixture?data=worst` under the emulator-only
+fixture flag. iOS Settings has not been rendered on Linux. The on-device
+checklist is in the [Settings feature map](../.agents/skills/verify-fineprint-ios/features/settings.md).
+
 ## Browser verification (#34)
 
 Each exhibit and the report have native Verify buttons, polite atomic status
@@ -99,16 +125,16 @@ an annotated preview. Whole-report verification covers included originals and
 manifests only. It does not establish report completeness, validate ledger
 history, lease findings, capture times, legal validity or annotations.
 
-For #35 loaders, optional `ReportExhibit.originalUrl` is an authorized,
+For share loaders, optional `ReportExhibit.originalUrl` is an authorized,
 short-lived URL to the original bytes, independent of `imageUrl` preview support
 (including HEIC). Undefined falls back to `imageUrl`; null means unavailable.
 Deleted URLs are omitted. Signed bytes must never be rewritten for a filtered
-report. The storage host must allow CORS GET from the report's origin, with no
-credentials required by the signed URL. Serve reports over HTTPS for WebCrypto.
+report. The storage host must allow CORS GET from the report's origin, with cross-origin credentials omitted. Same-origin original routes receive
+the link-scoped PIN cookie and recheck expiry and revocation on every fetch. Serve reports over HTTPS for WebCrypto.
 CSP allows self-hosted scripts and same-origin/HTTPS fetches; emulator fixtures
 also allow HTTP. No deployment or storage CORS configuration was changed here.
 
 Proof: `e2e/tests/web/report-verify.e2e.ts` and the existing report tests run
 alongside smoke and all other web tests. Linux Chromium emulates phone widths,
 dark mode and 200% text. Real-phone safe areas, touch behavior and Safari
-remain untested on hardware. Share management and axe CI remain #35 and #36.
+remain untested on hardware. Share management is implemented in #35; axe CI remains #36.

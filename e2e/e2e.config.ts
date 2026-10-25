@@ -79,6 +79,7 @@ export default {
       },
     },
   ],
+  secrets: { sharePin: '483927', shareWrongPin: '000000' },
   agents: {
     default: {
       model: google('gemini-flash-latest'),

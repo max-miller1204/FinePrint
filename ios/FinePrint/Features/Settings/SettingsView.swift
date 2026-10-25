@@ -40,6 +40,11 @@ struct SettingsView: View {
                 }
 
                 Section {
+                    NavigationLink("Share Links") { ShareLinksView() }
+                        .accessibilityIdentifier("settings.shareLinks")
+                }
+
+                Section {
                     Toggle("Add to the Impact Count", isOn: Binding(
                         get: { settings.impactOptIn },
                         set: { saveImpactPreference($0) }

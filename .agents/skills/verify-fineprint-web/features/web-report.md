@@ -18,12 +18,10 @@ long quotes and labels, mixed scripts and 120 exhibits. Empty has no lease,
 evidence, timeline, ledger or manifests. One preserves the complete signed
 history instead of rewriting manifests to fit the visible exhibit subset.
 
-Production defaults to an unavailable report. #35 supplies
-`createApp({ reportLoader })`: resolve and authorize the token, enforce expiry,
-revocation, PIN and scope, then return the redacted `EvidenceReport` projection
-(or null). Never use a rental ID as a public token. No share creation or
-lifecycle API is implemented in #33. The projection is documented in
-[web-evidence-report.md](../../../../docs/web-evidence-report.md).
+Production resolves hashed share capabilities and assembles scoped public
+projections. See [share-links.md](share-links.md) for expiry, PIN, revocation,
+photo authorization and owner access-log verification. `reportLoader` remains
+an explicit injection seam for renderer tests.
 
 ## Proof
 
@@ -81,7 +79,8 @@ worktree was using the default ports; no unrelated process was stopped.
 Original GET URLs use `originalUrl` if supplied, otherwise `imageUrl` for
 existing loaders. The loader must authorize original-byte access independently
 of preview availability; deleted URLs are never emitted. Cross-origin storage
-must permit CORS GET from the report origin. Fetches omit credentials/referrers,
+must permit CORS GET from the report origin. Fetches send credentials only to the same origin for PIN-protected photo
+routes, omit cross-origin credentials and all referrers,
 bypass caches and time out after 30 seconds. No deployed bucket was changed.
 
 ## Extension points
@@ -89,9 +88,10 @@ bypass caches and time out after 30 seconds. No deployed bucket was changed.
 - Verification uses `#verify-report`, `[data-verify-exhibit]` and `[data-manifest]`.
   Canonical JSON remains text with unchanged signed bytes; CSP allows only
   self-hosted scripts and same-origin/HTTPS fetches (HTTP for fixtures only).
-- #35: `ReportLoader` authorization and redacted data assembly, signed image
-  URLs, share lifecycle and access log. Return null for inaccessible tokens.
+- #35: implemented share authorization and scoped projection, protected photo
+  routes, lifecycle API and access log. See [share-links.md](share-links.md).
 - Accessibility CI: see the WCAG checks and manual handoff below.
+
 
 ## Explore charter
 
@@ -172,3 +172,16 @@ On a Mac, from this branch with dependencies installed:
 
 Linux Playwright WebKit is not Safari with VoiceOver. Real-phone safe areas,
 touch behavior and Safari printing remain hardware checks as documented above.
+
+## Sharing integration proof
+
+After merging #123/#124 into #35, `.e2e/proof/issue-35-main-merge/` passed
+all 13 web files together (52 passed, 2 unconfigured live-model skips,
+exit 0). This includes the six browser Verify tests and seven sharing tests.
+A PIN-protected real original verifies with the same-origin session cookie;
+revoking its link makes the next Verify fail. The combined CSP permits the
+self-hosted script/fetches and same-origin PIN form. Secret Manager wrapper
+checks also pass; no shared secret was needed for this deterministic run.
+
+
+Dev integration: share-link authorization and the axe gate are preserved together. Device verification uses the dev TestFlight build by @max-miller1204.

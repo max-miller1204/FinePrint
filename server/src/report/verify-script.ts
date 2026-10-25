@@ -18,7 +18,9 @@ export const verifyScript = `
     .map(byte => byte.toString(16).padStart(2, '0')).join('');
   const request = async url => {
     const response = await fetch(url, {
-      cache: 'no-store', credentials: 'omit', referrerPolicy: 'no-referrer',
+      // Same-origin PIN grants authorize protected originals. Cross-origin
+      // storage URLs never receive cookies or HTTP credentials.
+      cache: 'no-store', credentials: 'same-origin', referrerPolicy: 'no-referrer',
       signal: AbortSignal.timeout(30000)
     });
     if (!response.ok) throw new Error('Download unavailable. The link may have expired. Reload the report and retry.');

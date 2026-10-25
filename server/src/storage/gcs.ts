@@ -85,6 +85,7 @@ export interface EvidenceObjects {
   // Reads the stored bytes and hashes them. Cloud Storage keeps MD5 and
   // CRC32C, never SHA-256, so this is the only way to know the stored hash.
   sha256(path: string): Promise<string>;
+  read?(path: string): Promise<Uint8Array>;
   remove(path: string): Promise<void>;
   // Every object of one rental, originals and model copies. "Delete
   // everything" and the purge call it.
@@ -129,6 +130,11 @@ export function gcsObjects(bucket: () => Bucket = () => evidenceBucket(), env: N
       const hash = createHash('sha256');
       await pipeline(files().file(path).createReadStream(), hash);
       return hash.digest('hex');
+    },
+
+    async read(path) {
+      const [bytes] = await files().file(path).download();
+      return new Uint8Array(bytes);
     },
 
     async remove(path) {

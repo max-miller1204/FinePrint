@@ -93,3 +93,21 @@ jobs:
           tar -xzf "${archive}" -C "${RUNNER_TEMP}" gitleaks
       - name: Scan the full history
         run: '"${RUNNER_TEMP}/gitleaks" git . --redact --no-banner --verbose'
+
+  ios-build:
+    name: iOS build
+    runs-on: macos-26
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+      - name: Select Xcode 26
+        run: |
+          xcode=$(ls -d /Applications/Xcode_26*.app | sort -V | tail -n 1)
+          sudo xcode-select -s "$xcode"
+          xcodebuild -version
+      - name: Build without signing
+        run: >-
+          xcodebuild build -quiet
+          -project ios/FinePrint.xcodeproj -scheme FinePrint -configuration Debug
+          -destination 'generic/platform=iOS Simulator'
+          CODE_SIGNING_ALLOWED=NO

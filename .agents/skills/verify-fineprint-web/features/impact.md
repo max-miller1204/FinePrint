@@ -50,3 +50,10 @@ gate in the feature map. Smoke, impact, leases and integrity passed together:
 Evidence: `e2e/.e2e/proof/dev-impact-merge/`. Server unit tests: 476 passed;
 workspace typecheck: exit 0. iOS runtime acceptance uses the dev TestFlight
 build on @max-miller1204's device.
+
+After #125 merged into dev, merged dev again to retain both the network-backed
+impact toggle and Share Links navigation, and both public route integrations.
+Smoke, impact, leases, integrity and sharing passed together: 16 passed,
+2 unconfigured live-model skips, exit 0, retries/cache disabled.
+Evidence: `e2e/.e2e/proof/dev-impact-sharing/`. Server unit tests: 478 passed;
+workspace typecheck: exit 0. No iOS test file was authored or edited.
