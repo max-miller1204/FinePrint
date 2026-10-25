@@ -5,6 +5,7 @@ import { ApiError } from './errors.js';
 import { runChecks, stubbedChecks, type HealthChecks } from './health.js';
 import { createLogger, type LogSink, type Logger } from './log.js';
 import { createV1 } from './routes/v1.js';
+import { firestoreStore, type Store } from './storage/firestore.js';
 import { clientConfigFromEnv, createWellKnown, type ClientConfig } from './routes/wellknown.js';
 
 export type AppEnv = {
@@ -16,6 +17,7 @@ export interface AppDeps {
   logSink?: LogSink;
   verifyIdToken?: VerifyIdToken;
   clientConfig?: ClientConfig | null;
+  store?: Store;
 }
 
 export function createApp({
@@ -23,6 +25,7 @@ export function createApp({
   logSink,
   verifyIdToken = firebaseIdTokenVerifier(),
   clientConfig = clientConfigFromEnv(),
+  store = firestoreStore(),
 }: AppDeps = {}) {
   const app = new Hono<AppEnv>();
 
@@ -58,7 +61,7 @@ export function createApp({
 
   // Public: /healthz and /health above, /.well-known/*, and later /r/* and /impact.
   app.route('/.well-known', createWellKnown(clientConfig));
-  app.route('/v1', createV1(verifyIdToken));
+  app.route('/v1', createV1(verifyIdToken, store));
 
   // Returned, not thrown: a throw here skips the access line above.
   app.notFound((c) => c.json(new ApiError(404, 'NOT_FOUND', 'No route matches this request').toEnvelope(), 404));

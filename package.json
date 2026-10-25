@@ -5,5 +5,14 @@
   "packageManager": "pnpm@12.15.0",
   "engines": {
     "node": ">=22"
+  },
+  "scripts": {
+    "lint": "biome lint .",
+    "typecheck": "pnpm -r --if-present typecheck",
+    "test": "pnpm -r --if-present test",
+    "check:jurisdictions": "node scripts/check-jurisdictions.ts"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.5.15"
   }
 }

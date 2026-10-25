@@ -10,6 +10,7 @@ struct FinePrintApp: App {
     @Environment(\.scenePhase) private var scenePhase
     private let signsInAutomatically: Bool
     private let modelContainer: ModelContainer
+    private let evidenceStore: EvidenceStore
 
     init() {
         let options = LaunchOptions.current
@@ -22,6 +23,7 @@ struct FinePrintApp: App {
         ))
         signsInAutomatically = !options.isRunningTests
         modelContainer = Self.makeModelContainer(inMemory: options.usesInMemoryStore)
+        evidenceStore = EvidenceStore.live(inMemory: options.usesInMemoryStore)
     }
 
     var body: some Scene {
@@ -30,6 +32,7 @@ struct FinePrintApp: App {
                 .environment(configuration)
                 .environment(deadlines)
                 .environment(auth)
+                .environment(\.evidenceStore, evidenceStore)
                 // First launch signs in anonymously with no input; later launches reuse the account.
                 .task {
                     guard signsInAutomatically else { return }

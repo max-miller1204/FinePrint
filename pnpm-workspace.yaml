@@ -9,8 +9,10 @@ packages:
 # @firebase/util writes client SDK defaults, protobufjs checks its own version.
 # firebase-tools (dev only, for the emulators) adds re2, a native regex build
 # that only the Hosting emulator uses.
+# @google/genai's preinstall script is an echo.
 allowBuilds:
   esbuild: true
   '@firebase/util': false
   protobufjs: false
   re2: false
+  '@google/genai': false

@@ -1,0 +1,12 @@
+rules_version = '2';
+
+// Clients never touch the bucket through a Firebase SDK (spec §6.2, §9.2).
+// They upload and read only through V4 signed URLs the API issues, which
+// these rules do not apply to. Every client SDK request is denied.
+service firebase.storage {
+  match /b/{bucket}/o {
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

@@ -1,15 +1,18 @@
 import SwiftUI
 
-/// Hidden developer options: the server address, the anonymous sign-in, and, in DEBUG builds,
-/// sample data switches.
+/// Hidden developer options: the server address, the anonymous sign-in, a way to try the
+/// evidence camera, and, in DEBUG builds, sample data switches.
 struct DeveloperMenuView: View {
     @Environment(AppConfiguration.self) private var configuration
     @Environment(AuthSession.self) private var auth
     @Environment(DeadlineStore.self) private var deadlines
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.evidenceStore) private var evidenceStore
     @State private var draft = ""
     @State private var error: ServerURLError?
     @State private var saveCount = 0
+    @State private var isCameraPresented = false
+    @State private var lastCapture: CaptureRecord?
     @FocusState private var isFieldFocused: Bool
 
     var body: some View {
@@ -71,6 +74,25 @@ struct DeveloperMenuView: View {
 
             AccountSection()
 
+            Section {
+                Button("Open Camera") {
+                    isCameraPresented = true
+                }
+                .accessibilityIdentifier("developer.openCamera")
+                if let lastCapture {
+                    LabeledContent("Last Photo SHA-256") {
+                        Text(verbatim: lastCapture.sha256)
+                            .font(.body.monospaced())
+                            .textSelection(.enabled)
+                    }
+                    .accessibilityIdentifier("developer.lastCaptureHash")
+                }
+            } header: {
+                Text("Camera")
+            } footer: {
+                Text("Takes a test photo for the kitchen walls. It is hashed and saved on this device only.")
+            }
+
             #if DEBUG
             Section {
                 Toggle("Show Sample Deadline", isOn: sampleDeadlineBinding)
@@ -99,6 +121,11 @@ struct DeveloperMenuView: View {
             error = nil
         }
         .sensoryFeedback(.success, trigger: saveCount)
+        .fullScreenCover(isPresented: $isCameraPresented) {
+            CameraScreen(context: .developerSample, store: evidenceStore) { photo in
+                lastCapture = photo.record
+            }
+        }
     }
 
     private var sourceDescription: LocalizedStringResource {
