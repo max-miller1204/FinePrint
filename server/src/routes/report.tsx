@@ -4,7 +4,7 @@ import type { Store } from '../storage/firestore.js';
 import { isDocumentId } from '../storage/firestore.js';
 import type { EvidenceObjects } from '../storage/gcs.js';
 import { active, type Shares } from '../shares/store.js';
-import { browserFamily, capability, checkPin, tokenHash } from '../shares/security.js';
+import { browserFamily, capability, checkPin, reportOrigin, tokenHash } from '../shares/security.js';
 import { SharePage } from '../shares/page.js';
 import { projectReport } from '../shares/projection.js';
 import { Hono } from 'hono';
@@ -66,7 +66,7 @@ export function createReport(load: ReportLoader, signer: Signer | null, fixtureM
           // no-referrer can make a form's Origin opaque. Only accept that
           // browser case with Sec-Fetch-Site confirming the same origin.
           const origin = c.req.header('Origin');
-          if (origin && origin !== new URL(c.req.url).origin && !(origin === 'null' && c.req.header('Sec-Fetch-Site') === 'same-origin')) return c.html(<Unavailable />, 403);
+          if (origin && origin !== reportOrigin(c.req.url) && !(origin === 'null' && c.req.header('Sec-Fetch-Site') === 'same-origin')) return c.html(<Unavailable />, 403);
           if (!await shares.attempt(share.id)) {
             c.header('Retry-After', '900');
             return c.html(<SharePage state="limited" />, 429);
@@ -76,7 +76,7 @@ export function createReport(load: ReportLoader, signer: Signer | null, fixtureM
           if (!/^[0-9]{6,12}$/.test(pin) || !await checkPin(pin, share.pinHash)) return c.html(<SharePage state="pin" wrong />, 403);
           const session = capability();
           await shares.grant(share.id, tokenHash(session));
-          setCookie(c, 'fp_share', session, { path: `/r/${token}`, httpOnly: true, sameSite: 'Strict', secure: new URL(c.req.url).protocol === 'https:', maxAge: 900 });
+          setCookie(c, 'fp_share', session, { path: `/r/${token}`, httpOnly: true, sameSite: 'Strict', secure: reportOrigin(c.req.url).startsWith('https:'), maxAge: 900 });
           return c.redirect(`/r/${token}`, 303);
         } else {
           const session = getCookie(c, 'fp_share');
@@ -93,7 +93,7 @@ export function createReport(load: ReportLoader, signer: Signer | null, fixtureM
         if (!current || !active(current)) return c.html(<Unavailable />, 410);
         return c.body(new Uint8Array(bytes), 200, { 'Content-Type': item.mime });
       }
-      const report = await projectReport(share, store, shares, token, new URL(c.req.url).origin);
+      const report = await projectReport(share, store, shares, token, reportOrigin(c.req.url));
       // Recheck after slow storage reads. Never serve a cached authorization.
       const current = await shares.get(share.id);
       if (!current || !active(current)) return c.html(<Unavailable />, 410);

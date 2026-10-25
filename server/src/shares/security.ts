@@ -19,3 +19,11 @@ export function browserFamily(ua = '') {
   if (/Safari\//.test(ua)) return 'Safari';
   return 'Other';
 }
+
+// Cloud Run terminates TLS before the Node socket. Production report links
+// always use HTTPS; HTTP is allowed only in the explicit emulator lane.
+export function reportOrigin(url: string, emulated = !!process.env.FIRESTORE_EMULATOR_HOST) {
+  const origin = new URL(url);
+  if (!emulated) origin.protocol = 'https:';
+  return origin.origin;
+}

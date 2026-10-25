@@ -14,7 +14,8 @@ this includes successful entries. The link-wide budget works across server
 instances without retaining an IP or visitor fingerprint. Guessing can lock
 out legitimate recipients until the window resets. A valid PIN redirects
 to a GET and sets a 15-minute HttpOnly, SameSite=Strict cookie (Secure over
-HTTPS), scoped to this link. Only its hash is stored server-side.
+HTTPS), scoped to this link. Production origins are forced to HTTPS even
+behind Cloud Run TLS termination; HTTP is limited to the emulator lane. Only its hash is stored server-side.
 
 Reports and original photo routes check expiry, revocation, PIN grant and
 scope on every request. Photos go through the authorized route instead of
@@ -69,5 +70,5 @@ share-links|web|skeptic|Create a scoped rental link through the authenticated AP
 
 Final Linux proof: `.e2e/proof/issue-35-final/`, all 12 web files, 46 tests
 passed, 2 live-model tests skipped without a configured model, exit 0.
-Server unit suite: 444 passed. Typecheck, lint and jurisdiction checks pass.
+Server unit suite: 446 passed. Typecheck, lint and jurisdiction checks pass.
 The macOS CI build is separate from this Linux evidence.
