@@ -79,6 +79,8 @@ ends with an `error` event and is `failed`; 401, 403, 404, 400, 422, and a
 `live` test replaces the `failed` one: the synthetic lease streams S1 to S8,
 `keyterms` after S3, every `finding`, and `done`, with any waits as `error`
 events; the GET and the stored `findings` and `clauses` match the stream.
+A second live test streams `inject-ignore-previous-es` with `locale: es-US`:
+S1 to S9, and `done.injection` has the Spanish title (#104).
 
 ```bash
 cd e2e

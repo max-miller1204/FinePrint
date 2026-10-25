@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { promisify } from 'node:util';
 import { describe, expect, test } from 'e2e';
+import { caseText, loadAdversarialCases } from '../../../eval/runners/adversarial-cases.ts';
 
 interface ClientConfig {
   firebase: { apiKey: string; projectId: string; authEmulatorHost?: string };
@@ -41,11 +42,11 @@ const SUMMONS = readFileSync(join(import.meta.dirname, '..', '..', '..', 'eval',
 // The server asks Gemma only when it inherits a key (`op run`, see e2e.config.ts).
 const MODEL = Boolean(process.env.GEMINI_API_KEY);
 
-async function rentalWithLease(baseUrl: string, idToken: string, text: string) {
+async function rentalWithLease(baseUrl: string, idToken: string, text: string, locale = 'en') {
   const rental = await call(baseUrl, 'POST', '/v1/rentals', idToken, { jurisdiction: 'VA', city: 'Richmond', occupancyDate: '2026-11-01', tenancyEndDate: '2027-10-31' });
   expect(rental.status).toBe(201);
   const { id: rentalId } = await rental.json();
-  const created = await call(baseUrl, 'POST', `/v1/rentals/${rentalId}/leases`, idToken, { text, locale: 'en', pageCount: 4 });
+  const created = await call(baseUrl, 'POST', `/v1/rentals/${rentalId}/leases`, idToken, { text, locale, pageCount: 4 });
   expect(created.status).toBe(201);
   const body = await created.json();
   expect(body).toEqual({ leaseId: expect.any(String), status: 'pending', stream: `/v1/rentals/${rentalId}/leases/${body.leaseId}/stream` });
@@ -166,6 +167,26 @@ describe('Lease API and SSE stream', { platforms: ['web'] }, () => {
     expect(stored.documents).toHaveLength(findings.length);
     const clauses = await storedDocs(`rentals/${rentalId}/leases/${leaseId}/clauses`);
     expect(clauses.documents!.length).toBe(lease.clauses.length);
+  });
+
+  test('live: a Spanish lease with hidden AI instructions streams S9 and the injection finding in Spanish', { timeout: 900_000 }, async ({ app }) => {
+    test.skip(!MODEL, 'needs GEMINI_API_KEY: run under op run');
+    const injected = caseText(loadAdversarialCases().find((c) => c.id === 'inject-ignore-previous-es')!);
+    const { idToken } = await signUpAnonymously(app.baseUrl);
+    const { rentalId, leaseId, stream } = await rentalWithLease(app.baseUrl, idToken, injected, 'es-US');
+
+    const { events } = await curlStream(app.baseUrl, stream, idToken, 880_000);
+    const stages = events.filter((e) => e.event === 'stage').map((e) => e.data.stage);
+    expect(stages).toEqual(['S1', 'S2', 'S3', 'S4', 'S5', 'S6', 'S7', 'S8', 'S9']);
+    const done = events.at(-1)!;
+    expect(done.event).toBe('done');
+    // The finding's words are fixed per locale in code (#104), never model text.
+    expect(done.data).toMatchObject({
+      status: 'analyzed',
+      injection: { id: 'injection', severity: 'info', title: 'Instrucciones ocultas para herramientas de IA' },
+    });
+    const lease = await (await call(app.baseUrl, 'GET', `/v1/rentals/${rentalId}/leases/${leaseId}`, idToken)).json();
+    expect(lease.injection).toMatchObject({ detected: true, finding: done.data.injection });
   });
 
   test('the lease routes check the rental, the owner, the body, and the state', async ({ app }) => {

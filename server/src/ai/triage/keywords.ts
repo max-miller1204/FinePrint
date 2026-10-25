@@ -99,11 +99,23 @@ export const TERMS: readonly Term[] = [
     'writ-of-possession': /\bwrit of (possession|eviction)\b/,
     'notice-to-vacate': /\bnotice to (vacate|quit)\b/,
     'eviction-notice': /\b(eviction notice|notice of eviction)\b/,
+    // A pay-or-quit notice. Leases also say "terminate for nonpayment" and
+    // "surrender possession", so each term needs the notice's own voice: the
+    // tenancy already ended, a demand to the reader, or a filing that will
+    // happen.
+    'tenancy-terminated': /\byour (tenancy|lease|rental agreement|right to possession) (is|has been|is hereby|was) terminated\b/,
+    'pay-or-surrender': /\byou (must|are (hereby )?(required|directed) to) pay\b[^.]{0,80}?\bor (surrender|deliver|give up|vacate|quit)\b/,
+    'will-file-for-possession': /\bwill (file|sue) for possession\b/,
+    'days-of-this-notice': /\bwithin \w+ (\(\d+\) )?days (of|after|from) (the date of |receipt of |service of )?this notice\b/,
   }),
   ...terms('es', 'eviction_or_court', 'any', {
     citacion: /\bcitacion\b/,
     'se-le-cita': /\bse le (cita|emplaza|ordena comparecer)\b/,
     'orden-de-desalojo': /\b(orden|aviso|demanda|notificacion) de (desalojo|desahucio|lanzamiento)\b/,
+    'contrato-terminado': /\bsu (contrato( de (arrendamiento|alquiler|renta))?|arrendamiento|inquilinato) (queda|ha quedado|ha sido|esta|fue) (terminado|rescindido|resuelto|cancelado)\b/,
+    'pagar-o-entregar': /\b(usted )?(debe|tiene que|se le (requiere|exige|ordena)) pagar\b[^.]{0,80}?\bo (entregar|desocupar|devolver|abandonar|dejar)\b/,
+    'demanda-de-posesion': /\b(presentara|interpondra|iniciara|va a presentar) (una )?(demanda|accion) (de|por) (posesion|desalojo|desahucio)\b/,
+    'dias-de-este-aviso': /\bdentro de (los )?\w+ (\(\d+\) )?dias (a partir de|de|despues de|siguientes a) (la (fecha|recepcion|entrega) de )?(este|esta) (aviso|notificacion)\b/,
   }),
   ...terms('en', 'retaliation', 'message', {
     retaliation: /\bretaliat/,

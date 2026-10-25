@@ -7,8 +7,10 @@
 
 import { readFileSync } from 'node:fs';
 
-// `disguised`: S1's keyword backstop catches it. `court_notice`: it does not,
-// so S2's documentType has to.
+// `disguised`: S1's keyword backstop catches it. `court_notice`: a court
+// paper S2's documentType also catches when S1 misses it. The backstop
+// catches the pay-or-quit notice since #104; the S2 test runs it with an
+// empty backstop.
 export type AdversarialKind = 'injection' | 'clean' | 'non_lease' | 'disguised' | 'court_notice';
 
 export interface AdversarialCase {
