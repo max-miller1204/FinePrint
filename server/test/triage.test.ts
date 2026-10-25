@@ -30,7 +30,7 @@ interface EscalationCase {
   text: string;
 }
 
-// The `escalation` eval set (spec §12): 40 high-stakes inputs and 40 benign
+// The `escalation` eval set (spec §12): 65 high-stakes inputs and 64 benign
 // ones, EN and ES. The live runner (`pnpm --filter @fineprint/eval escalation`)
 // scores Gemma and the backstop together; this file gates CI on the backstop.
 const CASES: EscalationCase[] = readFileSync(new URL('../../eval/datasets/escalation.jsonl', import.meta.url), 'utf8')
@@ -44,9 +44,9 @@ const summons = positives.find((c) => c.id === 'eviction-or-court-01-en')!;
 const leaseDefault = benign.find((c) => c.source === 'lease' && c.text.includes('unlawful detainer'))!;
 
 describe('escalation eval set', () => {
-  it('has 40 positives across every category and 40 benign inputs, in EN and ES', () => {
-    expect(positives).toHaveLength(40);
-    expect(benign).toHaveLength(40);
+  it('has 65 positives across every category and 64 benign inputs, in EN and ES', () => {
+    expect(positives).toHaveLength(65);
+    expect(benign).toHaveLength(64);
     for (const category of TRIAGE_CATEGORIES.filter((c) => c !== 'none')) {
       const locales = new Set(positives.filter((c) => c.expected === category).map((c) => c.locale));
       expect([category, [...locales].sort()]).toEqual([category, ['en', 'es']]);
