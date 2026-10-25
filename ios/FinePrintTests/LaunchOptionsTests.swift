@@ -5,13 +5,15 @@ import Testing
 struct LaunchOptionsTests {
     @Test func `reads every argument`() {
         let options = LaunchOptions(
-            arguments: ["FinePrint", "-FinePrintServerURL", "http://127.0.0.1:1234", "-FinePrintInMemoryStore", "-FinePrintDeadlineStub", "empty", "-FinePrintDeveloperMenu"],
+            arguments: ["FinePrint", "-FinePrintServerURL", "http://127.0.0.1:1234", "-FinePrintInMemoryStore", "-FinePrintDeadlineStub", "empty", "-FinePrintDeveloperMenu", "-FinePrintFixtureCamera", "Fixtures/move-in", "-FinePrintSkipOnboarding"],
             environment: [:]
         )
         #expect(options.serverURLOverride == "http://127.0.0.1:1234")
         #expect(options.usesInMemoryStore)
         #expect(options.deadlineStub == .empty)
         #expect(options.showsDeveloperMenu)
+        #expect(options.fixtureCameraDirectory == "Fixtures/move-in")
+        #expect(options.skipsOnboarding)
     }
 
     @Test func `defaults when nothing is passed`() {
@@ -21,6 +23,8 @@ struct LaunchOptionsTests {
         #expect(options.deadlineStub == nil)
         #expect(!options.isRunningTests)
         #expect(!options.showsDeveloperMenu)
+        #expect(options.fixtureCameraDirectory == nil)
+        #expect(!options.skipsOnboarding)
     }
 
     @Test func `a missing value is ignored`() {

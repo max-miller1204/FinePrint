@@ -8,6 +8,10 @@ import Foundation
 /// - `-FinePrintDeadlineStub present|empty` (DEBUG builds) forces the sample deadline on or off.
 /// - `-FinePrintDeveloperMenu` (DEBUG builds) shows the developer menu for this launch, so UI tests
 ///   need not race the five-tap unlock.
+/// - `-FinePrintFixtureCamera <dir>` (DEBUG builds) feeds the photos in `<dir>` through the capture
+///   pipeline in place of the camera, for simulator e2e (spec §12.1).
+/// - `-FinePrintSkipOnboarding` (DEBUG builds) starts at the tabs with a default Virginia rental, so
+///   UI tests that are not about onboarding need not walk through it.
 nonisolated struct LaunchOptions: Equatable, Sendable {
     enum DeadlineStub: String, Equatable, Sendable {
         case present
@@ -18,20 +22,30 @@ nonisolated struct LaunchOptions: Equatable, Sendable {
     static let inMemoryStoreArgument = "-FinePrintInMemoryStore"
     static let deadlineStubArgument = "-FinePrintDeadlineStub"
     static let developerMenuArgument = "-FinePrintDeveloperMenu"
+    #if DEBUG
+    static let fixtureCameraArgument = "-FinePrintFixtureCamera"
+    static let skipOnboardingArgument = "-FinePrintSkipOnboarding"
+    #endif
 
     var serverURLOverride: String?
     var usesInMemoryStore: Bool
     var deadlineStub: DeadlineStub?
     /// Read in DEBUG builds only (see `AppConfiguration`).
     var showsDeveloperMenu: Bool
+    /// Read in DEBUG builds only. A folder of photos that stands in for the camera.
+    var fixtureCameraDirectory: String?
+    /// Read in DEBUG builds only.
+    var skipsOnboarding: Bool
     /// Unit tests host the app; it must not sign in to a server while they run.
     var isRunningTests: Bool
 
-    init(serverURLOverride: String? = nil, usesInMemoryStore: Bool = false, deadlineStub: DeadlineStub? = nil, showsDeveloperMenu: Bool = false, isRunningTests: Bool = false) {
+    init(serverURLOverride: String? = nil, usesInMemoryStore: Bool = false, deadlineStub: DeadlineStub? = nil, showsDeveloperMenu: Bool = false, fixtureCameraDirectory: String? = nil, skipsOnboarding: Bool = false, isRunningTests: Bool = false) {
         self.serverURLOverride = serverURLOverride
         self.usesInMemoryStore = usesInMemoryStore
         self.deadlineStub = deadlineStub
         self.showsDeveloperMenu = showsDeveloperMenu
+        self.fixtureCameraDirectory = fixtureCameraDirectory
+        self.skipsOnboarding = skipsOnboarding
         self.isRunningTests = isRunningTests
     }
 
@@ -49,6 +63,14 @@ nonisolated struct LaunchOptions: Equatable, Sendable {
 
         deadlineStub = Self.value(after: Self.deadlineStubArgument, in: arguments).flatMap(DeadlineStub.init(rawValue:))
         showsDeveloperMenu = arguments.contains(Self.developerMenuArgument)
+        // Not parsed in Release, so these argument strings are not in the binary.
+        #if DEBUG
+        fixtureCameraDirectory = Self.value(after: Self.fixtureCameraArgument, in: arguments)
+        skipsOnboarding = arguments.contains(Self.skipOnboardingArgument)
+        #else
+        fixtureCameraDirectory = nil
+        skipsOnboarding = false
+        #endif
     }
 
     static let current = LaunchOptions(

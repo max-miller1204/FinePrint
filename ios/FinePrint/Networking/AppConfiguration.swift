@@ -11,6 +11,10 @@ final class AppConfiguration {
     /// Set with `-FinePrintServerURL`; applies to this launch only and is never saved.
     let launchServerURL: String?
     private(set) var storedServerURL: String?
+    #if DEBUG
+    /// Set with `-FinePrintFixtureCamera`: a folder of photos that stands in for the camera.
+    let fixtureCameraDirectory: URL?
+    #endif
 
     var isDeveloperMenuUnlocked: Bool {
         didSet { defaults.set(isDeveloperMenuUnlocked, forKey: Self.developerMenuKey) }
@@ -19,6 +23,9 @@ final class AppConfiguration {
     init(launchOptions: LaunchOptions, defaults: UserDefaults = .standard) {
         self.defaults = defaults
         launchServerURL = launchOptions.serverURLOverride
+        #if DEBUG
+        fixtureCameraDirectory = launchOptions.fixtureCameraDirectory.map { URL(fileURLWithPath: $0, isDirectory: true) }
+        #endif
         storedServerURL = defaults.string(forKey: Self.storedServerURLKey)
         // `-FinePrintDeveloperMenu` applies to this launch only. One assignment, so `didSet` never
         // runs and nothing is saved.

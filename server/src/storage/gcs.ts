@@ -1,3 +1,5 @@
+import { createHash } from 'node:crypto';
+import { pipeline } from 'node:stream/promises';
 import { getStorage } from 'firebase-admin/storage';
 import { firebaseApp, projectIdFromEnv } from '../firebase.js';
 import { isDocumentId } from './firestore.js';
@@ -33,9 +35,17 @@ function rentalPrefix(rentalId: string) {
 }
 
 // A V4 URL the app PUTs the bytes to. The upload must send the same
-// Content-Type.
-export async function signedUploadUrl(bucket: Bucket, path: string, contentType: string, now = Date.now()): Promise<string> {
-  const [url] = await bucket.file(path).getSignedUrl({ version: 'v4', action: 'write', contentType, expires: now + SIGNED_URL_TTL_MS });
+// Content-Type and, when `sha256` is given, `x-goog-content-sha256`: it is
+// signed as the payload hash, so Cloud Storage refuses a body that hashes to
+// anything else (spec §5.3).
+export async function signedUploadUrl(bucket: Bucket, path: string, contentType: string, now = Date.now(), sha256?: string): Promise<string> {
+  const [url] = await bucket.file(path).getSignedUrl({
+    version: 'v4',
+    action: 'write',
+    contentType,
+    expires: now + SIGNED_URL_TTL_MS,
+    ...(sha256 === undefined ? {} : { extensionHeaders: { 'x-goog-content-sha256': sha256 } }),
+  });
   return url;
 }
 
@@ -48,4 +58,76 @@ export async function signedReadUrl(bucket: Bucket, path: string, now = Date.now
 // Every object of a rental, for "Delete everything" and the purge.
 export async function deleteRentalObjects(bucket: Bucket, rentalId: string): Promise<void> {
   await bucket.deleteFiles({ prefix: rentalPrefix(rentalId) });
+}
+
+// Where the app sends one original: a URL and the headers it must send with
+// it, exactly.
+export interface UploadTarget {
+  method: 'PUT';
+  url: string;
+  headers: Record<string, string>;
+  expiresAt: string;
+}
+
+export interface DeclaredObject {
+  contentType: string;
+  sha256: string;
+  bytes: number;
+}
+
+// The evidence bucket as the routes use it. Unit tests swap in memory.
+export interface EvidenceObjects {
+  uploadTarget(path: string, declared: DeclaredObject, now: Date): Promise<UploadTarget>;
+  // Null when nothing is stored at `path`.
+  stat(path: string): Promise<{ bytes: number; contentType: string | null } | null>;
+  // Reads the stored bytes and hashes them. Cloud Storage keeps MD5 and
+  // CRC32C, never SHA-256, so this is the only way to know the stored hash.
+  sha256(path: string): Promise<string>;
+  remove(path: string): Promise<void>;
+}
+
+// Signed URLs need a service account key or IAM signBlob, which the Storage
+// emulator has neither of, and it serves no XML API PUT. Under the emulator
+// the server opens a resumable upload session instead: its URL takes one PUT
+// of the whole body, like a signed URL. The emulator checks no hash on
+// upload, so the hash on `complete` is what catches a mismatch there.
+export function gcsObjects(bucket: () => Bucket = () => evidenceBucket(), env: NodeJS.ProcessEnv = process.env): EvidenceObjects {
+  const emulated = Boolean(env.FIREBASE_STORAGE_EMULATOR_HOST ?? env.STORAGE_EMULATOR_HOST);
+  let cached: Bucket | undefined;
+  const files = () => (cached ??= bucket());
+
+  return {
+    async uploadTarget(path, { contentType, sha256 }, now) {
+      const expiresAt = new Date(now.getTime() + SIGNED_URL_TTL_MS).toISOString();
+      const headers = { 'Content-Type': contentType, 'x-goog-content-sha256': sha256 };
+      if (emulated) {
+        const [url] = await files()
+          .file(path)
+          .createResumableUpload({ metadata: { contentType } });
+        return { method: 'PUT', url, headers, expiresAt };
+      }
+      const url = await signedUploadUrl(files(), path, contentType, now.getTime(), sha256);
+      return { method: 'PUT', url, headers, expiresAt };
+    },
+
+    async stat(path) {
+      try {
+        const [metadata] = await files().file(path).getMetadata();
+        return { bytes: Number(metadata.size), contentType: metadata.contentType ?? null };
+      } catch (err) {
+        if ((err as { code?: unknown } | null)?.code === 404) return null;
+        throw err;
+      }
+    },
+
+    async sha256(path) {
+      const hash = createHash('sha256');
+      await pipeline(files().file(path).createReadStream(), hash);
+      return hash.digest('hex');
+    },
+
+    async remove(path) {
+      await files().file(path).delete({ ignoreNotFound: true });
+    },
+  };
 }

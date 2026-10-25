@@ -1,13 +1,17 @@
 import { expect } from 'e2e';
+import { iosBundleId, iosLaunchArguments } from '../../ios-launch';
 import { test } from './fixtures';
 
 // Simulators have no camera, so this drives the entry point and the
-// no-camera state. Capture, hashing, the capture record, GPS removal, and the
-// quality gate are covered by ios/FinePrintTests/CaptureTests.swift; the
-// DEBUG fixture camera (#22) will drive a real capture here.
+// no-camera state. That state exists only without the DEBUG fixture camera
+// (#22), so the test relaunches without -FinePrintFixtureCamera.
+// capture.e2e.ts drives a real capture through the fixture camera, and
+// ios/FinePrintTests/CaptureTests.swift covers hashing, the capture record,
+// GPS removal, and the quality gate.
 
-test('the camera opens from Developer Options and explains a missing camera', { platforms: ['ios'] }, async ({ app, screen }) => {
+test('the camera opens from Developer Options and explains a missing camera', { platforms: ['ios'] }, async ({ app, screen, device }) => {
   await app.open();
+  await device.openApp(iosBundleId, { relaunch: true, launchArguments: iosLaunchArguments({ without: ['-FinePrintFixtureCamera'] }) });
   await screen.getByTestId('settingsButton').tap();
   await screen.getByTestId('settings.developerOptions').tap();
 

@@ -8,10 +8,13 @@ struct DeveloperMenuView: View {
     @Environment(DeadlineStore.self) private var deadlines
     @Environment(\.dismiss) private var dismiss
     @Environment(\.evidenceStore) private var evidenceStore
+    @Environment(\.modelContext) private var modelContext
+    @Environment(UploadQueue.self) private var uploads: UploadQueue?
     @State private var draft = ""
     @State private var error: ServerURLError?
     @State private var saveCount = 0
-    @State private var isCameraPresented = false
+    /// Set when Open Camera is tapped, so the camera always files photos under the rental picked then.
+    @State private var cameraPresentation: CameraPresentation?
     @State private var lastCapture: CaptureRecord?
     @FocusState private var isFieldFocused: Bool
 
@@ -76,21 +79,28 @@ struct DeveloperMenuView: View {
 
             Section {
                 Button("Open Camera") {
-                    isCameraPresented = true
+                    cameraPresentation = CameraPresentation(context: .developer(in: modelContext))
                 }
                 .accessibilityIdentifier("developer.openCamera")
-                if let lastCapture {
-                    LabeledContent("Last Photo SHA-256") {
+                // The rows are always there, so keeping a photo changes their text instead of
+                // inserting rows while the camera closes, which left the rows below unrendered.
+                LabeledContent("Last Photo SHA-256") {
+                    if let lastCapture {
                         Text(verbatim: lastCapture.sha256)
                             .font(.body.monospaced())
                             .textSelection(.enabled)
+                    } else {
+                        Text("None yet")
                     }
-                    .accessibilityIdentifier("developer.lastCaptureHash")
+                }
+                .accessibilityIdentifier("developer.lastCaptureHash")
+                if let uploads {
+                    UploadQueueRows(uploads: uploads, lastCapture: lastCapture)
                 }
             } header: {
                 Text("Camera")
             } footer: {
-                Text("Takes a test photo for the kitchen walls. It is hashed and saved on this device only.")
+                Text("Takes a test photo for the kitchen walls. It is hashed, saved on this device, and uploaded to the server in use.")
             }
 
             #if DEBUG
@@ -121,11 +131,36 @@ struct DeveloperMenuView: View {
             error = nil
         }
         .sensoryFeedback(.success, trigger: saveCount)
-        .fullScreenCover(isPresented: $isCameraPresented) {
-            CameraScreen(context: .developerSample, store: evidenceStore) { photo in
+        .fullScreenCover(item: $cameraPresentation) { presentation in
+            camera(presentation.context)
+        }
+    }
+
+    @ViewBuilder
+    private func camera(_ context: CaptureContext) -> some View {
+        #if DEBUG
+        if let fixtureDirectory = configuration.fixtureCameraDirectory {
+            CameraScreen(context: context, store: evidenceStore, fixtureDirectory: fixtureDirectory) { photo in
                 lastCapture = photo.record
             }
+        } else {
+            realCamera(context)
         }
+        #else
+        realCamera(context)
+        #endif
+    }
+
+    private func realCamera(_ context: CaptureContext) -> some View {
+        CameraScreen(context: context, store: evidenceStore) { photo in
+            lastCapture = photo.record
+        }
+    }
+
+    /// One presentation of the camera.
+    struct CameraPresentation: Identifiable {
+        let id = UUID()
+        let context: CaptureContext
     }
 
     private var sourceDescription: LocalizedStringResource {
@@ -175,4 +210,29 @@ struct DeveloperMenuView: View {
         .environment(AppConfiguration.preview())
         .environment(DeadlineStore(launchOptions: LaunchOptions()))
         .environment(AuthSession.preview())
+}
+
+/// The last photo's seal status and the upload queue, which update as uploads finish.
+private struct UploadQueueRows: View {
+    @Bindable var uploads: UploadQueue
+    let lastCapture: CaptureRecord?
+
+    var body: some View {
+        LabeledContent("Seal Status") {
+            if let lastCapture {
+                SealStatusPill(status: uploads.status(for: lastCapture.itemID) ?? .waiting)
+            } else {
+                Text("No photo yet")
+            }
+        }
+        .accessibilityIdentifier("developer.sealStatus")
+        LabeledContent("Waiting to Upload") {
+            Text(uploads.waitingCount, format: .number)
+        }
+        .accessibilityIdentifier("developer.uploadQueueCount")
+        #if DEBUG
+        Toggle("Simulate Offline", isOn: $uploads.simulatesOffline)
+            .accessibilityIdentifier("developer.simulateOfflineToggle")
+        #endif
+    }
 }

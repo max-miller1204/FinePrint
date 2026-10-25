@@ -7,12 +7,21 @@ struct CameraScreen: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.openURL) private var openURL
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(UploadQueue.self) private var uploads: UploadQueue?
     private let onFinish: (CapturedPhoto) -> Void
 
     init(context: CaptureContext, store: EvidenceStore, onFinish: @escaping (CapturedPhoto) -> Void = { _ in }) {
         _model = State(initialValue: CameraModel(context: context, store: store))
         self.onFinish = onFinish
     }
+
+    #if DEBUG
+    /// The camera with a folder of fixture photos in place of the hardware.
+    init(context: CaptureContext, store: EvidenceStore, fixtureDirectory: URL, onFinish: @escaping (CapturedPhoto) -> Void = { _ in }) {
+        _model = State(initialValue: CameraModel(context: context, store: store, fixtureDirectory: fixtureDirectory))
+        self.onFinish = onFinish
+    }
+    #endif
 
     var body: some View {
         ZStack {
@@ -56,6 +65,7 @@ struct CameraScreen: View {
             )
         case .review(let photo):
             CaptureReview(photo: photo, context: model.context, onRetake: model.retake) {
+                model.keepPhotoUnderReview(in: uploads)
                 onFinish(photo)
                 dismiss()
             }
@@ -269,6 +279,10 @@ private struct CaptureReview: View {
                 .accessibilityIdentifier("camera.saved")
             }
 
+            // Kept photos join the upload queue; none is sealed until the report is (#24).
+            SealStatusPill(status: .waiting)
+                .accessibilityIdentifier("camera.sealStatus")
+
             VStack(alignment: .leading, spacing: 4) {
                 Text("SHA-256 fingerprint")
                     .font(.subheadline)
@@ -276,9 +290,10 @@ private struct CaptureReview: View {
                 Text(verbatim: photo.record.sha256)
                     .font(.body.monospaced())
                     .textSelection(.enabled)
-                    .accessibilityIdentifier("camera.hash")
             }
+            // On the combined element, not the hash text, so VoiceOver and UI tests see one node.
             .accessibilityElement(children: .combine)
+            .accessibilityIdentifier("camera.hash")
 
             ViewThatFits(in: .horizontal) {
                 HStack(spacing: 12) { buttons }

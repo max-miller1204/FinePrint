@@ -15,7 +15,7 @@ struct DeadlineTests {
     }
 
     @Test func `counts whole calendar days`() {
-        let deadline = NextDeadline(title: "Object to move-in report", dueDate: date(17, hour: 9))
+        let deadline = NextDeadline(title: "Object to move-in report", dueDay: CalendarDay(year: 2026, month: 8, day: 17))
         #expect(deadline.countdown(from: date(14, hour: 23), calendar: calendar) == .daysLeft(3))
         #expect(deadline.countdown(from: date(16), calendar: calendar) == .daysLeft(1))
         #expect(deadline.countdown(from: date(17, hour: 20), calendar: calendar) == .dueToday)

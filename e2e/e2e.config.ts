@@ -4,6 +4,7 @@ import { web } from '@e2e-dev/web';
 import { mobile } from '@e2e-dev/mobile';
 import { mobileTools } from '@e2e-dev/mobile/tools';
 import { createGoogleGenerativeAI } from '@ai-sdk/google';
+import { iosLaunchArguments, iosServerPort, iosServerURL } from './ios-launch';
 
 // Privacy stance (spec §12.1): no anonymous usage data from the e2e CLI.
 // The package scripts set it too; this covers a bare `npx e2e`.
@@ -22,8 +23,10 @@ const server = join(import.meta.dirname, '..', 'server');
 // runs those) and GCLOUD_PROJECT for the server, and the runner's SIGTERM
 // stops both. Port, log, and emulator config differ per target: each target
 // gets its own emulator ports, so a run that starts both never collides (web
-// in ../firebase.json, ios auth on 9199 in firebase.ios.json). Only web runs
-// Firestore and Storage, for the rentals API; the app does not call it yet.
+// in ../firebase.json; ios in ../firebase.ios.json: auth 9199, Firestore 8190,
+// Storage 9290). Both run Firestore and Storage, since the app uploads
+// evidence. Under the Storage emulator the server hands out emulator upload
+// URLs on 127.0.0.1, which the simulator reaches directly (server/src/storage/gcs.ts).
 const serverCommand = (port: string, log: string, firebaseConfig: string, emulators: string) => ({
   executable: join(server, 'node_modules', '.bin', 'firebase'),
   args: [
@@ -40,11 +43,6 @@ const serverCommand = (port: string, log: string, firebaseConfig: string, emulat
   // take over a minute to start, past the 60 s default.
   startupTimeout: 180_000,
 });
-
-// A mobile target has no `url`, so its server gets a fixed port that the app
-// learns from a launch argument. Override it when 18080 is taken.
-const iosServerPort = process.env.E2E_IOS_SERVER_PORT ?? '18080';
-const iosServerURL = `http://127.0.0.1:${iosServerPort}`;
 
 // Two sessions on one simulator fight over it. A parallel session picks
 // another with E2E_IOS_DEVICE (and E2E_IOS_SERVER_PORT above).
@@ -72,11 +70,10 @@ export default {
         bundleId: 'org.fineprint.FinePrint',
         // Built by `pnpm build:ios` (xcodebuild, Debug, simulator).
         appPath: join(import.meta.dirname, '..', 'ios', 'DerivedData', 'Build', 'Products', 'Debug-iphonesimulator', 'FinePrint.app'),
-        // -FinePrintDeveloperMenu (DEBUG) skips the five-tap unlock, which
-        // scripted taps are too slow for.
-        launchArguments: ['-FinePrintServerURL', iosServerURL, '-FinePrintInMemoryStore', '-FinePrintDeveloperMenu'],
+        // See ios-launch.ts for what each argument does.
+        launchArguments: iosLaunchArguments(),
         readyUrl: `${iosServerURL}/healthz`,
-        command: serverCommand(iosServerPort, '.e2e/logs/server-ios.log', join(import.meta.dirname, 'firebase.ios.json'), 'auth'),
+        command: serverCommand(iosServerPort, '.e2e/logs/server-ios.log', join(import.meta.dirname, '..', 'firebase.ios.json'), 'auth,firestore,storage'),
       },
     },
   ],

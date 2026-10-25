@@ -36,10 +36,31 @@ struct APIClient {
     }
 
     func get<Reply: Decodable>(_ path: String) async throws(APIError) -> Reply {
+        try await send("GET", path, body: nil)
+    }
+
+    /// Sends `body` as JSON. Swift property names go out as they are, so name them as the server does.
+    func post<Body: Encodable, Reply: Decodable>(_ path: String, body: Body) async throws(APIError) -> Reply {
+        try await send("POST", path, body: try encode(body))
+    }
+
+    func patch<Body: Encodable, Reply: Decodable>(_ path: String, body: Body) async throws(APIError) -> Reply {
+        try await send("PATCH", path, body: try encode(body))
+    }
+
+    private func encode(_ body: some Encodable) throws(APIError) -> Data {
+        do {
+            return try JSONEncoder().encode(body)
+        } catch {
+            throw .malformedResponse
+        }
+    }
+
+    private func send<Reply: Decodable>(_ method: String, _ path: String, body: Data?) async throws(APIError) -> Reply {
         let url = serverURL.appending(path: path)
-        var (data, status) = try await send(url, forceRefresh: false)
+        var (data, status) = try await send(method, url, body: body, forceRefresh: false)
         if status == 401 {
-            (data, status) = try await send(url, forceRefresh: true)
+            (data, status) = try await send(method, url, body: body, forceRefresh: true)
         }
         guard (200..<300).contains(status) else {
             let code = (try? JSONDecoder().decode(Envelope.self, from: data))?.error.code
@@ -52,7 +73,7 @@ struct APIClient {
         }
     }
 
-    private func send(_ url: URL, forceRefresh: Bool) async throws(APIError) -> (Data, Int) {
+    private func send(_ method: String, _ url: URL, body: Data?, forceRefresh: Bool) async throws(APIError) -> (Data, Int) {
         let token: String
         do {
             token = try await auth.idToken(forceRefresh: forceRefresh)
@@ -60,8 +81,13 @@ struct APIClient {
             throw .auth(error)
         }
         var request = URLRequest(url: url)
+        request.httpMethod = method
         request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         request.setValue("application/json", forHTTPHeaderField: "Accept")
+        if let body {
+            request.httpBody = body
+            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        }
         do {
             let (data, response) = try await transport(request)
             return (data, (response as? HTTPURLResponse)?.statusCode ?? 0)

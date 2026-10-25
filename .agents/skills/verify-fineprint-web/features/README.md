@@ -10,18 +10,19 @@ F10) get a file each as their routes land.
 | [Error envelope and request IDs](errors.md) | every route | `tests/web/errors.e2e.ts` | tested |
 | [Firebase anonymous auth](auth.md) | `/v1/*`, `GET /v1/me`, `GET /.well-known/fineprint-client.json` | `tests/web/auth.e2e.ts` | tested |
 | [Rentals](rentals.md) | `POST /v1/rentals`, `PATCH /v1/rentals/:id` | `tests/web/rentals.e2e.ts` | tested |
+| [Evidence uploads](evidence.md) | `POST /v1/rentals/:id/evidence`, `POST /v1/rentals/:id/evidence/:itemId/complete` | `tests/web/evidence.e2e.ts` | tested |
 | [Gemma client](gemma-client.md) | none (internal; first caller #14) | `server/test/gemma.test.ts`, `pnpm smoke:gemma` (live) | unit and live tested |
 | [Deploy to Cloud Run](deploy.md) | `./deploy.sh`, the Cloud Run URL | `tests/deployed/deploy.e2e.ts` (`e2e.deployed.config.ts`) | tested |
 
 ## Planned features (spec §4.3)
 
-None of these has a feature file yet. Each one gets a file in this folder as
-its routes land.
+Each one gets a file in this folder as its routes land. So far only F2's
+evidence uploads have one ([evidence](evidence.md)).
 
 | Feature | Route | Board issues | Status |
 | --- | --- | --- | --- |
 | F1 Lease Explainer | `/v1` lease routes and the SSE stream; rule pack and pipeline behind them | #12, #13, #14, #15, #16, #19, #20 | not built |
-| F2 Move-in Evidence | `/v1` evidence upload (signed URLs), seal, and ledger routes | #23, #24, #26 | not built |
+| F2 Move-in Evidence | `/v1` evidence upload (signed URLs), seal, and ledger routes | #23, #24, #26 | upload URLs and hash check built (#23); seal and ledger not built |
 | F3 Landlord Report Diff + 5-Day Objection | `/v1` landlord report extract, diff, and objection draft routes | #28, #30 | not built |
 | F4 Responsibility Check | `/v1` responsibility check route | #31 | not built |
 | F5 Repair Request + Rent Escrow Path | `/v1` repair notice draft route | #32 | not built |

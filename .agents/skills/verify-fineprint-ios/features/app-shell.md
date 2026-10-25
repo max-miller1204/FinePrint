@@ -10,8 +10,10 @@ Letters, and Ask surfaces). For now, each tab shows a placeholder screen.
 - Each tab opens on a placeholder with a title and a short description.
   Lease shows "No lease yet".
 - The next-deadline accessory sits above the tab bar and reads "Next
-  deadline: <title>, <countdown>". Tapping it opens Evidence. DEBUG builds
-  show a sample "Object to move-in report" deadline.
+  deadline: <title>, <countdown>". Tapping it opens the deadline's flow
+  (Evidence for every kind today). It shows the most urgent real deadline
+  (see [deadlines.md](deadlines.md)); DEBUG builds show a sample "Object to
+  move-in report" deadline when nothing real is due.
 - The gear (`settingsButton`) in every tab opens Settings as a sheet. Close
   (`settings.close`) dismisses it.
 
@@ -46,6 +48,6 @@ app-shell-a11y|ios|fuzzer|Rotate the device and switch tabs rapidly; report any 
 
 - `tabBarMinimizeBehavior(.onScrollDown)` shrinks the tab bar on scroll. A
   minimized tab bar is by design.
-- `-FinePrintDeadlineStub empty` hides the accessory, but the target does
-  not pass it. To test the empty state, use `device.openApp` with
+- `-FinePrintDeadlineStub empty` hides the sample (real deadlines still
+  show), but the target does not pass it. To test the empty state, use `device.openApp` with
   `relaunch: true` and the `-FinePrintDeadlineStub empty` argument.
