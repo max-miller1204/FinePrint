@@ -34,6 +34,8 @@ const dataset = readFileSync(join(import.meta.dirname, '..', '..', '..', 'eval',
   .map((line) => JSON.parse(line) as { id: string; text: string });
 const summons = dataset.find((c) => c.id === 'eviction-or-court-01-en')!.text;
 const leaseClause = dataset.find((c) => c.id === 'benign-01-en')!.text;
+const payOrQuitEs = dataset.find((c) => c.id === 'eviction-or-court-11-es')!.text;
+const surrenderClause = dataset.find((c) => c.id === 'benign-65-en')!.text;
 
 // The server runs without GEMINI_API_KEY unless the run is wrapped in
 // `op run`, so the model is `off` (the backstop decides) or `ok`.
@@ -54,6 +56,26 @@ describe('Triage', { platforms: ['web'] }, () => {
   test('an ordinary lease clause about unlawful detainer does not', async ({ app }) => {
     const { idToken } = await signUpAnonymously(app.baseUrl);
     const res = await triage(app.baseUrl, idToken, { source: 'lease', text: leaseClause, locale: 'en' });
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.keywords).toEqual({ category: 'none', confidence: 0, matches: [] });
+    if (body.model.status === 'off') expect(body).toMatchObject({ escalate: false, category: 'none' });
+  });
+
+  // #104: a pay-or-quit notice escalates on the backstop alone; a lease
+  // clause about nonpayment and surrendering possession does not.
+  test('a Spanish pay-or-quit notice uploaded as a lease triggers the handoff', async ({ app }) => {
+    const { idToken } = await signUpAnonymously(app.baseUrl);
+    const res = await triage(app.baseUrl, idToken, { source: 'lease', text: payOrQuitEs, locale: 'es' });
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body).toMatchObject({ escalate: true, category: 'eviction_or_court', keywords: { category: 'eviction_or_court' } });
+    expect(body.keywords.matches).toContain('es.eviction_or_court.pagar-o-entregar');
+  });
+
+  test('a lease clause about nonpayment and surrender does not', async ({ app }) => {
+    const { idToken } = await signUpAnonymously(app.baseUrl);
+    const res = await triage(app.baseUrl, idToken, { source: 'lease', text: surrenderClause, locale: 'en' });
     expect(res.status).toBe(200);
     const body = await res.json();
     expect(body.keywords).toEqual({ category: 'none', confidence: 0, matches: [] });

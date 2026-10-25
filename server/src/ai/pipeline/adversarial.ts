@@ -17,6 +17,24 @@ export const NOT_A_LEASE_MESSAGE = "This doesn't look like a residential lease."
 export const INJECTION_FINDING_TITLE = 'Hidden instructions for AI tools';
 export const INJECTION_FINDING_EXPLANATION = 'This document contains hidden instructions aimed at AI tools. We ignored them.';
 
+// The finding's text per language, fixed and reviewed here rather than sent
+// to S9: it is the same two sentences on every lease, and a model should not
+// be the one to word a note about text aimed at models. A language not listed
+// gets English.
+const INJECTION_FINDING_TEXT: Readonly<Record<string, { title: string; explanation: string }>> = {
+  en: { title: INJECTION_FINDING_TITLE, explanation: INJECTION_FINDING_EXPLANATION },
+  es: {
+    title: 'Instrucciones ocultas para herramientas de IA',
+    explanation: 'Este documento contiene instrucciones ocultas dirigidas a herramientas de IA. Las ignoramos.',
+  },
+};
+
+// "es-MX" -> the `es` text.
+export function injectionFindingText(locale: string): { title: string; explanation: string } {
+  const language = locale.trim().toLowerCase().split(/[-_]/)[0]!;
+  return INJECTION_FINDING_TEXT[language] ?? INJECTION_FINDING_TEXT.en!;
+}
+
 // Characters that hide or split words without showing: zero-width spaces and
 // joiners, bidi controls, word joiners, the BOM, and soft hyphens.
 const INVISIBLE = /[­​-‏‪-‮⁠-⁤﻿]/g;
@@ -89,17 +107,19 @@ export function assessInjection(text: string, modelFlag: boolean): Injection {
   return { detected: pattern || modelFlag, model: modelFlag, pattern, finding: null };
 }
 
-// After S3: the finding, pointing at the clauses that hold the text.
-export function withInjectionFinding(injection: Injection, clauses: readonly Clause[]): Injection {
+// After S3: the finding in the lease's locale, pointing at the clauses that
+// hold the text.
+export function withInjectionFinding(injection: Injection, clauses: readonly Clause[], locale: string): Injection {
   if (!injection.detected) return injection;
+  const { title, explanation } = injectionFindingText(locale);
   return {
     ...injection,
     finding: {
       id: 'injection',
       kind: 'injection',
       severity: 'info',
-      title: INJECTION_FINDING_TITLE,
-      explanation: INJECTION_FINDING_EXPLANATION,
+      title,
+      explanation,
       clauseIds: clauses.filter((c) => detectInjection(c.verbatim)).map((c) => c.id),
     },
   };

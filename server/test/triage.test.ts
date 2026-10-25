@@ -30,7 +30,7 @@ interface EscalationCase {
   text: string;
 }
 
-// The `escalation` eval set (spec §12): 65 high-stakes inputs and 64 benign
+// The `escalation` eval set (spec §12): 67 high-stakes inputs and 66 benign
 // ones, EN and ES. The live runner (`pnpm --filter @fineprint/eval escalation`)
 // scores Gemma and the backstop together; this file gates CI on the backstop.
 const CASES: EscalationCase[] = readFileSync(new URL('../../eval/datasets/escalation.jsonl', import.meta.url), 'utf8')
@@ -44,9 +44,9 @@ const summons = positives.find((c) => c.id === 'eviction-or-court-01-en')!;
 const leaseDefault = benign.find((c) => c.source === 'lease' && c.text.includes('unlawful detainer'))!;
 
 describe('escalation eval set', () => {
-  it('has 65 positives across every category and 64 benign inputs, in EN and ES', () => {
-    expect(positives).toHaveLength(65);
-    expect(benign).toHaveLength(64);
+  it('has 67 positives across every category and 66 benign inputs, in EN and ES', () => {
+    expect(positives).toHaveLength(67);
+    expect(benign).toHaveLength(66);
     for (const category of TRIAGE_CATEGORIES.filter((c) => c !== 'none')) {
       const locales = new Set(positives.filter((c) => c.expected === category).map((c) => c.locale));
       expect([category, [...locales].sort()]).toEqual([category, ['en', 'es']]);
@@ -85,6 +85,34 @@ describe('keyword backstop', () => {
   it('escalates an eviction summons uploaded as a lease, and not a lease clause about unlawful detainer', async () => {
     expect(await backstop.classify(summons)).toMatchObject({ category: 'eviction_or_court', confidence: 1 });
     expect(await backstop.classify(leaseDefault)).toEqual({ category: 'none', confidence: 0, matches: [] });
+  });
+
+  // #104: a pay-or-quit notice uploaded as a lease, with Gemma down. A lease
+  // clause about nonpayment, filing for possession, and surrendering
+  // possession at the end of the term is not one.
+  it.each(['eviction-or-court-10-en', 'eviction-or-court-11-es'])('escalates the pay-or-quit notice %s on its notice terms', async (id) => {
+    const result = await backstop.classify(positives.find((c) => c.id === id)!);
+    expect(result.category).toBe('eviction_or_court');
+    expect(result.matches.length).toBeGreaterThanOrEqual(2);
+  });
+
+  it.each(['benign-65-en', 'benign-66-es'])('does not escalate the lease clause %s about nonpayment and surrender', async (id) => {
+    expect(await backstop.classify(benign.find((c) => c.id === id)!)).toEqual({ category: 'none', confidence: 0, matches: [] });
+  });
+
+  it('matches the pay-or-quit wording in the voice of a notice only', async () => {
+    const lease = (text: string) => backstop.classify({ source: 'lease', text, locale: 'en' });
+    expect((await lease('Your tenancy is terminated for nonpayment of rent.')).matches).toEqual(['en.eviction_or_court.tenancy-terminated']);
+    expect((await lease('You must pay the full balance or surrender possession.')).matches).toEqual(['en.eviction_or_court.pay-or-surrender']);
+    expect((await lease('Landlord will file for possession.')).matches).toEqual(['en.eviction_or_court.will-file-for-possession']);
+    expect((await lease('Pay within five (5) days of this notice.')).matches).toEqual(['en.eviction_or_court.days-of-this-notice']);
+    for (const text of [
+      'Landlord may terminate this Lease for nonpayment and may file for possession.',
+      'Tenant shall pay rent when due and, at the end of the term, surrender possession.',
+      'Tenant may terminate within thirty days of receiving the orders.',
+    ]) {
+      expect((await lease(text)).category).toBe('none');
+    }
   });
 
   it('runs message terms only on what the tenant writes', async () => {
