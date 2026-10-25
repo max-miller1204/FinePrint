@@ -125,9 +125,12 @@ struct DeadlineCard: View {
 private struct DepositChecklist: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
+            // Each label is one accessibility element, so VoiceOver reads it once and tests see one node.
             Label("Give your landlord your forwarding address in writing, so the deposit and the list of deductions reach you.", systemImage: "envelope")
+                .accessibilityElement(children: .combine)
                 .accessibilityIdentifier("deposit.forwardingAddress")
             Label("You have the right to be there for the move-out inspection. Ask your landlord in writing.", systemImage: "person.2")
+                .accessibilityElement(children: .combine)
                 .accessibilityIdentifier("deposit.inspection")
         }
         .fixedSize(horizontal: false, vertical: true)
@@ -154,6 +157,7 @@ private struct ReminderControl: View {
                 }
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
+                .accessibilityElement(children: .combine)
                 .accessibilityIdentifier("deadline.remindersOn")
             }
         case .denied:

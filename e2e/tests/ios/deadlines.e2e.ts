@@ -44,7 +44,8 @@ test("recording the landlord's report starts the 5-day objection clock", { platf
   await device.openApp(iosBundleId, { relaunch: true, launchArguments: seeded('move_in_report') });
   await screen.getByTestId('deadlineAccessory').tap();
   await screen.getByTestId('deadline.reportReceived').tap();
-  await screen.getByTestId('dayEntry.save').tap();
+  // iOS 26 lists a toolbar button twice (its container and the button), so find it by role.
+  await screen.getByRole('button', { name: 'Start Clock' }).tap();
   // Starting a clock from an in-app action may ask for notifications, in context.
   await acceptAlertIfShown(device);
 

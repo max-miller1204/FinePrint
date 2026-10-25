@@ -180,6 +180,20 @@ struct RentalSyncTests {
         #expect(http.requests(to: "rentals").count == 2)
     }
 
+    @Test func `a rental the server rejects does not hold back the next one`() async throws {
+        let http = StubHTTP(["rentals": [.init(status: 400, body: #"{"error":{"code":"VALIDATION_FAILED","message":"x"}}"#), Self.created]])
+        let rejected = OnboardingDraft.skipped()
+        let next = OnboardingDraft.skipped()
+        let noPlace = Rental(name: "Sample rental")
+
+        #expect(await RentalSync.uploadPending([noPlace, rejected, next], with: client(http)) == 1)
+        #expect(rejected.serverID == nil)
+        #expect(next.serverID == "rental-1")
+        // A rental with no city or county is never sent: the server cannot accept it.
+        #expect(noPlace.serverID == nil)
+        #expect(http.requests(to: "rentals").count == 2)
+    }
+
     @Test func `a server error leaves the rental without an id`() async {
         let http = StubHTTP(["rentals": [.init(status: 503, body: #"{"error":{"code":"DEPENDENCY_UNAVAILABLE","message":"x"}}"#)]])
         let rental = OnboardingDraft.skipped()

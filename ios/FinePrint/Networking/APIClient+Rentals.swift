@@ -63,11 +63,14 @@ enum RentalSync {
     @discardableResult
     static func uploadPending(_ rentals: [Rental], with client: APIClient) async -> Int {
         var created = 0
-        for rental in rentals where rental.serverID == nil {
+        for rental in rentals where rental.serverID == nil && rental.hasPlace {
             do {
                 try await upload(rental, with: client)
                 created += 1
             } catch {
+                // A 4xx is about this rental alone, so it must not hold back the others. Offline,
+                // signed out, or a server error would fail the rest the same way: stop until later.
+                if case .server(let status, _) = error, (400..<500).contains(status), status != 401 { continue }
                 break
             }
         }

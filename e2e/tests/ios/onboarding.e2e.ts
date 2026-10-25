@@ -73,14 +73,15 @@ test('outside Virginia shows the evidence-only message and still continues', { p
 
   await expect(screen.getByTestId('onboarding.outsideVirginia')).not.toBeVisible();
   await screen.getByTestId('onboarding.state').tap();
-  await screen.getByText('Maryland').tap();
+  // The menu shows the states around the current one (Virginia), so pick one that is on screen.
+  await screen.getByRole('button', { name: 'Pennsylvania' }).tap();
   await expect(screen.getByTestId('onboarding.outsideVirginia')).toContainText(
     "FinePrint's legal checks only cover Virginia. Evidence tools still work.",
   );
 
   // A city is still needed before Continue.
   await expect(screen.getByTestId('onboarding.continue')).toBeDisabled();
-  await screen.getByTestId('onboarding.place.city').fill('Baltimore');
+  await screen.getByTestId('onboarding.place.city').fill('Philadelphia');
   await screen.getByTestId('onboarding.continue').tap();
 
   await screen.getByTestId('onboarding.phase.living').tap();

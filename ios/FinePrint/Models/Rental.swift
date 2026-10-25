@@ -93,4 +93,7 @@ final class Rental {
     }
 
     var isInVirginia: Bool { jurisdiction == "VA" }
+
+    /// The server needs a city or a county to create a rental (`POST /v1/rentals`).
+    var hasPlace: Bool { city != nil || county != nil }
 }

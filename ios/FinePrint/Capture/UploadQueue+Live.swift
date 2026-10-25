@@ -1,4 +1,5 @@
 import Foundation
+import OSLog
 import Network
 import SwiftData
 import SwiftUI
@@ -45,9 +46,16 @@ struct SwiftDataRentalResolver: RentalResolving {
         let context = container.mainContext
         var descriptor = FetchDescriptor<Rental>(predicate: #Predicate { $0.id == rentalID })
         descriptor.fetchLimit = 1
-        guard let rental = try? context.fetch(descriptor).first else { return nil }
+        let rental: Rental?
+        do {
+            rental = try context.fetch(descriptor).first
+        } catch {
+            rentalsLogger.error("Couldn't read rental \(rentalID, privacy: .public): \(error.localizedDescription, privacy: .public)")
+            return nil
+        }
+        guard let rental else { return nil }
         if let serverID = rental.serverID { return serverID }
-        guard rental.city != nil || rental.county != nil else { return nil }
+        guard rental.hasPlace else { return nil }
 
         try await RentalSync.upload(rental, with: api())
         try? context.save()
@@ -74,12 +82,21 @@ final class PathMonitor: NetworkMonitoring {
     }
 }
 
+private let rentalsLogger = Logger(subsystem: "org.fineprint.FinePrint", category: "Uploads")
+
 extension CaptureContext {
     /// The rental the developer menu's camera files photos under: the first one the server knows or
     /// can create, else a sample rental in Richmond, made once, so test photos can upload.
     static func developer(in context: ModelContext) -> CaptureContext {
-        let rentals = (try? context.fetch(FetchDescriptor<Rental>(sortBy: [SortDescriptor(\.createdAt)]))) ?? []
-        let rental = rentals.first { $0.serverID != nil || $0.city != nil || $0.county != nil } ?? {
+        let rentals: [Rental]
+        do {
+            rentals = try context.fetch(FetchDescriptor<Rental>(sortBy: [SortDescriptor(\.createdAt)]))
+        } catch {
+            rentalsLogger.error("Couldn't read rentals: \(error.localizedDescription, privacy: .public)")
+            rentals = []
+        }
+        defer { rentalsLogger.info("Developer camera: \(rentals.count) rentals") }
+        let rental = rentals.first { $0.serverID != nil || $0.hasPlace } ?? {
             let sample = Rental(id: developerSample.rentalID, name: String(localized: "Sample rental"), city: "Richmond")
             context.insert(sample)
             try? context.save()

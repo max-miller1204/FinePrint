@@ -13,8 +13,8 @@ struct DeveloperMenuView: View {
     @State private var draft = ""
     @State private var error: ServerURLError?
     @State private var saveCount = 0
-    @State private var isCameraPresented = false
-    @State private var cameraContext = CaptureContext.developerSample
+    /// Set when Open Camera is tapped, so the camera always files photos under the rental picked then.
+    @State private var cameraPresentation: CameraPresentation?
     @State private var lastCapture: CaptureRecord?
     @FocusState private var isFieldFocused: Bool
 
@@ -79,8 +79,7 @@ struct DeveloperMenuView: View {
 
             Section {
                 Button("Open Camera") {
-                    cameraContext = .developer(in: modelContext)
-                    isCameraPresented = true
+                    cameraPresentation = CameraPresentation(context: .developer(in: modelContext))
                 }
                 .accessibilityIdentifier("developer.openCamera")
                 // The rows are always there, so keeping a photo changes their text instead of
@@ -132,30 +131,36 @@ struct DeveloperMenuView: View {
             error = nil
         }
         .sensoryFeedback(.success, trigger: saveCount)
-        .fullScreenCover(isPresented: $isCameraPresented) {
-            camera
+        .fullScreenCover(item: $cameraPresentation) { presentation in
+            camera(presentation.context)
         }
     }
 
     @ViewBuilder
-    private var camera: some View {
+    private func camera(_ context: CaptureContext) -> some View {
         #if DEBUG
         if let fixtureDirectory = configuration.fixtureCameraDirectory {
-            CameraScreen(context: cameraContext, store: evidenceStore, fixtureDirectory: fixtureDirectory) { photo in
+            CameraScreen(context: context, store: evidenceStore, fixtureDirectory: fixtureDirectory) { photo in
                 lastCapture = photo.record
             }
         } else {
-            realCamera
+            realCamera(context)
         }
         #else
-        realCamera
+        realCamera(context)
         #endif
     }
 
-    private var realCamera: some View {
-        CameraScreen(context: cameraContext, store: evidenceStore) { photo in
+    private func realCamera(_ context: CaptureContext) -> some View {
+        CameraScreen(context: context, store: evidenceStore) { photo in
             lastCapture = photo.record
         }
+    }
+
+    /// One presentation of the camera.
+    struct CameraPresentation: Identifiable {
+        let id = UUID()
+        let context: CaptureContext
     }
 
     private var sourceDescription: LocalizedStringResource {

@@ -1,4 +1,5 @@
 import Foundation
+import SwiftData
 import Testing
 @testable import FinePrint
 
@@ -422,5 +423,22 @@ struct EvidenceAPITests {
         await #expect(throws: APIError.offline) {
             try await target.send(Data(), transport: StubHTTP([:]).transport)
         }
+    }
+}
+
+@Suite("Developer camera rental")
+struct DeveloperCameraRentalTests {
+    @Test func `the developer camera files photos under the app's rental, and the queue finds its server id`() async throws {
+        let container = try ModelContainer(for: Rental.self, Deadline.self, configurations: ModelConfiguration(isStoredInMemoryOnly: true))
+        let rental = OnboardingDraft.skipped()
+        rental.serverID = "rental-1"
+        container.mainContext.insert(rental)
+        try container.mainContext.save()
+
+        let context = CaptureContext.developer(in: container.mainContext)
+        #expect(context.rentalID == rental.id)
+
+        let resolver = SwiftDataRentalResolver(container: container, api: { fatalError("no server call expected") })
+        #expect(try await resolver.serverRentalID(for: context.rentalID) == "rental-1")
     }
 }

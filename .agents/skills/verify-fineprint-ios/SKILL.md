@@ -104,7 +104,9 @@ handles are stable:
   `deadline.remindMe`, `deadline.remindersOn`, `deadline.openSettings`,
   `deadline.reportReceived`, `deposit.forwardingAddress`,
   `deposit.inspection`, `deposit.moveOutCard`, `deposit.addMoveOutDate`,
-  `dayEntry.save`, `dayEntry.cancel`.
+  `dayEntry.save`, `dayEntry.cancel`. iOS 26 lists a toolbar button twice
+  (its container and the button), so drive toolbar buttons such as
+  `dayEntry.save` by role and name: `getByRole('button', { name: 'Start Clock' })`.
 - Empty-state titles: "No lease yet", "No move-in photos yet".
 
 `agent.*` steps use the Gemini model and need the key (see Bug bash).

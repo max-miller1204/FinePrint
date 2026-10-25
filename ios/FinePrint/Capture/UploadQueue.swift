@@ -185,7 +185,10 @@ final class UploadQueue {
         repeat {
             drainsAgain = false
             for id in dueItems() {
-                guard isOnline else { break }
+                guard isOnline else {
+                    Self.logger.info("Offline: \(self.dueItems().count) waiting")
+                    break
+                }
                 if await upload(id) == .offline { break }
             }
         } while drainsAgain
@@ -243,6 +246,7 @@ final class UploadQueue {
         case .retry, .offline:
             updated.attempts += 1
             updated.nextAttemptAt = now().addingTimeInterval(Self.backoff(afterAttempts: updated.attempts))
+            Self.logger.info("Will retry \(id, privacy: .public) (\(String(describing: outcome), privacy: .public), attempt \(updated.attempts))")
         }
         items[id] = updated
         persist(updated)
@@ -253,7 +257,10 @@ final class UploadQueue {
         let rentalServerID: String
         let target: UploadTarget
         do throws(APIError) {
-            guard let id = try await rentals.serverRentalID(for: item.record.rentalID) else { return .retry }
+            guard let id = try await rentals.serverRentalID(for: item.record.rentalID) else {
+                Self.logger.info("No server rental yet for \(item.record.rentalID, privacy: .public)")
+                return .retry
+            }
             rentalServerID = id
             let reply = try await uploader.requestUpload(rentalServerID: id, record: item.record)
             if reply.status == .received { return .received(at: reply.receivedAtServer ?? "") }
