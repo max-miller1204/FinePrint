@@ -128,3 +128,13 @@ responsibility-balance|web|skeptic|POST /v1/rentals/:id/issues with repair stori
   the shared rate limiter (30 RPM and 16K input tokens per minute per
   model); about 2,900 input tokens with the synthetic lease's 11 relevant
   clauses.
+
+## Dev integration isolation
+
+The stored-issue checks honor `E2E_WEB_FIRESTORE_HOST`, with the original
+`127.0.0.1:8090` default. This matches the shared web helpers and permits the
+full dev verification to use isolated Firebase ports without touching another
+worktree. The final integration evidence is kept at
+`e2e/.e2e/proof/dev-final-web/` and the separate deterministic Ask run at
+`e2e/.e2e/proof/dev-final-ask/`. iOS runtime acceptance uses the user-approved
+TestFlight device check from dev.
