@@ -77,7 +77,8 @@ async function curlStream(baseUrl: string, path: string, idToken: string, timeou
 
 // The stored lease, read from the Firestore emulator in ../firebase.json.
 async function storedDocs(path: string): Promise<{ documents?: { name: string; fields: Record<string, Record<string, unknown>> }[]; fields?: Record<string, Record<string, unknown>> }> {
-  const res = await fetch(`http://${process.env.E2E_WEB_FIRESTORE_HOST ?? `127.0.0.1:${process.env.E2E_FIRESTORE_PORT ?? '8090'}`}/v1/projects/demo-fineprint/databases/(default)/documents/${path}?pageSize=300`, {
+  const host = process.env.E2E_WEB_FIRESTORE_HOST ?? process.env.E2E_FIRESTORE_EMULATOR_HOST ?? `127.0.0.1:${process.env.E2E_FIRESTORE_PORT ?? '8090'}`;
+  const res = await fetch(`http://${host}/v1/projects/demo-fineprint/databases/(default)/documents/${path}?pageSize=300`, {
     headers: { Authorization: 'Bearer owner' },
   });
   expect(res.status).toBe(200);
@@ -129,11 +130,26 @@ describe('Lease API and SSE stream', { platforms: ['web'] }, () => {
     const { idToken } = await signUpAnonymously(app.baseUrl);
     const { rentalId, leaseId, stream } = await rentalWithLease(app.baseUrl, idToken, LEASE);
 
+    const logPath = join(import.meta.dirname, '..', '..', '.e2e', 'logs', 'server.log');
+    const logStart = process.env.E2E_PACKED_LEASE_TIMING === '1' ? readFileSync(logPath, 'utf8').length : 0;
+    const started = Date.now();
     const { events } = await curlStream(app.baseUrl, stream, idToken, 880_000);
+    const seconds = Math.round((Date.now() - started) / 1000);
     expect(events.map((e) => e.id)).toEqual(events.map((_, i) => String(i + 1)));
     // Rate limit and busy-model waits are `error` events with retryInMs; the stream goes on.
     const waits = events.filter((e) => e.event === 'error');
     for (const wait of waits) expect(wait.data).toMatchObject({ code: expect.stringMatching(/^(RATE_LIMITED|DEPENDENCY_UNAVAILABLE)$/), retryInMs: expect.any(Number) });
+    if (process.env.E2E_PACKED_LEASE_TIMING === '1') {
+      expect(waits).toEqual([]);
+      const calls = readFileSync(logPath, 'utf8').slice(logStart)
+        .split('\n').filter((line) => line.startsWith('{')).map((line) => JSON.parse(line))
+        .filter((line) => line.message === 'model call');
+      const mapping = calls.filter((line) => line.stage === 'mapping');
+      expect(mapping).toHaveLength(1);
+      expect(mapping[0]).toMatchObject({ model: 'gemma-4-26b-a4b-it', outcome: 'ok' });
+      expect(calls.filter((line) => line.outcome === 'invalid_output')).toEqual([]);
+      console.log(JSON.stringify({ check: 'packed-single-lease', seconds, mappingCalls: mapping.length, mappingInputTokens: mapping[0].promptTokens, mappingOutputTokens: mapping[0].outputTokens, mappingThoughtTokens: mapping[0].thoughtTokens, rateLimitedEvents: 0, invalidOutputs: 0 }));
+    }
     const kinds = events.filter((e) => e.event !== 'error').map((e) => (e.event === 'stage' ? `stage:${e.data.stage}` : e.event));
     const findings = events.filter((e) => e.event === 'finding');
     expect(kinds).toEqual([
@@ -162,6 +178,22 @@ describe('Lease API and SSE stream', { platforms: ['web'] }, () => {
     expect(lease).toMatchObject({ status: 'analyzed', documentType: 'residential_lease', term: { start: '2026-11-01', end: '2027-10-31' } });
     expect(lease.findings).toEqual(findings.map((e) => e.data));
     expect(lease.keyTerms).toEqual(events.find((e) => e.event === 'keyterms')!.data.keyTerms);
+    if (process.env.E2E_PACKED_LEASE_TIMING === '1') {
+      // Timing alone must not hide lost semantic plants after quote verification.
+      for (const [ruleId, prefix] of Object.entries({
+        VA_NO_RIGHTS_WAIVER: '19. WAIVER',
+        VA_NO_CONFESSION_OF_JUDGMENT: '20. CONFESSION',
+        VA_NO_EXCULPATION_INDEMNITY: '17. LIABILITY',
+        VA_NO_LANDLORD_ATTORNEY_FEES: '21. ATTORNEY',
+        VA_LANDLORD_MAINTAIN_FIT: '10. MAINTENANCE',
+      })) {
+        const clause = lease.clauses.find((c: { verbatim: string }) => c.verbatim.startsWith(prefix));
+        expect(clause).toBeDefined();
+        expect(lease.findings).toEqual(expect.arrayContaining([expect.objectContaining({
+          ruleId, clauseId: clause.id, primaryAssessment: expect.stringMatching(/^(violates|unclear)$/),
+        })]));
+      }
+    }
 
     const stored = await storedDocs(`rentals/${rentalId}/leases/${leaseId}/findings`);
     expect(stored.documents).toHaveLength(findings.length);

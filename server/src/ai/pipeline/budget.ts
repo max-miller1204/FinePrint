@@ -8,7 +8,7 @@ export const MAX_REQUEST_TOKENS = 12_000;
 // answer is cut off and retried instead of running for minutes, while a long
 // lease still fits.
 const MIN_OUTPUT_TOKENS = 4_096;
-const MAX_OUTPUT_TOKENS = 16_384;
+export const MAX_OUTPUT_TOKENS = 16_384;
 export const clampOutput = (tokens: number) => Math.min(MAX_OUTPUT_TOKENS, Math.max(MIN_OUTPUT_TOKENS, Math.ceil(tokens)));
 
 export const textTokens = (text: string) => Math.ceil(text.length / 4);

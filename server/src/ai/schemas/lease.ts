@@ -36,11 +36,11 @@ export type Assessment = (typeof ASSESSMENTS)[number];
 
 // S5, built per rule pack so the rule ids are an enum: the model cannot cite
 // a rule that does not exist (S6 checks again anyway).
-export function mappingSchema(ruleIds: readonly [string, ...string[]]) {
+export function mappingSchema(ruleIds: readonly [string, ...string[]], clauseIds?: readonly [string, ...string[]]) {
   return z.object({
     mappings: z.array(
       z.object({
-        clauseId: z.string().describe('The id of the clause document.'),
+        clauseId: (clauseIds ? z.enum(clauseIds) : z.string()).describe('Copy the document id exactly, never the section number printed inside its text.'),
         ruleIds: z.array(z.enum(ruleIds)),
         assessment: z.enum(ASSESSMENTS),
         leaseQuote: z.string().describe('The words of the clause the assessment rests on, copied exactly.'),

@@ -11,6 +11,9 @@
 // Usage (from server/):
 //   ../scripts/with-secrets.sh pnpm smoke:lease
 //
+// Add --packed-single for #110: one English synthetic lease, one S5 request,
+// all plants, no limiter waits or invalid outputs. Use a fresh Gemma quota window.
+//
 // Exit codes: 0 pass, 1 a check failed, 2 setup error.
 
 import { readFileSync } from 'node:fs';
@@ -22,6 +25,8 @@ import { createTriage } from '../src/ai/triage/index.js';
 import { keywordBackstop } from '../src/ai/triage/keywords.js';
 import { JURISDICTIONS_ROOT, loadRulePack } from '../src/rules/loader.js';
 import { memoryUsageSink } from '../src/usage.js';
+
+const packedSingle = process.argv.includes('--packed-single');
 
 const LEASE = readFileSync(new URL('../test/fixtures/lease-synthetic.txt', import.meta.url), 'utf8');
 // The same lease with the three deterministic plants fixed (the semantic ones stay).
@@ -56,14 +61,16 @@ const check = (ok: boolean, label: string) => {
   console.log(`[${ok ? 'ok ' : 'ERR'}] ${label}`);
 };
 
-for (const [name, text, expected, locale] of [
-  ['synthetic', LEASE, PLANTED_CHECKS, 'es'],
-  ['amounts-fixed', AMOUNTS_FIXED, [], 'en'],
-] as const) {
+const scenarios = packedSingle
+  ? [['synthetic', LEASE, PLANTED_CHECKS, 'en'] as const]
+  : [['synthetic', LEASE, PLANTED_CHECKS, 'es'], ['amounts-fixed', AMOUNTS_FIXED, [], 'en']] as const;
+for (const [name, text, expected, locale] of scenarios) {
   console.log(`\n== ${name} lease (${text.length} chars)`);
   const started = Date.now();
   const recordsBefore = usage.records.length;
+  const events: LeaseEvent[] = [];
   const onEvent = (e: LeaseEvent) => {
+    events.push(e);
     if (e.type === 'stage') console.log(`  ${e.stage} ${e.label}`);
     if (e.type === 'model' && e.event.type !== 'waiting') console.log(`  model ${JSON.stringify(e.event)}`);
     if (e.type === 'model' && e.event.type === 'waiting') console.log(`  waiting ${Math.round(e.event.waitMs / 1000)} s for ${e.event.model}`);
@@ -107,6 +114,12 @@ for (const [name, text, expected, locale] of [
     `${name}: S4 findings unenforceable ${JSON.stringify(checkFindings.map((f) => f.ruleId))}`,
   );
   check(analysis.findings.every((f) => meetsGrade(f.explanationEn, 'standard')), `${name}: every explanation at grade 7 or lower`);
+  if (packedSingle) {
+    const mapping = usage.records.slice(recordsBefore).filter((r) => r.stage === 'mapping');
+    check(mapping.length === 1 && mapping[0]!.outcome === 'ok', 'packed single lease: exactly one successful S5 request, no retries or truncation');
+    check(!events.some((e) => e.type === 'model' && e.event.type === 'waiting'), 'packed single lease: no rate limiter waits');
+    check(!usage.records.slice(recordsBefore).some((r) => r.outcome === 'invalid_output'), 'packed single lease: no invalid or truncated answers');
+  }
   const analysisCalls = usage.records.slice(recordsBefore).filter((r) => r.outcome === 'ok' && ['triage', 'extraction', 'mapping'].includes(r.stage)).length;
   check(analysis.usage.calls <= MAX_CALLS && analysisCalls <= ANALYSIS_CALLS, `${name}: ${analysis.usage.calls} calls <= ${MAX_CALLS}, ${analysisCalls} to S5 <= ${ANALYSIS_CALLS}`);
   if (locale !== 'en') {
@@ -130,6 +143,7 @@ for (const [name, text, expected, locale] of [
       if (hit) found++;
       console.log(`  [${hit ? 'hit' : 'miss'}] planted ${ruleId}${hit ? ` (${hit.primaryAssessment}, verifier ${hit.verifier?.verdict ?? 'n/a'}, ${hit.severity})` : ''}`);
     }
+    if (packedSingle) check(found === Object.keys(PLANTED_SEMANTIC).length, 'packed single lease: all five planted semantic findings retained');
     console.log(`  REPORT: planted semantic clauses found ${found}/${Object.keys(PLANTED_SEMANTIC).length}`);
   }
 }

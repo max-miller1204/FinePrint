@@ -35,8 +35,11 @@ translation. Gemma interprets; code verifies. The route is
   `VA_ROUTINE_MAINTENANCE_NOTICE_72H` today), with `limit`, `actual`, the
   key terms read, and the rule versions and mid-lease changes.
 - S5: the `mapping` stage (26B, `json` mode, output cap 400 tokens per clause, 4,096 to 16,384),
-  about 10 clauses a call, every rule in force in the instruction, rule ids
-  as an enum.
+  fills each batch up to 12,000 estimated input tokens, including the document
+  rule, JSON schema, escaped tags, and task ids. At most 40 clauses per batch
+  preserves the 400-token output allowance per clause. Every rule in force
+  stays in the instruction, rule ids as an enum. An individually oversized
+  clause is sent alone, preserving the existing no-splitting behavior.
 - S6: drops a mapping whose clause is not in its batch or whose quote is
   not in its clause, and rule ids that are unknown, not in force for the
   term, or already decided by S4 or by a missing-wording check.
@@ -83,6 +86,12 @@ The tenant uploads a lease in the app; the lease stream
 findings screen shows the `findings` list.
 
 ## Driving it with e2e
+
+`tests/web/packed-mapping.e2e.ts` proves one S5 call for all 31 clauses of
+the synthetic fixture through real HTTP/SSE, with a scripted model and
+in-memory storage. It checks request budgets, 26B mapping, 31B verification,
+and persisted findings without a key. This proves orchestration, not live
+model recall or quota behavior.
 
 `tests/web/leases.e2e.ts` drives it through the route ([leases](leases.md)).
 Unit tests cover it with a scripted
@@ -168,3 +177,37 @@ and non-lease uploads end to end.
 - A key term written only in words with no unit ("five") or as a bare
   number is dropped, never guessed: the check then reports
   `insufficient_input`.
+
+## Packed batching and live gate (#110)
+
+S5 uses batch-local opaque document ids (`mapping_AA`, ...) and a clause-id
+schema enum for the batch. A trusted alias map restores public `cN` ids before
+S6. Planning reserves the alias enum and framing. The prompt separates an
+exhaustive clause/rule review from selective reporting of noteworthy terms,
+uses supported exceptions and concrete ambiguities, and compares like units.
+S6 still rejects a quote outside its assigned clause; it does not reassign
+quotes to another clause. Rejection logs contain only ids, never lease text.
+
+The selected candidate (`a4b68fa`) matched the measured baseline: 8/8 planted
+findings, zero false positives on either clean variant, short smoke 5/5,
+golden recall/precision 100%, and combined citations 141/141. Three long
+leases took 612 s total versus baseline 1,184 s. The original failed packing
+and the slower first repair remain in [the complete experiment ledger](../../../../docs/s5-batching.md).
+
+Run `pnpm smoke:lease --packed-single` in `server/` under the 1Password or
+secret wrapper with a fresh quota window. It asserts one successful S5
+request, all planted findings, no waits, and no invalid outputs. The selected
+candidate passed in 108 s. Run the English live lease e2e plus smoke with
+`E2E_PACKED_LEASE_TIMING=1` to require the five semantic plants on their actual
+clauses, the three deterministic plants, no wait/error events, one successful
+26B mapping request, and no invalid outputs. Integrated HTTP proof passed in
+112 s. Lease tests support `E2E_WEB_FIRESTORE_HOST`, the older
+`E2E_FIRESTORE_EMULATOR_HOST` override, or `E2E_FIRESTORE_PORT` for isolated
+Firestore verification.
+
+After syncing `origin/dev` at `e7f24d7`, all 489 unit tests, typecheck, lint,
+and jurisdiction validation passed. The full web gate passed in one run:
+67 passed, two live-model skips, exit 0, including smoke and every affected
+lease test (`.e2e/proof/110-accuracy-repair-final/`). The strict live proof is
+at `.e2e/proof/110-repaired-live-http/`. PR #118 targets dev and is ready for
+review after these acceptance checks; the integration thread owns merging.
