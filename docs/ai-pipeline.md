@@ -98,7 +98,8 @@ const { data, model, fallback } = await gemma.generate('mapping', FindingSchema,
 | `server/src/ai/models.ts` | Model IDs, the stage table (role, thinking level, output mode), fallback chains, per-model quota |
 | `server/src/ai/response-schema.ts` | Zod to `responseSchema` (OpenAPI 3.0 subset, with `propertyOrdering`). Throws at first use on what the API cannot express (recursive schemas, number enums) |
 | `server/src/ai/documents.ts` | `<document id="...">` wrapping, the injection rule for the system instruction, and escaping so a document cannot close its own tag |
-| `server/src/ai/provider.ts` | The `GEMMA_PROVIDER` seam. `gemini` calls `@google/genai` with SDK retries off; `openai_compatible` is declared, not built |
+| `server/src/ai/provider.ts` | The `GEMMA_PROVIDER` seam. `gemini` calls `@google/genai` with SDK retries off |
+| `server/src/ai/openai-compatible.ts` | `openai_compatible`: Chat Completions on an Ollama or vLLM server at `GEMMA_BASE_URL` ([self-hosting.md](self-hosting.md)) |
 | `server/src/ratelimit.ts` | Per-model token buckets for requests and input tokens, FIFO, with debt for calls larger than a minute of quota |
 | `server/src/usage.ts` | `usage/{yyyy-mm-dd}/calls/{autoId}`: stage, model, fallback, outcome, HTTP status, attempt, prompt, output, and thought tokens, latency, wait. No content |
 
@@ -108,8 +109,8 @@ const { data, model, fallback } = await gemma.generate('mapping', FindingSchema,
 | --- | --- | --- |
 | `GEMMA_PRIMARY` | `gemma-4-26b-a4b-it` | Dev may set a Flash model; the submission runs on Gemma |
 | `GEMMA_VERIFIER` | `gemma-4-31b-it` | |
-| `GEMMA_FALLBACK` | `gemini-flash-latest` | Last model in every chain. Billed: set an AI Studio spend cap |
-| `GEMMA_PROVIDER` | `gemini` | `openai_compatible` with `GEMMA_BASE_URL` is reserved for self-hosting (spec §15.2) |
+| `GEMMA_FALLBACK` | `gemini-flash-latest` | Last model in every chain. Billed: set an AI Studio spend cap. Self-hosted, defaults to the primary (no fallback) |
+| `GEMMA_PROVIDER` | `gemini` | `openai_compatible` for Ollama or vLLM, with `GEMMA_BASE_URL` and optional `GEMMA_API_KEY` ([self-hosting.md](self-hosting.md), spec §15.2) |
 | `GEMINI_API_KEY` | none | Required for `gemini` |
 
 ### Behavior
@@ -127,4 +128,4 @@ pnpm --filter @fineprint/server test                               # unit tests,
 cd server && op run --env-file ../.env -- pnpm smoke:gemma          # live: one 26B and one 31B stage through generate()
 ```
 
-`smoke:gemma` runs `mapping` and `verification` in both output modes. It exits `0` when every call returns schema-valid output and every `json` call thinks, and prints the model that answered, the thought tokens, any fallback, and the usage records.
+`smoke:gemma` runs `mapping` and `verification` in both output modes, on whichever provider the `GEMMA_*` variables select (self-hosted: [self-hosting.md](self-hosting.md), "Check it"). It exits `0` when every call returns schema-valid output and every `json` call thinks, and prints the model that answered, the thought tokens, any fallback, and the usage records.

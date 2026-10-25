@@ -15,7 +15,16 @@ import { createLogger, type Logger } from '../log.js';
 import { RateLimiter, systemClock, type Clock } from '../ratelimit.js';
 import type { UsageOutcome, UsageRecord, UsageSink } from '../usage.js';
 import { DOCUMENT_RULE, documentParts, type Document, type Part } from './documents.js';
-import { STAGES, fallbackChain, limitsFor, modelConfigFromEnv, type ModelConfig, type Stage, type StageConfig } from './models.js';
+import {
+  SELF_HOSTED_LIMITS,
+  STAGES,
+  fallbackChain,
+  limitsFor,
+  modelConfigFromEnv,
+  type ModelConfig,
+  type Stage,
+  type StageConfig,
+} from './models.js';
 import { ProviderError, providerFromConfig, type ModelProvider, type ProviderResponse } from './provider.js';
 import { toResponseSchema, type ResponseSchema } from './response-schema.js';
 
@@ -245,6 +254,9 @@ export function createGemma({
 export function gemmaFromEnv(deps: Omit<GemmaDeps, 'provider' | 'config'>, env: NodeJS.ProcessEnv = process.env): GemmaClient {
   const config = modelConfigFromEnv(env);
   const provider = providerFromConfig(config, env);
+  if (config.provider === 'openai_compatible' && !deps.limiter) {
+    deps = { ...deps, limiter: new RateLimiter(() => SELF_HOSTED_LIMITS, deps.clock) };
+  }
   (deps.log ?? createLogger(null)).info('model config', {
     provider: provider.name,
     primary: config.primary,
