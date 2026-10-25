@@ -31,6 +31,9 @@ struct RootTabView: View {
         .sheet(isPresented: $navigation.isSettingsPresented) {
             SettingsView()
         }
+        .sheet(isPresented: $navigation.isAddingRental) {
+            AddRentalView()
+        }
         .environment(navigation)
     }
 

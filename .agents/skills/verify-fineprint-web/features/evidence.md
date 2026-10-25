@@ -20,9 +20,9 @@ Sealing and deletion come after this ([integrity](integrity.md), #24).
   received.
 - The upload is bound to the declared type and hash: `headers` is
   `Content-Type` and `x-goog-content-sha256`, which the client must send
-  exactly. In production `url` is a V4 signed URL with
-  `x-goog-content-sha256` as the signed payload hash, so Cloud Storage
-  refuses other bytes. Under the Storage emulator (no signing keys, no XML
+  exactly. In production `url` is a V4 signed URL with both headers
+  signed. Cloud Storage still stores a body whose hash differs (checked on
+  Cloud Run); `complete` is what rejects it, below. Under the Storage emulator (no signing keys, no XML
   API) `url` is a resumable upload session on the emulator that takes one
   PUT of the whole body.
 - Items are stored at `rentals/{rentalId}/evidence/{itemId}` (lowercased

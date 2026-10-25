@@ -35,7 +35,7 @@ CI (`.github/workflows/ci.yml`) runs these on every push and pull request. Run t
 pnpm lint                  # Biome
 pnpm typecheck             # tsc in every workspace with a typecheck script
 pnpm test                  # vitest in every workspace with a test script
-pnpm check:jurisdictions   # rule pack JSON and schema
+pnpm check:jurisdictions   # rule pack JSON, schema, and quotes in snapshots
 ```
 
 CI also runs [gitleaks](https://github.com/gitleaks/gitleaks) over the history. A new workspace joins the gate by adding `typecheck` and `test` scripts to its `package.json`.

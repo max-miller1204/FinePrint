@@ -35,6 +35,7 @@ struct PlaceholderScreen: View {
         }
         .background(Color(.systemBackground))
         .navigationTitle(Text(navigationTitle))
+        .rentalSubtitle()
         .settingsToolbar()
     }
 }
