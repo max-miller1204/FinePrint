@@ -33,3 +33,10 @@ ports. Smoke, Ask, auth, rentals and triage passed together: 18 passed, exit 0,
 no retries or cache. Proof: `e2e/.e2e/proof/dev-ask-sharing/`. Server unit tests:
 484 passed; workspace typecheck: exit 0. iOS runtime acceptance uses TestFlight
 from dev by @max-miller1204; no iOS test file was authored or edited.
+
+After #122 merged, merged origin/dev again. Retained both Ask and impact in
+the feature map and both sets of English strings in the validated string
+catalog. Smoke, Ask, auth, rentals and triage passed together: 18 passed,
+exit 0, no retries/cache; proof `e2e/.e2e/proof/dev-ask-impact/`. Server unit
+tests: 486 passed; workspace typecheck: exit 0. The impact typed-error fix
+and Share Links integration are preserved. macOS CI checks the combined app.

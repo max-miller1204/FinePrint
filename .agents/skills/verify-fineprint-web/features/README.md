@@ -7,6 +7,7 @@ F10) get a file each as their routes land.
 | Feature | Route | Test | Status |
 | --- | --- | --- | --- |
 | [Grounded Ask](ask.md) | `POST /v1/rentals/:id/ask` | `tests/web/ask.e2e.ts` with `e2e.ask.config.ts`, `server/test/ask.test.ts`, `pnpm --filter @fineprint/eval ask` | HTTP e2e and live eval |
+| [Impact](impact.md) | `PATCH /v1/me/impact`, `GET /impact` | `tests/web/impact.e2e.ts`, `server/test/impact.test.ts`, `server/test/emulator/impact.test.ts` | tested |
 | [Share links](share-links.md) | `POST/GET /v1/rentals/:id/shares`, `DELETE /v1/shares/:id`, `GET /v1/shares/:id/access`, `GET/POST /r/:token`, photos | `tests/web/shares.e2e.ts` | API and browser tested on Linux; iOS runtime pending |
 | [Web Evidence Report](web-report.md) | `GET /r/:token` | `tests/web/report.e2e.ts`, `tests/web/report-verify.e2e.ts`, `tests/web/report-accessibility.e2e.ts`, `server/test/report.test.ts` | tested (SSR, phone, print/PDF, verify, axe across Chromium/Firefox/WebKit); VoiceOver/Safari pending |
 | [Health check](healthz.md) | `GET /healthz`, `GET /health` | `tests/web/smoke.e2e.ts`, `tests/web/healthz.e2e.ts` | tested |

@@ -25,6 +25,8 @@ export function memoryStore() {
   const issues = new Map<string, Issue>();
   let nextId = 1;
   const store: Store = {
+    async setImpactOptIn() {},
+    async getImpact() { return { tenantsHelped: 0, verifiedClausesFlagged: 0, moveInReportsWithin5Days: 0, depositDollarsCovered: 0 }; },
     async createRental(owner, build) {
       const rental = Rental.parse(build(`rental-${nextId++}`));
       users.set(owner.uid, owner.provider);

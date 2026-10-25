@@ -1,4 +1,4 @@
-import { getFirestore, Timestamp, type DocumentData, type Firestore } from 'firebase-admin/firestore';
+import { FieldValue, getFirestore, Timestamp, type DocumentData, type Firestore } from 'firebase-admin/firestore';
 import type { AuthUser } from '../auth.js';
 import { firebaseApp } from '../firebase.js';
 import { LedgerEntry, type LedgerHead } from '../integrity/ledger.js';
@@ -8,11 +8,14 @@ import { Evidence, type EvidenceSession } from '../models/evidence.js';
 import { Issue } from '../models/issue.js';
 import { Lease, type AnalyzedLease } from '../models/lease.js';
 import { Rental } from '../models/rental.js';
+import { impactNames, type ImpactTotals, verifiedClauseCount, moveInImpact } from '../impact.js';
 import { User } from '../models/user.js';
 
 // The API is the only reader and writer of Firestore (spec §9.2). Routes go
 // through this interface, so unit tests can swap in an in-memory store.
 export interface Store {
+  setImpactOptIn(owner: AuthUser, optedIn: boolean): Promise<void>;
+  getImpact(): Promise<ImpactTotals>;
   // Creates the rental and, on the user's first rental, `users/{uid}`.
   // `build` gets the new rental's id.
   createRental(owner: AuthUser, build: (id: string) => Rental): Promise<Rental>;
@@ -102,7 +105,27 @@ export function firestoreStore(connect: () => Firestore = () => getFirestore(fir
   const leases = (rentalId: string) => collections().rentals.doc(rentalId).collection('leases');
   const issues = (rentalId: string) => collections().rentals.doc(rentalId).collection('issues');
 
+  const increment = (tx: FirebaseFirestore.Transaction, name: string, value: number) => {
+    if (value > 0) tx.set(collections().db.collection('impact').doc(name), { value: FieldValue.increment(value) }, { merge: true });
+  };
   return {
+    async getImpact() {
+      const snapshots = await collections().db.getAll(...impactNames.map((name) => collections().db.collection('impact').doc(name)));
+      return Object.fromEntries(snapshots.map((doc, i) => [impactNames[i], doc.get('value') ?? 0])) as ImpactTotals;
+    },
+    async setImpactOptIn(owner, optedIn) {
+      const { db, users } = collections();
+      await db.runTransaction(async (tx) => {
+        const ref = users.doc(owner.uid);
+        const user = await tx.get(ref);
+        const counted = user.get('impactCounted') === true;
+        tx.set(ref, user.exists ? { impactOptIn: optedIn, impactCounted: counted || optedIn } : {
+          createdAt: Timestamp.now(), authProvider: owner.provider, locale: null, readingLevel: null,
+          impactOptIn: optedIn, impactCounted: optedIn,
+        }, { merge: true });
+        if (optedIn && !counted) increment(tx, 'tenantsHelped', 1);
+      });
+    },
     async createRental(owner, build) {
       const { db, rentals, users } = collections();
       const ref = rentals.doc();
@@ -136,7 +159,7 @@ export function firestoreStore(connect: () => Firestore = () => getFirestore(fir
         const snapshot = await tx.get(ref);
         if (!snapshot.exists) return null;
         const next = Rental.parse(change(fromFirestore(id, snapshot.data()!)));
-        tx.set(ref, toFirestore(withoutId(next)));
+        tx.set(ref, toFirestore(withoutId(next)), { merge: true });
         return next;
       });
     },
@@ -198,6 +221,20 @@ export function firestoreStore(connect: () => Firestore = () => getFirestore(fir
         const head = last.empty ? null : LedgerEntry.parse(last.docs[0]!.data());
         const append = await build(head && { seq: head.seq, entryHash: head.entryHash });
         const entry = LedgerEntry.parse(append.entry);
+        const rentalRef = collections().rentals.doc(rentalId);
+        const rental = await tx.get(rentalRef);
+        const user = await tx.get(collections().users.doc(rental.get('ownerUid')));
+        const priorMoveIn = append.manifest?.kind === 'move_in'
+          ? await tx.get(manifests(rentalId).where('kind', '==', 'move_in').limit(1)) : null;
+        if (append.manifest?.kind === 'move_in' && !rental.get('impactMoveInProcessed')) {
+          // Record processing even when opted out: no retroactive counting.
+          tx.update(rentalRef, { impactMoveInProcessed: true });
+          if (user.get('impactOptIn') === true && priorMoveIn?.empty) {
+            const totals = moveInImpact(fromFirestore(rentalId, rental.data()!), append.manifest.sealedAt);
+            increment(tx, 'moveInReportsWithin5Days', totals.moveInReportsWithin5Days);
+            increment(tx, 'depositDollarsCovered', totals.depositDollarsCovered);
+          }
+        }
         // `create`, so two appends of the same seq cannot both land.
         tx.create(ledger(rentalId).doc(ledgerDocId(entry.seq)), entry);
         if (append.manifest) {
@@ -276,7 +313,7 @@ export function firestoreStore(connect: () => Firestore = () => getFirestore(fir
         const snapshot = await tx.get(ref);
         if (!snapshot.exists) return null;
         const next = Lease.parse(change(leaseFromFirestore(leaseId, snapshot.data()!)));
-        tx.set(ref, leaseToFirestore(next));
+        tx.set(ref, leaseToFirestore(next), { merge: true });
         return next;
       });
     },
@@ -284,14 +321,22 @@ export function firestoreStore(connect: () => Firestore = () => getFirestore(fir
     async saveLeaseAnalysis(rentalId, lease, clauses, findings) {
       const { db } = collections();
       const ref = leases(rentalId).doc(lease.id);
-      const [oldClauses, oldFindings] = await Promise.all([ref.collection('clauses').select().get(), ref.collection('findings').select().get()]);
-      // A lease has a few dozen clauses and findings, well under a batch's 500 writes.
-      const batch = db.batch();
-      for (const doc of [...oldClauses.docs, ...oldFindings.docs]) batch.delete(doc.ref);
-      for (const [order, { id, ...fields }] of clauses.entries()) batch.set(ref.collection('clauses').doc(id), plain({ ...fields, order }));
-      for (const [order, { id, ...fields }] of findings.entries()) batch.set(ref.collection('findings').doc(id), plain({ ...fields, order }));
-      batch.set(ref, leaseToFirestore(Lease.parse(lease)));
-      await batch.commit();
+      // Analysis and aggregate changes commit together. Consent is read in the
+      // same transaction, so an opt-out racing completion causes a retry.
+      await db.runTransaction(async (tx) => {
+        const previous = await tx.get(ref);
+        const oldClauses = await tx.get(ref.collection('clauses').select());
+        const oldFindings = await tx.get(ref.collection('findings').select());
+        const rental = await tx.get(collections().rentals.doc(rentalId));
+        const user = await tx.get(collections().users.doc(rental.get('ownerUid')));
+        for (const doc of [...oldClauses.docs, ...oldFindings.docs]) tx.delete(doc.ref);
+        for (const [order, { id, ...fields }] of clauses.entries()) tx.set(ref.collection('clauses').doc(id), plain({ ...fields, order }));
+        for (const [order, { id, ...fields }] of findings.entries()) tx.set(ref.collection('findings').doc(id), plain({ ...fields, order }));
+        if (!previous.get('impactProcessed') && !previous.get('analyzedAt') && user.get('impactOptIn') === true) {
+          increment(tx, 'verifiedClausesFlagged', verifiedClauseCount(findings));
+        }
+        tx.set(ref, { ...leaseToFirestore(Lease.parse(lease)), impactProcessed: true });
+      });
     },
 
     async listAskLeases(rentalId) {
