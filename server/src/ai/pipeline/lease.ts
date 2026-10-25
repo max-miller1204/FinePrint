@@ -24,10 +24,13 @@ import type { GemmaClient, GemmaEvent, GenerateResult } from '../gemma.js';
 import { mappingInstruction, mappingTask, SEGMENT_INSTRUCTION, segmentTask } from '../prompts/lease.js';
 import { mappingSchema, SegmentationSchema, type DocumentType, type Mapping } from '../schemas/lease.js';
 import type { Triage, TriageDecision } from '../triage/index.js';
+import { assessInjection, notALease, withInjectionFinding, type Injection } from './adversarial.js';
 import { runDeterministicChecks } from './checks.js';
 import { resolveClauses, resolveKeyTerms } from './resolve.js';
 import type { CheckResultForLease, Clause, Drop, KeyTerm, PipelineUsage, TermUsed, VerifiedMapping } from './types.js';
 import { verifyMappings } from './verify.js';
+
+export { detectInjection, type Injection } from './adversarial.js';
 
 export const MAX_CALLS = 8;
 // Estimated input tokens (gemma.ts, 4 characters a token) per request.
@@ -84,16 +87,9 @@ export interface AnalyzeOptions {
   onEvent?: (event: LeaseEvent) => void;
 }
 
-export interface Injection {
-  // S2's flag and a code pattern for text aimed at AI tools (spec §7.10).
-  detected: boolean;
-  model: boolean;
-  pattern: boolean;
-}
-
 export type LeaseAnalysis =
   | { status: 'escalated'; triage: TriageDecision; usage: PipelineUsage }
-  | { status: 'not_a_lease'; documentType: DocumentType; injection: Injection; usage: PipelineUsage }
+  | { status: 'not_a_lease'; documentType: DocumentType; message: string; injection: Injection; usage: PipelineUsage }
   | {
       status: 'analyzed';
       documentType: 'residential_lease';
@@ -107,14 +103,6 @@ export type LeaseAnalysis =
       drops: Drop[];
       usage: PipelineUsage;
     };
-
-// Text addressed to an AI ("ignore previous instructions", "AI assistant:").
-const INJECTION =
-  /\b(ignore|disregard|forget)\s+(all\s+)?(the\s+)?(previous|prior|above|earlier)\s+(instructions|prompts?|rules)\b|\b(ai|llm|language model|chatbot|assistant|gpt|gemini|gemma|claude)\s*[:,]\s*(you\s+(must|should|will)|ignore|say|answer|respond|output|mark|report|classify)/i;
-
-export function detectInjection(text: string): boolean {
-  return INJECTION.test(text);
-}
 
 // Cuts text into chunks of at most `max` characters, at a blank line when
 // there is one in the second half of the chunk, else at a line break.
@@ -237,12 +225,10 @@ export async function analyzeLease(input: LeaseInput, deps: LeaseDeps, { signal,
       return result.data;
     }),
   );
-  const pattern = detectInjection(input.text);
-  const modelFlag = segments.some((s) => s.aiInstructions);
-  const injection: Injection = { detected: pattern || modelFlag, model: modelFlag, pattern };
+  let injection = assessInjection(input.text, segments.some((s) => s.aiInstructions));
   // The first part says what the document is; later parts may be addenda.
   const documentType = segments[0]!.documentType;
-  if (documentType !== 'residential_lease') return done({ status: 'not_a_lease', documentType, injection, usage });
+  if (documentType !== 'residential_lease') return done({ status: 'not_a_lease', ...notALease(documentType), injection, usage });
 
   // S3.
   stage('S3', 'Checking quotes against your lease', 0.35);
@@ -259,6 +245,7 @@ export async function analyzeLease(input: LeaseInput, deps: LeaseDeps, { signal,
     drops,
   );
   onEvent?.({ type: 'keyterms', keyTerms });
+  injection = withInjectionFinding(injection, clauses);
   const term = chooseTerm(keyTerms, input, drops);
   const resolved = resolveRules(pack.rules, term);
   const inForce = new Map<string, ResolvedRule>(resolved.map((r) => [r.rule.id, r]));

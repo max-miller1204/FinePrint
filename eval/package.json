@@ -5,6 +5,7 @@
   "license": "Apache-2.0",
   "type": "module",
   "scripts": {
+    "adversarial": "tsx runners/adversarial.ts",
     "escalation": "tsx runners/escalation.ts",
     "typecheck": "tsc --noEmit"
   },

@@ -12,9 +12,10 @@ are #15. Details: `docs/ai-pipeline.md`, "Lease pipeline (#14)".
 - `analyzeLease(input, { gemma, pack, triage? }, { signal?, onEvent? })` in
   `server/src/ai/pipeline/lease.ts`. `input` is `{ leaseId, text, locale,
   term?, today? }` (the redacted text). Returns `status: "escalated"` with
-  the triage decision, `"not_a_lease"` with the `documentType`, or
+  the triage decision, `"not_a_lease"` with the `documentType` and the not-a-lease `message`, or
   `"analyzed"` with `term`, `clauses`, `keyTerms`, `checks`, `mappings`,
-  `injection`, `drops`, and `usage`.
+  `injection` (with the `info` finding, [adversarial-input](adversarial-input.md)),
+  `drops`, and `usage`.
 - S1: `triage.check({ source: "lease" })`; escalation stops before any lease call.
 - S2: the `extraction` stage (26B, `json` mode, output cap of half the chunk's characters in tokens, 4,096 to 16,384),
   per chunk of at most 40,000 characters: `documentType`, `aiInstructions`,

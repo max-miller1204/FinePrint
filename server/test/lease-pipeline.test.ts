@@ -496,7 +496,7 @@ describe('analyzeLease', () => {
     expect(analysis.usage).toMatchObject({ models: ['gemma-4-26b-a4b-it'], fallback: false });
     expect(events.filter((e) => e.type === 'stage').map((e) => e.type === 'stage' && e.stage)).toEqual(['S1', 'S2', 'S3', 'S4', 'S5', 'S6']);
     expect(events.find((e) => e.type === 'keyterms')).toMatchObject({ keyTerms: expect.arrayContaining([expect.objectContaining({ name: 'lateFee' })]) });
-    expect(analysis.injection).toEqual({ detected: false, model: false, pattern: false });
+    expect(analysis.injection).toEqual({ detected: false, model: false, pattern: false, finding: null });
   });
 
   it('sends lease text only inside document tags and every rule summary in the mapping prompt', async () => {
