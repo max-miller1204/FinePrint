@@ -12,6 +12,7 @@ F10) get a file each as their routes land.
 | [Rentals](rentals.md) | `POST /v1/rentals`, `PATCH /v1/rentals/:id` | `tests/web/rentals.e2e.ts` | tested |
 | [Evidence uploads](evidence.md) | `POST /v1/rentals/:id/evidence`, `POST /v1/rentals/:id/evidence/:itemId/complete` | `tests/web/evidence.e2e.ts` | tested |
 | [Evidence sealing and ledger](integrity.md) | `POST /v1/rentals/:id/seal`, `GET /v1/rentals/:id/ledger`, `GET /v1/rentals/:id/manifests/:manifestId`, `DELETE /v1/rentals/:id/evidence/:itemId`, `GET /.well-known/fineprint-keys.json` | `tests/web/integrity.e2e.ts` | tested |
+| [Rule pack](rule-pack.md) | none (internal; first caller #14) | `server/test/rules.test.ts`, `pnpm check:jurisdictions`, `node scripts/refresh-snapshots.ts` (live) | unit and CI tested |
 | [Gemma client](gemma-client.md) | none (internal; first caller #14) | `server/test/gemma.test.ts`, `pnpm smoke:gemma` (live) | unit and live tested |
 | [Deploy to Cloud Run](deploy.md) | `./deploy.sh`, the Cloud Run URL | `tests/deployed/deploy.e2e.ts` (`e2e.deployed.config.ts`) | tested |
 
@@ -19,11 +20,12 @@ F10) get a file each as their routes land.
 
 Each one gets a file in this folder as its routes land. So far only F2's
 evidence uploads and sealing have them ([evidence](evidence.md),
-[integrity](integrity.md)).
+[integrity](integrity.md)), plus F1's [rule pack](rule-pack.md), which
+has no route.
 
 | Feature | Route | Board issues | Status |
 | --- | --- | --- | --- |
-| F1 Lease Explainer | `/v1` lease routes and the SSE stream; rule pack and pipeline behind them | #12, #13, #14, #15, #16, #19, #20 | not built |
+| F1 Lease Explainer | `/v1` lease routes and the SSE stream; rule pack and pipeline behind them | #12, #13, #14, #15, #16, #19, #20 | rule pack schema, loader, check registry, and resolver built (#12, [rule-pack](rule-pack.md)); rules, pipeline, and routes not built |
 | F2 Move-in Evidence | `/v1` evidence upload (signed URLs), seal, and ledger routes | #23, #24, #26 | upload URLs and hash check built (#23); seal, ledger, and delete built (#24); damage analysis not built |
 | F3 Landlord Report Diff + 5-Day Objection | `/v1` landlord report extract, diff, and objection draft routes | #28, #30 | not built |
 | F4 Responsibility Check | `/v1` responsibility check route | #31 | not built |
@@ -46,5 +48,5 @@ tests in this map do not run in CI yet; run them locally before a PR.
 | lint | `pnpm lint` (Biome, recommended rules, no formatter) | any lint error; warnings pass |
 | typecheck | `pnpm typecheck` | a `tsc` error in any workspace with a `typecheck` script |
 | unit tests | `pnpm test` | a failing vitest test in any workspace with a `test` script (emulator tests excluded) |
-| jurisdictions schema | `pnpm check:jurisdictions` | invalid JSON under `jurisdictions/`, or a rule that fails `jurisdictions/schema/rule.schema.json` |
+| jurisdictions schema | `pnpm check:jurisdictions` | invalid JSON under `jurisdictions/`, a rule that fails `jurisdictions/schema/rule.schema.json`, or a `statuteQuote` not verbatim in its snapshot |
 | gitleaks | gitleaks 8.30.1, `gitleaks git` | a secret in any commit reachable from HEAD |

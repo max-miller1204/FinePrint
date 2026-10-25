@@ -1,0 +1,97 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/max-miller1204/FinePrint/jurisdictions/schema/rule.schema.json",
+  "title": "FinePrint rule",
+  "description": "One legal rule in a jurisdiction's rule pack (spec §7.4). Each version quotes the statute verbatim from a dated snapshot; CI checks the quote is in the snapshot.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "id",
+    "jurisdiction",
+    "citation",
+    "sourceUrl",
+    "versions",
+    "checkType",
+    "summaryForModel",
+    "paraphraseExamples",
+    "tenantExplanation",
+    "action",
+    "severityIfViolated"
+  ],
+  "properties": {
+    "id": {
+      "description": "Stable ID, prefixed with the jurisdiction. The file is named <id>.json.",
+      "type": "string",
+      "pattern": "^[A-Z]{2}_[A-Z0-9_]+$"
+    },
+    "jurisdiction": {
+      "description": "Two-letter code; matches the pack's folder name upper-cased.",
+      "type": "string",
+      "pattern": "^[A-Z]{2}$"
+    },
+    "citation": { "type": "string", "minLength": 1 },
+    "sourceUrl": { "type": "string", "format": "uri", "pattern": "^https://" },
+    "versions": {
+      "description": "Effective-dated versions, oldest first, not overlapping. effectiveUntil is exclusive (the next version's effectiveFrom); null means in force with no end date.",
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["effectiveFrom", "effectiveUntil", "statuteQuote", "snapshotFile"],
+        "properties": {
+          "effectiveFrom": { "type": "string", "format": "date" },
+          "effectiveUntil": { "type": ["string", "null"], "format": "date" },
+          "statuteQuote": {
+            "description": "Verbatim text from the snapshot's body.",
+            "type": "string",
+            "minLength": 1
+          },
+          "snapshotFile": {
+            "description": "Path relative to the pack folder.",
+            "type": "string",
+            "pattern": "^snapshots/[^/]+\\.txt$"
+          }
+        }
+      }
+    },
+    "checkType": { "enum": ["deterministic", "semantic", "informational"] },
+    "deterministic": {
+      "description": "A check in server/src/rules/checks.ts, and the lease key terms it reads.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["fn", "inputs"],
+      "properties": {
+        "fn": { "type": "string", "pattern": "^[a-z][A-Za-z0-9]*$" },
+        "inputs": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "type": "string", "pattern": "^[a-z][A-Za-z0-9]*$" }
+        }
+      }
+    },
+    "summaryForModel": { "type": "string", "minLength": 1 },
+    "paraphraseExamples": {
+      "description": "Lease wording that this rule covers, for the mapping prompt.",
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "tenantExplanation": { "type": "string", "minLength": 1 },
+    "action": { "type": "string", "minLength": 1 },
+    "severityIfViolated": { "enum": ["unenforceable", "ask", "info"] },
+    "verifiedBy": {
+      "description": "The person who checked every quote and subsection against the snapshot. Set with verifiedAt, by a human, never by a tool.",
+      "type": "string",
+      "minLength": 1
+    },
+    "verifiedAt": { "type": "string", "format": "date" }
+  },
+  "dependentRequired": {
+    "verifiedBy": ["verifiedAt"],
+    "verifiedAt": ["verifiedBy"]
+  },
+  "if": { "properties": { "checkType": { "const": "deterministic" } }, "required": ["checkType"] },
+  "then": { "properties": { "deterministic": true }, "required": ["deterministic"] },
+  "else": { "properties": { "deterministic": false } }
+}
