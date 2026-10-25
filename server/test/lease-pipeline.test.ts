@@ -469,6 +469,16 @@ describe('S6 mechanical verification', () => {
     ]);
   });
 
+  it('diagnoses a rejected quote using only ids within the batch, without logging lease text', () => {
+    const warnings: unknown[] = [];
+    const log = { debug: () => {}, info: () => {}, error: () => {}, warn: (message: string, fields?: unknown) => { warnings.push({ message, fields }); } };
+    const drops: Drop[] = [];
+    expect(verifyMappings([map({ clauseId: 'c1' })], { ...ctx(), log }, drops)).toEqual([]);
+    expect(warnings).toEqual([{ message: 'mapping quote rejected', fields: { clauseId: 'c1', ruleIds: 'VA_NO_RIGHTS_WAIVER', matchingClauseIds: 'c2' } }]);
+    expect(JSON.stringify(warnings)).not.toContain('Tenant waives');
+    expect(drops).toEqual([{ stage: 'S6', reason: 'lease_quote_not_in_clause', ref: 'c1' }]);
+  });
+
   it('drops unknown clauses, unknown rules, and rules not in force for the lease dates', () => {
     const drops: Drop[] = [];
     const out = verifyMappings(

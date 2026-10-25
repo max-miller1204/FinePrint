@@ -220,3 +220,13 @@ Quote rejection logs contain only claimed ids, rule ids, and matching ids
 within the batch, never lease text. The max-40 packing guard is unchanged.
 The previous failed runs remain evidence; this candidate requires its own
 live smoke and eval before readiness can change.
+
+Candidate 1 (`7217cc8`) matched baseline: 8/8 plants, zero false positives on
+both clean variants, 158/158 citations, and short smoke 5/5. Its long leases
+took 330/348/310 seconds with 47/51/52 informational findings, so it retained
+less of the speed gain than intended. Candidate 2 keeps the same max-40
+packing and opaque IDs, but separates exhaustive review from selective
+reporting: omit routine compliant clauses while retaining every supported
+violation or concrete ambiguity. Numeric comparisons explicitly preserve
+multipliers when prorating monthly charges. Each candidate has its own
+recorded live runs; no run is discarded to seek a passing result.

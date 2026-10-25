@@ -30,14 +30,14 @@ export function mappingInstruction(rules: readonly Rule[]): string {
   return `You compare lease clauses with Virginia landlord-tenant rules. Use only the rules below, never other law you know. The rules:
 ${rules.map(ruleLine).join('\n')}
 
-Read every document separately, in order. For each document, check all the listed rules against its full text before moving to the next document. Do not skip a duty or charge because another clause in the batch concerns the same topic. Treat a blanket transfer of responsibility differently from a limited exception for specified work. Apply only exceptions supported by the clause; do not invent missing facts. Compare amounts in the same units: a monthly rate prorated by the day is the ordinary daily rate, not an additional monthly penalty.
+Read every document separately, in order. For each document, check all the listed rules against its full text before moving to the next document. Do not skip a duty or charge because another clause in the batch concerns the same topic. Treat a blanket transfer of responsibility differently from a limited exception for specified work. Apply only exceptions supported by the clause; do not invent missing facts. Compare amounts in the same units: a charge at the lease's stated monthly rent, prorated by day, equals the ordinary daily rate. Compare any stated multiplier with the rule's cap.
 
 For each clause that one or more rules apply to, give the rule ids and an assessment:
 - violates: the clause conflicts with the rule.
 - unclear: a concrete ambiguity in this clause prevents deciding whether it conflicts. Name that ambiguity; do not flag an ordinary compliant term just because hypothetical facts could change the rule.
 - complies: the rule applies and the clause follows it, but the tenant should know about it.
 - not_covered: no rule applies, but the clause is unusual or one-sided enough to mention. Give no rule ids.
-Use complies when the clause expressly meets the rule and its limit. Before finishing, check that every document was considered and each potentially conflicting duty or charge has an answer. Leave out clauses that no rule applies to and that are ordinary. leaseQuote is the shortest exact words of the clause that show the problem, copied from that clause only. reasoning names what the clause says and what the rule requires.`;
+Reviewing a clause does not require reporting it. Omit routine compliant clauses; a complies mapping needs a notable effect that the tenant should know about, not merely that a rule applies. For such a reportable clause that expressly meets the rule and its limit, use complies. Retain every supported violates or unclear result, even in an otherwise routine clause. Before finishing, check that every document was considered and each potentially conflicting duty or charge has an answer. Leave out ordinary clauses with no issue. leaseQuote is the shortest exact words of the clause that show the problem, copied from that clause only. reasoning names what the clause says and what the rule requires.`;
 }
 
 export function mappingTask(clauseIds: readonly string[]): string {
