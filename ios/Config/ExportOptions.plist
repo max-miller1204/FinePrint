@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!-- Used by .github/workflows/testflight.yml (#53). The workflow adds teamID from the APPLE_TEAM_ID variable. -->
+	<key>method</key>
+	<string>app-store-connect</string>
+	<!-- Upload straight to App Store Connect during -exportArchive. -->
+	<key>destination</key>
+	<string>upload</string>
+	<!-- Cloud-managed signing: Xcode makes the certificate and profile with the API key. -->
+	<key>signingStyle</key>
+	<string>automatic</string>
+	<!-- The workflow sets the build number, so App Store Connect must not change it. -->
+	<key>manageAppVersionAndBuildNumber</key>
+	<false/>
+	<key>uploadSymbols</key>
+	<true/>
+	<!-- Testers outside the internal group can be added once the build passes beta review. -->
+	<key>testFlightInternalTestingOnly</key>
+	<false/>
+</dict>
+</plist>

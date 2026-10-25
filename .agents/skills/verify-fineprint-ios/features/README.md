@@ -22,6 +22,7 @@ crash report, and the gate (`scripts/ios-gate/gate.ts`) won't rerun it.
 | [Move-in walkthrough](walkthrough.md) | Evidence tab: Start Move-In Walkthrough, rooms, checklist, Mark No Damage, Seal Move-In Report (#25) | `tests/ios/walkthrough.e2e.ts`, `ios/FinePrintTests/WalkthroughTests.swift` | tested |
 | [Lease scan, OCR, and redaction review](lease-scan.md) | Lease tab: Scan Lease or Import PDF, redaction review, What Gets Sent; DEBUG fixture lease `-FinePrintFixtureLease <pdf>` (#17) | `tests/ios/lease.e2e.ts`, `ios/FinePrintTests/LeaseRedactionTests.swift` | tested |
 | [Deadlines and reminders](deadlines.md) | Next-deadline accessory; Evidence tab deadline cards, Remind Me, deposit tracker | `tests/ios/deadlines.e2e.ts`, `ios/FinePrintTests/DeadlineStoreTests.swift` | tested |
+| [TestFlight distribution](testflight.md) | No screen: the build testers install from TestFlight (#53) | `.github/workflows/testflight.yml` (archive, server URL check, upload) | tested by the workflow; not on a device here |
 
 ## Planned features (spec §4.3)
 
