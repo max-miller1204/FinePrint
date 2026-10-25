@@ -230,3 +230,7 @@ reporting: omit routine compliant clauses while retaining every supported
 violation or concrete ambiguity. Numeric comparisons explicitly preserve
 multipliers when prorating monthly charges. Each candidate has its own
 recorded live runs; no run is discarded to seek a passing result.
+
+The strict HTTP timing mode now also requires all five semantic plants on
+their actual clauses, alongside the existing three deterministic plants.
+A fast stream with valid JSON is insufficient if S6 discarded findings.

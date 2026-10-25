@@ -178,6 +178,23 @@ describe('Lease API and SSE stream', { platforms: ['web'] }, () => {
     expect(lease).toMatchObject({ status: 'analyzed', documentType: 'residential_lease', term: { start: '2026-11-01', end: '2027-10-31' } });
     expect(lease.findings).toEqual(findings.map((e) => e.data));
     expect(lease.keyTerms).toEqual(events.find((e) => e.event === 'keyterms')!.data.keyTerms);
+    if (process.env.E2E_PACKED_LEASE_TIMING === '1') {
+      // Timing alone must not hide lost semantic plants after quote verification.
+      for (const [ruleId, prefix] of Object.entries({
+        VA_NO_RIGHTS_WAIVER: '19. WAIVER',
+        VA_NO_CONFESSION_OF_JUDGMENT: '20. CONFESSION',
+        VA_NO_EXCULPATION_INDEMNITY: '17. LIABILITY',
+        VA_NO_LANDLORD_ATTORNEY_FEES: '21. ATTORNEY',
+        VA_LANDLORD_MAINTAIN_FIT: '10. MAINTENANCE',
+      })) {
+        const clause = lease.clauses.find((c: { verbatim: string }) => c.verbatim.startsWith(prefix));
+        expect(clause).toBeDefined();
+        expect(lease.findings).toEqual(expect.arrayContaining([expect.objectContaining({
+          ruleId, clauseId: clause.id, primaryAssessment: expect.stringMatching(/^(violates|unclear)$/),
+        })]));
+      }
+    }
+
 
     const stored = await storedDocs(`rentals/${rentalId}/leases/${leaseId}/findings`);
     expect(stored.documents).toHaveLength(findings.length);
