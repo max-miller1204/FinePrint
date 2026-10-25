@@ -16,6 +16,7 @@ feature in spec §4.3 (F1 to F10) gets its own file as its screens land
 | [Settings, delete everything, and the built-in server URL](settings.md) | Gear > Settings: language, reading level, impact count, Delete Everything and its receipt (#44); the Release default server URL (#78) | `tests/ios/delete-everything.e2e.ts`, `ios/FinePrintTests/DataDeletionTests.swift`, `ios/FinePrintTests/ServerURLTests.swift` | tested; share links (#35) and AI trace (#39) rows not built |
 | [Move-in walkthrough](walkthrough.md) | Evidence tab: Start Move-In Walkthrough, rooms, checklist, Mark No Damage, Seal Move-In Report (#25) | `tests/ios/walkthrough.e2e.ts`, `ios/FinePrintTests/WalkthroughTests.swift` | tested |
 | [Deadlines and reminders](deadlines.md) | Next-deadline accessory; Evidence tab deadline cards, Remind Me, deposit tracker | `tests/ios/deadlines.e2e.ts`, `ios/FinePrintTests/DeadlineStoreTests.swift` | tested |
+| [TestFlight distribution](testflight.md) | No screen: the build testers install from TestFlight (#53) | `.github/workflows/testflight.yml` (archive, server URL check, upload) | tested by the workflow; not on a device here |
 
 ## Planned features (spec §4.3)
 
